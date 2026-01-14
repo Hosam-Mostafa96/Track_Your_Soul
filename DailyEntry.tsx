@@ -4,15 +4,19 @@ import {
   Star, Users, Clock, Book, GraduationCap, Plus, Minus, Heart, ShieldAlert,
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
-  LayoutList
+  CalendarDays, ChevronRight, ChevronLeft
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
+import { format, subDays, addDays } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
 interface DailyEntryProps {
   log: DailyLog;
   onUpdate: (log: DailyLog) => void;
   customSunnahs?: CustomSunnah[];
+  currentDate: string;
+  onDateChange: (date: string) => void;
 }
 
 const PRAYER_SUNNAHS: Record<string, {id: string, label: string}[]> = {
@@ -26,7 +30,7 @@ const PRAYER_SUNNAHS: Record<string, {id: string, label: string}[]> = {
   [PrayerName.ISHA]: [{id: 'isha_post', label: 'سنة العشاء (ركعتان بعدية)'}]
 };
 
-const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = [] }) => {
+const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = [], currentDate, onDateChange }) => {
   const [activePrayer, setActivePrayer] = useState<PrayerName>(PrayerName.FAJR);
 
   const updateSection = (section: keyof DailyLog, data: any) => {
@@ -102,7 +106,43 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
   const isPerformed = log.prayers[activePrayer].performed;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 animate-in fade-in duration-500">
+      {/* منتقي التاريخ الذكي */}
+      <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+        <button 
+          onClick={() => onDateChange(format(subDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))}
+          className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+        
+        <div className="flex-1 flex flex-col items-center">
+          <div className="flex items-center gap-2 mb-1">
+            <CalendarDays className="w-4 h-4 text-emerald-500" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">تاريخ التسجيل</span>
+          </div>
+          <div className="relative w-full text-center">
+            <input 
+              type="date" 
+              value={currentDate}
+              onChange={(e) => onDateChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            />
+            <span className="text-sm font-bold text-emerald-700 header-font bg-emerald-50 px-4 py-1.5 rounded-xl border border-emerald-100 block">
+              {format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM yyyy', { locale: ar })}
+            </span>
+          </div>
+        </div>
+
+        <button 
+          onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))}
+          disabled={currentDate === format(new Date(), 'yyyy-MM-dd')}
+          className={`p-2 rounded-xl transition-colors ${currentDate === format(new Date(), 'yyyy-MM-dd') ? 'text-slate-200 cursor-not-allowed' : 'hover:bg-slate-50 text-slate-400'}`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      </div>
+
       {/* قسم الصلاة والسنن الرواتب */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
@@ -119,12 +159,12 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
           </button>
         </div>
 
-        <div className="flex justify-between gap-1 mb-8 bg-slate-50 p-1.5 rounded-2xl">
+        <div className="flex justify-between gap-1 mb-8 bg-slate-50 p-1.5 rounded-2xl overflow-x-auto no-scrollbar">
           {Object.values(PrayerName).map((p) => (
             <button
               key={p}
               onClick={() => setActivePrayer(p as PrayerName)}
-              className={`flex-1 py-3 rounded-xl transition-all flex flex-col items-center gap-1 ${
+              className={`flex-1 min-w-[3.5rem] py-3 rounded-xl transition-all flex flex-col items-center gap-1 ${
                 activePrayer === p 
                 ? 'bg-white shadow-md text-emerald-600' 
                 : 'text-slate-400 hover:text-slate-600'
@@ -161,7 +201,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
             </div>
           </div>
 
-          {/* سنن ما حول الصلاة */}
           <div className="space-y-3 pt-2 border-t border-slate-100">
             <div className="flex items-center gap-2 px-1"><MapPin className="w-4 h-4 text-emerald-500" /><h4 className="font-bold text-slate-700 text-[11px] header-font uppercase tracking-wider">سنن ما حول الصلاة</h4></div>
             <div className="flex flex-wrap gap-2">
@@ -173,7 +212,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
             </div>
           </div>
 
-          {/* مستوى الخشوع */}
           <div className="space-y-4 px-2 pt-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2"><Heart className="w-4 h-4 text-rose-500" /><span className="text-sm font-bold text-slate-700 header-font">مستوى الخشوع</span></div>
@@ -184,7 +222,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         </div>
       </div>
 
-      {/* المجاهدة والعبء الروحي */}
+      {/* بقية الأقسام: القرآن، الأذكار، النوافل... كما هي */}
       <div className="flex gap-4">
         <div className="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-2"><span className="text-[10px] font-bold text-slate-500 header-font">معامل المجاهدة</span><Heart className={`w-4 h-4 ${log.jihadFactor > 1 ? 'text-rose-500 fill-rose-500' : 'text-slate-300'}`} /></div>
@@ -197,7 +235,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         <button onClick={() => onUpdate({ ...log, hasBurden: !log.hasBurden })} className={`flex-1 p-4 rounded-2xl shadow-sm border transition-all flex flex-col items-center justify-center ${log.hasBurden ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'}`}><ShieldAlert className={`w-5 h-5 mb-1 ${log.hasBurden ? 'text-amber-500' : 'text-slate-300'}`} /><span className={`text-[10px] font-bold header-font ${log.hasBurden ? 'text-amber-700' : 'text-slate-400'}`}>عبء روحي</span></button>
       </div>
 
-      {/* ورد القرآن الكريم */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><Book className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">ورد القرآن (بالأرباع)</h3></div>
         <div className="space-y-4">
@@ -214,7 +251,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         </div>
       </div>
 
-      {/* الأذكار والتحصين */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><ScrollText className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">الأذكار والتحصين</h3></div>
         <div className="grid grid-cols-2 gap-3 mb-6">
@@ -226,7 +262,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
               travel: { label: 'سفر', icon: <MapPin className="w-4 h-4" /> }
             };
             return (
-              <button key={id} onClick={() => updateSection('athkar', { checklists: { ...log.athkar.checklists, [id]: !log.athkar.checklists[id] } })} className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${log.athkar.checklists[id] ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+              <button key={id} onClick={() => updateSection('athkar', { checklists: { ...log.athkar.checklists, [id]: !log.athkar.checklists[id] } })} className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${log.athkar.checklists[id] ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
                 {labels[id].icon} <span className="text-xs font-bold header-font">{labels[id].label}</span>
               </button>
             );
@@ -241,7 +277,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         </div>
       </div>
 
-      {/* نوافل الصلاة والقيام */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><Clock className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">نوافل الصلاة والقيام</h3></div>
         <div className="space-y-4">
@@ -265,7 +300,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         </div>
       </div>
 
-      {/* طلب العلم والقراءة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><GraduationCap className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">طلب العلم والقراءة</h3></div>
         <div className="space-y-4">

@@ -12,7 +12,8 @@ import {
   Medal,
   Calendar,
   ChevronDown,
-  Mail
+  Mail,
+  CalendarDays
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -21,7 +22,7 @@ import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights } from 
 import { calculateTotalScore } from './utils/scoring';
 import { DEFAULT_WEIGHTS } from './constants';
 import Dashboard from './components/Dashboard';
-import DailyEntry from './DailyEntry'; // تم تعديل المسار ليكون في الجذر
+import DailyEntry from './DailyEntry';
 import WorshipHistory from './components/WorshipHistory';
 import WorshipGuide from './components/WorshipGuide';
 import WorshipTimer from './components/WorshipTimer';
@@ -66,7 +67,6 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
 
-  // --- نظام المؤقت العالمي الثابت (Global Timer) ---
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
@@ -78,7 +78,6 @@ const App: React.FC = () => {
       const { seconds, isRunning, activity, lastUpdate } = JSON.parse(savedTimer);
       setActiveActivity(activity);
       if (isRunning) {
-        // حساب الوقت الذي مضى والصفحة مغلقة
         const elapsed = Math.floor((Date.now() - lastUpdate) / 1000);
         setTimerSeconds(seconds + elapsed);
         setIsTimerRunning(true);
@@ -107,7 +106,6 @@ const App: React.FC = () => {
       lastUpdate: Date.now()
     }));
   }, [timerSeconds, isTimerRunning, activeActivity]);
-  // ---------------------------------------------
 
   useEffect(() => {
     const savedLogs = localStorage.getItem('mizan_logs');
@@ -142,21 +140,29 @@ const App: React.FC = () => {
               <UserCircle className={`w-7 h-7 ${user ? 'text-yellow-400' : 'text-white/50'}`} />
             </button>
             <h1 className="text-xl md:text-2xl font-bold header-font">إدارة العبادات والأوراد</h1>
-            <button onClick={() => setActiveTab('leaderboard')} className="p-2 hover:bg-white/10 rounded-full transition-all relative flex-shrink-0">
-              <Medal className="w-7 h-7 text-yellow-400" />
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
+                <Mail className="w-6 h-6 text-white/70" />
+              </button>
+              <button onClick={() => setActiveTab('guide')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
+                <Info className="w-6 h-6 text-white/70" />
+              </button>
+              <button onClick={() => setActiveTab('leaderboard')} className="p-2 hover:bg-white/10 rounded-full transition-all relative flex-shrink-0">
+                <Medal className="w-7 h-7 text-yellow-400" />
+              </button>
+            </div>
           </div>
           <p className="text-emerald-50 quran-font text-xl opacity-95 max-w-sm px-4">{user ? `مرحباً، ${user.name}` : '"حاسِبوا أنفسَكم قبل أن تُحاسَبوا"'}</p>
           <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md flex items-center justify-between border border-white/20 shadow-2xl relative">
             <div className="flex items-center gap-4">
               <div className="bg-yellow-400/20 p-3 rounded-2xl"><Trophy className="w-8 h-8 text-yellow-400" /></div>
               <div className="text-right">
-                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">نقاط اليوم</p>
+                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">نقاط ميزانك</p>
                 <span className="text-3xl font-bold font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
               </div>
             </div>
             <div className="h-10 w-px bg-white/10 mx-2"></div>
-            <button onClick={() => setActiveTab('dashboard')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
+            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
               <p className="text-[10px] text-emerald-200 uppercase font-bold header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
               <p className="text-lg font-semibold header-font leading-tight">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
             </button>
@@ -166,7 +172,7 @@ const App: React.FC = () => {
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
         {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('mizan_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
-        {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} customSunnahs={weights.customSunnahs} />}
+        {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} customSunnahs={weights.customSunnahs} currentDate={currentDate} onDateChange={setCurrentDate} />}
         {activeTab === 'timer' && (
           <WorshipTimer 
             isSync={isGlobalSyncEnabled} 

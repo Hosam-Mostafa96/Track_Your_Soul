@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { Flame, TrendingUp, Target, Medal, Sparkles, Edit2, Check, Settings, CalendarDays, BrainCircuit, X } from 'lucide-react';
+import { Flame, TrendingUp, Target, Medal, Sparkles, Edit2, Check, Settings, CalendarDays, BrainCircuit, X, Save } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -21,11 +21,12 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange, targetScore, onTargetChange, onOpenSettings }) => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiAdvice, setAiAdvice] = useState<string | null>(null);
+  const [isEditingTarget, setIsEditingTarget] = useState(false);
+  const [tempTarget, setTempTarget] = useState(targetScore.toString());
 
   const currentTotalScore = calculateTotalScore(log, weights);
   const progressPercent = Math.min((currentTotalScore / targetScore) * 100, 100);
 
-  // استخدام Gemini API لتقديم نصيحة روحية
   const getAiAdvice = async () => {
     if (isAiLoading) return;
     setIsAiLoading(true);
@@ -45,15 +46,21 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
     }
   };
 
+  const handleSaveTarget = () => {
+    const newTarget = parseInt(tempTarget);
+    if (!isNaN(newTarget) && newTarget > 0) {
+      onTargetChange(newTarget);
+      setIsEditingTarget(false);
+    }
+  };
+
   const last7Days = useMemo(() => {
     return Array.from({ length: 7 }).map((_, i) => {
-      // Manual replacement for subDays(new Date(), i)
       const dateObj = new Date();
       dateObj.setDate(dateObj.getDate() - i);
       const d = format(dateObj, 'yyyy-MM-dd');
       const l = logs[d];
       return {
-        // Manual replacement for parseISO(d)
         date: format(new Date(d.replace(/-/g, '/')), 'EEE', { locale: ar }),
         score: l ? calculateTotalScore(l, weights) : 0,
         fullDate: d
@@ -68,7 +75,7 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* زر المستشار الروحي الذكي */}
+      {/* المستشار الروحي */}
       <div className="relative group">
         <button 
           onClick={getAiAdvice}
@@ -97,20 +104,43 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
         )}
       </div>
 
+      {/* التقدم نحو الهدف وتعديله */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <Target className="w-5 h-5 text-emerald-500" />
-            <h3 className="font-bold text-slate-800 header-font">التقدم نحو الهدف</h3>
+            <h3 className="font-bold text-slate-800 header-font">الهدف اليومي</h3>
           </div>
-          <button onClick={onOpenSettings} className="p-2 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-            <Settings className="w-4 h-4 text-slate-400" />
-          </button>
+          <div className="flex items-center gap-2">
+            {isEditingTarget ? (
+              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200 animate-in zoom-in duration-200">
+                <input 
+                  type="number"
+                  value={tempTarget}
+                  onChange={(e) => setTempTarget(e.target.value)}
+                  className="w-16 bg-transparent border-none outline-none text-xs font-bold text-emerald-700 text-center"
+                  autoFocus
+                />
+                <button onClick={handleSaveTarget} className="p-1 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600">
+                  <Save className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setIsEditingTarget(true)} 
+                className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl transition-all border border-transparent hover:border-slate-200"
+              >
+                <span className="text-xs font-bold header-font">{targetScore.toLocaleString()}</span>
+                <Edit2 className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
+        
         <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden mb-2 relative">
           <div className="bg-emerald-500 h-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%` }} />
         </div>
-        <div className="flex justify-between text-[10px] font-bold text-slate-400 px-1 header-font">
+        <div className="flex justify-between text-[10px] font-bold text-slate-400 px-1 header-font uppercase tracking-wider">
           <span>{Math.round(progressPercent)}% تم إنجازه</span>
           <span>المتبقي: {Math.max(0, targetScore - currentTotalScore).toLocaleString()}</span>
         </div>

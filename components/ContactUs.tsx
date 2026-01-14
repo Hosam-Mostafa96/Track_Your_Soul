@@ -8,7 +8,7 @@ const ContactUs: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-      {/* Header Card */}
+      {/* هيدر تواصل معنا */}
       <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -20,7 +20,7 @@ const ContactUs: React.FC = () => {
         </div>
       </div>
 
-      {/* Telegram Channel Card */}
+      {/* قناة التليجرام */}
       <a 
         href={telegramChannel} 
         target="_blank" 
@@ -38,7 +38,7 @@ const ContactUs: React.FC = () => {
             </div>
           </div>
           <div className="bg-slate-50 p-2 rounded-xl group-hover:bg-emerald-50 transition-colors">
-            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-emerald-500" />
+            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-emerald-50" />
           </div>
         </div>
         <div className="mt-4 flex items-center gap-2 text-blue-600 font-bold text-xs header-font bg-blue-50/50 p-2 rounded-xl w-fit">
@@ -47,7 +47,7 @@ const ContactUs: React.FC = () => {
         </div>
       </a>
 
-      {/* Telegram Bot Card */}
+      {/* بوت التواصل */}
       <a 
         href={telegramBot} 
         target="_blank" 
@@ -65,7 +65,7 @@ const ContactUs: React.FC = () => {
             </div>
           </div>
           <div className="bg-slate-50 p-2 rounded-xl group-hover:bg-emerald-50 transition-colors">
-            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-emerald-500" />
+            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-emerald-50" />
           </div>
         </div>
         <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-xs header-font bg-emerald-50/50 p-2 rounded-xl w-fit">
@@ -74,7 +74,6 @@ const ContactUs: React.FC = () => {
         </div>
       </a>
 
-      {/* Community Info */}
       <div className="bg-slate-800 text-white rounded-3xl p-6 shadow-lg">
         <div className="flex items-start gap-4">
           <div className="p-3 bg-white/10 rounded-2xl">
