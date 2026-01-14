@@ -46,6 +46,23 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     }
   };
 
+  const sendStopSignal = async () => {
+    if (!isSync || GOOGLE_STATS_API.includes("FIX_ME")) return;
+    try {
+        await fetch(GOOGLE_STATS_API, { 
+            method: 'POST', 
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                action: 'stop',
+                id: anonId.current
+            }) 
+        });
+    } catch (e) {
+        console.error("Failed to send stop signal");
+    }
+  };
+
   useEffect(() => {
     if (isRunning && isSync) {
       syncRef.current = window.setInterval(sendHeartbeat, 60000);
@@ -55,6 +72,23 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     }
     return () => { if (syncRef.current) clearInterval(syncRef.current); };
   }, [isRunning, isSync, selectedActivity]);
+
+  const handleToggle = () => {
+    if (isRunning) {
+        sendStopSignal();
+    }
+    onToggle();
+  };
+
+  const handleReset = () => {
+    sendStopSignal();
+    onReset();
+  };
+
+  const handleApply = () => {
+    sendStopSignal();
+    onApplyTime(selectedActivity, Math.floor(seconds / 60));
+  };
 
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor((totalSeconds % 3600) / 60);
@@ -112,9 +146,9 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
         </div>
 
         <div className="flex items-center gap-8">
-          <button onClick={onReset} className="p-4 bg-slate-100 text-slate-400 rounded-2xl transition-all hover:bg-slate-200"><RotateCcw className="w-5 h-5" /></button>
-          <button onClick={onToggle} className={`p-8 rounded-full shadow-2xl transition-all ${isRunning ? 'bg-amber-500 shadow-amber-200' : 'bg-emerald-600 shadow-emerald-200'}`}>{isRunning ? <Pause className="w-8 h-8 text-white fill-white" /> : <Play className="w-8 h-8 text-white fill-white ml-1" />}</button>
-          <button onClick={() => onApplyTime(selectedActivity, Math.floor(seconds / 60))} className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl transition-all hover:bg-emerald-200"><CheckCircle2 className="w-5 h-5" /></button>
+          <button onClick={handleReset} className="p-4 bg-slate-100 text-slate-400 rounded-2xl transition-all hover:bg-slate-200"><RotateCcw className="w-5 h-5" /></button>
+          <button onClick={handleToggle} className={`p-8 rounded-full shadow-2xl transition-all ${isRunning ? 'bg-amber-500 shadow-amber-200' : 'bg-emerald-600 shadow-emerald-200'}`}>{isRunning ? <Pause className="w-8 h-8 text-white fill-white" /> : <Play className="w-8 h-8 text-white fill-white ml-1" />}</button>
+          <button onClick={handleApply} className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl transition-all hover:bg-emerald-200"><CheckCircle2 className="w-5 h-5" /></button>
         </div>
       </div>
     </div>

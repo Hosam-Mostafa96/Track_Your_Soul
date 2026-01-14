@@ -5,6 +5,29 @@ import { Send, MessageSquare, Bell, LifeBuoy, Share2, ExternalLink, Globe } from
 const ContactUs: React.FC = () => {
   const telegramChannel = "https://t.me/hmis_96";
   const telegramBot = "https://t.me/hmis96_bot";
+  const appUrl = "https://track-your-soul.vercel.app/";
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'تطبيق الميزان - إدارة العبادات',
+          text: 'انضم إلي في رحلة محاسبة النفس والارتقاء الروحي عبر تطبيق الميزان.',
+          url: appUrl,
+        });
+      } catch (err) {
+        console.error("Share failed", err);
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(appUrl);
+        alert("تم نسخ رابط التطبيق بنجاح!");
+      } catch (err) {
+        alert("فشل نسخ الرابط، يمكنك نسخه يدوياً: " + appUrl);
+      }
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -74,7 +97,10 @@ const ContactUs: React.FC = () => {
         </div>
       </a>
 
-      <div className="bg-slate-800 text-white rounded-3xl p-6 shadow-lg">
+      <button 
+        onClick={handleShare}
+        className="w-full bg-slate-800 text-white rounded-3xl p-6 shadow-lg hover:bg-slate-900 transition-all active:scale-[0.98] text-right"
+      >
         <div className="flex items-start gap-4">
           <div className="p-3 bg-white/10 rounded-2xl">
             <Share2 className="w-5 h-5 text-emerald-400" />
@@ -82,15 +108,15 @@ const ContactUs: React.FC = () => {
           <div>
             <h4 className="font-bold header-font text-sm mb-1">ساهم في نشر الخير</h4>
             <p className="text-xs text-slate-300 leading-relaxed font-bold header-font">
-              الدال على الخير كفاعله، شارك التطبيق مع من تحب ليكون لك أجر كل عبادة تُسجل من خلاله.
+              الدال على الخير كفاعله، شارك التطبيق مع من تحب ليكون لك أجر كل عبادة تُسجل من خلاله. اضغط لمشاركة الرابط.
             </p>
           </div>
         </div>
-      </div>
+      </button>
 
       <div className="text-center p-4">
         <p className="text-[10px] text-slate-400 font-bold header-font italic">
-          إصدار التطبيق v2.1.0 • تم التطوير بكل حب لخدمة أمة الإسلام
+          إصدار التطبيق v2.2.0 • تم التطوير بكل حب لخدمة أمة الإسلام
         </p>
       </div>
     </div>
