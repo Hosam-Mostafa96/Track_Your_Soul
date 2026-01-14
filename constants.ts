@@ -21,7 +21,6 @@ export const DEFAULT_WEIGHTS: AppWeights = {
   athkarCounter: 1,
   nawafilPerMin: 5,
   fastingDay: 1000,
-  supplicationAloud: 300, // قيمة نقاط الجؤار بالدعاء
   customSunnahs: []
 };
 

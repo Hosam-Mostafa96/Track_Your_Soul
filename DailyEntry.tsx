@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Star, Users, Clock, Book, GraduationCap, Plus, Minus, Heart, ShieldAlert,
@@ -5,8 +6,8 @@ import {
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
   Volume2, Waves
 } from 'lucide-react';
-import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah } from '../types';
-import { SURROUNDING_SUNNAH_LIST } from '../constants';
+import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah } from './types';
+import { SURROUNDING_SUNNAH_LIST } from './constants';
 
 interface DailyEntryProps {
   log: DailyLog;
@@ -321,7 +322,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
           {[
             { label: 'حفظ جديد', field: 'hifzRub' },
             { label: 'مراجعة', field: 'revisionRub' }
-          ].map(q => (
+          ].map((q: any) => (
             <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
               <span className="text-sm font-bold text-slate-700 header-font">{q.label}</span>
               <div className="flex items-center gap-3">
@@ -348,7 +349,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
             { id: 'morning', label: 'صباح', icon: <Sun className="w-4 h-4" /> },
             { id: 'evening', label: 'مساء', icon: <Moon className="w-4 h-4" /> },
             { id: 'sleep', label: 'نوم', icon: <Coffee className="w-4 h-4" /> },
-            { id: 'travel', label: 'سفر', icon: <Map className="w-4 h-4" /> }
+            { id: 'travel', label: 'سفر', icon: <MapPin className="w-4 h-4" /> }
           ].map(a => (
             <button
               key={a.id}

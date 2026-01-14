@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   LayoutDashboard, 
@@ -51,6 +52,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
   jihadFactor: JihadFactor.NORMAL,
   hasBurden: false,
   isRepented: true,
+  // Fix: Initialize the new isSupplicatingAloud property
   isSupplicatingAloud: false,
   notes: ''
 });

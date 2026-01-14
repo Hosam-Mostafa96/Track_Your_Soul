@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { 
   Star, Users, Clock, Book, GraduationCap, Plus, Minus, Heart, ShieldAlert,
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
-  MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
-  Volume2, Waves
+  MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah } from '../types';
 import { SURROUNDING_SUNNAH_LIST } from '../constants';
@@ -14,7 +13,7 @@ interface DailyEntryProps {
   customSunnahs?: CustomSunnah[];
 }
 
-const PRAYER_SUNNAHS: Record<PrayerName, {id: string, label: string}[]> = {
+const PRAYER_SUNNAHS: Record<string, {id: string, label: string}[]> = {
   [PrayerName.FAJR]: [{id: 'fajr_pre', label: 'سنة الفجر (ركعتان قبلية)'}],
   [PrayerName.DHUHR]: [
     {id: 'dhuhr_pre', label: 'سنة الظهر (4 ركعات قبلية)'},
@@ -161,7 +160,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
               <h4 className="font-bold text-slate-700 text-[11px] header-font uppercase tracking-wider">السنن الرواتب</h4>
             </div>
             <div className="grid grid-cols-1 gap-2">
-              {PRAYER_SUNNAHS[activePrayer].map((sunnah) => (
+              {(PRAYER_SUNNAHS[activePrayer] || []).map((sunnah) => (
                 <button
                   key={sunnah.id}
                   onClick={() => toggleSunnah(activePrayer, sunnah.id)}
@@ -223,32 +222,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden group">
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className={`p-4 rounded-2xl bg-white/20 backdrop-blur-md shadow-inner transition-transform ${log.isSupplicatingAloud ? 'scale-110' : ''}`}>
-              {log.isSupplicatingAloud ? <Waves className="w-6 h-6 animate-pulse" /> : <Volume2 className="w-6 h-6 opacity-60" />}
-            </div>
-            <div>
-              <h3 className="font-bold header-font text-lg">يجأرون بالدعاء الآن</h3>
-              <p className="text-[10px] font-bold opacity-80 header-font uppercase tracking-widest">تضرع، ابتهال، استغاثة صادقة</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => onUpdate({ ...log, isSupplicatingAloud: !log.isSupplicatingAloud })}
-            className={`px-6 py-2 rounded-2xl font-bold header-font text-xs transition-all border-2 ${log.isSupplicatingAloud ? 'bg-white text-purple-700 border-white shadow-lg' : 'bg-transparent border-white/30 text-white hover:bg-white/10'}`}
-          >
-            {log.isSupplicatingAloud ? 'تم بفضل الله' : 'سجل ابتهالك'}
-          </button>
-        </div>
-        {log.isSupplicatingAloud && (
-            <p className="mt-4 text-center text-[11px] font-bold quran-font italic opacity-90 border-t border-white/20 pt-3">
-                "أمن يجيب المضطر إذا دعاه ويكشف السوء"
-            </p>
-        )}
-      </div>
-
-      {customSunnahs.length > 0 && (
+      {(customSunnahs || []).length > 0 && (
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
           <div className="flex items-center gap-2 mb-6">
             <Tags className="w-5 h-5 text-emerald-500" />
@@ -305,17 +279,17 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         </div>
         <div className="space-y-4">
           {[
-            { label: 'حفظ جديد', field: 'hifzRub' },
-            { label: 'مراجعة', field: 'revisionRub' }
+            { label: 'حفظ جديد', field: 'hifzRub' as const },
+            { label: 'مراجعة', field: 'revisionRub' as const }
           ].map(q => (
             <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
               <span className="text-sm font-bold text-slate-700 header-font">{q.label}</span>
               <div className="flex items-center gap-3">
-                <button onClick={() => updateSection('quran', { [q.field]: Math.max(0, (log.quran as any)[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Minus className="w-4 h-4 text-slate-400" /></button>
+                <button onClick={() => updateSection('quran', { [q.field]: Math.max(0, log.quran[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Minus className="w-4 h-4 text-slate-400" /></button>
                 <div className="bg-white border border-slate-200 rounded-xl px-4 py-1.5 min-w-[3.5rem] flex items-center justify-center">
-                  <span className="text-xl font-black text-slate-800 header-font tabular-nums">{(log.quran as any)[q.field]}</span>
+                  <span className="text-xl font-black text-slate-800 header-font tabular-nums">{log.quran[q.field]}</span>
                 </div>
-                <button onClick={() => updateSection('quran', { [q.field]: (log.quran as any)[q.field] + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Plus className="w-4 h-4 text-slate-400" /></button>
+                <button onClick={() => updateSection('quran', { [q.field]: log.quran[q.field] + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Plus className="w-4 h-4 text-slate-400" /></button>
               </div>
             </div>
           ))}
@@ -328,21 +302,25 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
           <h3 className="font-bold text-slate-800 header-font text-lg">الأذكار والتحصين</h3>
         </div>
         <div className="grid grid-cols-2 gap-3 mb-6">
-          {[
-            { id: 'morning', label: 'صباح', icon: <Sun className="w-4 h-4" /> },
-            { id: 'evening', label: 'مساء', icon: <Moon className="w-4 h-4" /> },
-            { id: 'sleep', label: 'نوم', icon: <Coffee className="w-4 h-4" /> },
-            { id: 'travel', label: 'سفر', icon: <MapPin className="w-4 h-4" /> }
-          ].map(a => (
-            <button
-              key={a.id}
-              onClick={() => updateSection('athkar', { checklists: { ...log.athkar.checklists, [a.id]: !(log.athkar.checklists as any)[a.id] } })}
-              className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${ (log.athkar.checklists as any)[a.id] ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-100' : 'bg-slate-50 border-slate-100 text-slate-400 hover:border-slate-200' }`}
-            >
-              {a.icon}
-              <span className="text-xs font-bold header-font">{a.label}</span>
-            </button>
-          ))}
+          {(['morning', 'evening', 'sleep', 'travel'] as const).map(id => {
+            const labels: Record<string, {label: string, icon: React.ReactNode}> = {
+              morning: { label: 'صباح', icon: <Sun className="w-4 h-4" /> },
+              evening: { label: 'مساء', icon: <Moon className="w-4 h-4" /> },
+              sleep: { label: 'نوم', icon: <Coffee className="w-4 h-4" /> },
+              travel: { label: 'سفر', icon: <MapPin className="w-4 h-4" /> }
+            };
+            const active = log.athkar.checklists[id];
+            return (
+              <button
+                key={id}
+                onClick={() => updateSection('athkar', { checklists: { ...log.athkar.checklists, [id]: !active } })}
+                className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${ active ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-100' : 'bg-slate-50 border-slate-100 text-slate-400 hover:border-slate-200' }`}
+              >
+                {labels[id].icon}
+                <span className="text-xs font-bold header-font">{labels[id].label}</span>
+              </button>
+            );
+          })}
         </div>
         <div className="space-y-3">
           {counterItem('الصلاة على النبي', 'salawat', <Zap className="w-4 h-4" />)}
@@ -359,22 +337,25 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
           <h3 className="font-bold text-slate-800 header-font text-lg">نوافل الصلاة والقيام</h3>
         </div>
         <div className="space-y-4">
-          {[
-            { label: 'صلاة الضحى (دقيقة)', field: 'duhaDuration' },
-            { label: 'الوتر (دقيقة)', field: 'witrDuration' },
-            { label: 'قيام الليل (دقيقة)', field: 'qiyamDuration' }
-          ].map(n => (
-            <div key={n.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
-              <span className="text-xs font-bold text-slate-700 header-font">{n.label}</span>
-              <div className="flex items-center gap-3">
-                <button onClick={() => updateSection('nawafil', { [n.field]: Math.max(0, (log.nawafil as any)[n.field] - 5) })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Minus className="w-4 h-4 text-slate-400" /></button>
-                <div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center">
-                  <span className="text-base font-black text-slate-800 header-font tabular-nums">{(log.nawafil as any)[n.field]}</span>
+          {(['duhaDuration', 'witrDuration', 'qiyamDuration'] as const).map(field => {
+            const labels: Record<string, string> = {
+              duhaDuration: 'صلاة الضحى (دقيقة)',
+              witrDuration: 'الوتر (دقيقة)',
+              qiyamDuration: 'قيام الليل (دقيقة)'
+            };
+            return (
+              <div key={field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                <span className="text-xs font-bold text-slate-700 header-font">{labels[field]}</span>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => updateSection('nawafil', { [field]: Math.max(0, log.nawafil[field] - 5) })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Minus className="w-4 h-4 text-slate-400" /></button>
+                  <div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center">
+                    <span className="text-base font-black text-slate-800 header-font tabular-nums">{log.nawafil[field]}</span>
+                  </div>
+                  <button onClick={() => updateSection('nawafil', { [field]: log.nawafil[field] + 5 })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Plus className="w-4 h-4 text-slate-400" /></button>
                 </div>
-                <button onClick={() => updateSection('nawafil', { [n.field]: (log.nawafil as any)[n.field] + 5 })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Plus className="w-4 h-4 text-slate-400" /></button>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <button 
             onClick={() => updateSection('nawafil', { fasting: !log.nawafil.fasting })}
             className={`w-full p-4 rounded-3xl border flex items-center justify-between mt-4 transition-all ${log.nawafil.fasting ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-100' : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-orange-200'}`}
@@ -394,31 +375,24 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
           <h3 className="font-bold text-slate-800 header-font text-lg">طلب العلم والقراءة</h3>
         </div>
         <div className="space-y-4">
-          {[
-            { label: 'علم شرعي (دقيقة)', field: 'shariDuration' },
-            { label: 'قراءة عامة (دقيقة)', field: 'readingDuration' }
-          ].map(k => (
-            <div key={k.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
-              <span className="text-xs font-bold text-slate-700 header-font">{k.label}</span>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => updateSection('knowledge', { [k.field]: Math.max(0, (log.knowledge as any)[k.field] - 5) })} 
-                  className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"
-                >
-                  <Minus className="w-4 h-4 text-slate-400" />
-                </button>
-                <div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center">
-                  <span className="text-base font-black text-slate-800 header-font tabular-nums">{(log.knowledge as any)[k.field]}</span>
+          {(['shariDuration', 'readingDuration'] as const).map(field => {
+            const labels: Record<string, string> = {
+              shariDuration: 'علم شرعي (دقيقة)',
+              readingDuration: 'قراءة عامة (دقيقة)'
+            };
+            return (
+              <div key={field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                <span className="text-xs font-bold text-slate-700 header-font">{labels[field]}</span>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => updateSection('knowledge', { [field]: Math.max(0, log.knowledge[field] - 5) })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Minus className="w-4 h-4 text-slate-400" /></button>
+                  <div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center">
+                    <span className="text-base font-black text-slate-800 header-font tabular-nums">{log.knowledge[field]}</span>
+                  </div>
+                  <button onClick={() => updateSection('knowledge', { [field]: log.knowledge[field] + 5 })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Plus className="w-4 h-4 text-slate-400" /></button>
                 </div>
-                <button 
-                  onClick={() => updateSection('knowledge', { [k.field]: (log.knowledge as any)[k.field] + 5 })} 
-                  className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"
-                >
-                  <Plus className="w-4 h-4 text-slate-400" />
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

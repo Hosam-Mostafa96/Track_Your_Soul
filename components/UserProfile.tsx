@@ -4,7 +4,6 @@ import {
   Settings2, ChevronDown, ChevronUp, Save, RotateCcw,
   Star, Users, Clock, Book, GraduationCap, Zap, Plus, Trash2, Tags, AlertCircle, BookOpen, LayoutList,
   LockKeyhole,
-  Waves,
   Globe,
   ToggleRight,
   ToggleLeft
@@ -166,7 +165,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         )}
       </div>
 
-      {/* 2. NEW: Global Sync Section - الارتباط بالمحراب العالمي */}
+      {/* 2. Global Sync Section */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
         <div className={`absolute top-0 right-0 w-1 h-full transition-all ${isGlobalSync ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
         <div className="flex items-center justify-between">
@@ -187,14 +186,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
                 {isGlobalSync ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <ShieldCheck className="w-3 h-3 text-slate-300" />}
             </div>
           </button>
-        </div>
-        <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <p className="text-[11px] text-slate-600 font-bold leading-relaxed header-font italic">
-                {isGlobalSync 
-                  ? "أنت الآن ترسل إشارة 'مجهولة' بأنك تتعبد الآن، لتساهم في إظهار نبض الأمة الحقيقي وتشجيع الآخرين."
-                  : "مغلق: لن تظهر في أعداد المصلين الآن، ولن ترى الأعداد الحقيقية للآخرين."
-                }
-            </p>
         </div>
       </div>
 
@@ -226,7 +217,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               {weightInput('صلاة الجماعة', localWeights.fardCongregation, (val) => setLocalWeights({ ...localWeights, fardCongregation: val }), <Users className="w-4 h-4" />)}
               {weightInput('صلاة منفردة', localWeights.fardSolo, (val) => setLocalWeights({ ...localWeights, fardSolo: val }), <User className="w-4 h-4" />)}
               {weightInput('السنن الرواتب', localWeights.sunnahRawatib, (val) => setLocalWeights({ ...localWeights, sunnahRawatib: val }), <Zap className="w-4 h-4" />)}
-              {weightInput('الجؤار بالدعاء', localWeights.supplicationAloud, (val) => setLocalWeights({ ...localWeights, supplicationAloud: val }), <Waves className="w-4 h-4" />)}
             </div>
 
             <div className="space-y-3">
