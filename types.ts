@@ -1,4 +1,3 @@
-
 export enum PrayerName {
   FAJR = 'الفجر',
   DHUHR = 'الظهر',
@@ -58,6 +57,7 @@ export interface AppWeights {
   athkarCounter: number;
   nawafilPerMin: number;
   fastingDay: number;
+  supplicationAloud: number; // وزن خاصية الجؤار بالدعاء
   customSunnahs: CustomSunnah[];
 }
 
@@ -75,6 +75,7 @@ export interface DailyLog {
   jihadFactor: number;
   hasBurden: boolean;
   isRepented: boolean;
+  isSupplicatingAloud: boolean; // هل قام بالجؤار بالدعاء اليوم؟
   notes?: string;
 }
 

@@ -1,4 +1,3 @@
-
 import { SurroundingSunnah, AppWeights } from './types';
 
 export const DEFAULT_WEIGHTS: AppWeights = {
@@ -22,7 +21,8 @@ export const DEFAULT_WEIGHTS: AppWeights = {
   athkarCounter: 1,
   nawafilPerMin: 5,
   fastingDay: 1000,
-  customSunnahs: [] // قائمة فارغة افتراضياً
+  supplicationAloud: 300, // قيمة نقاط الجؤار بالدعاء
+  customSunnahs: []
 };
 
 export const TRANQUILITY_MULTIPLIERS = {

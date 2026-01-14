@@ -1,9 +1,13 @@
-
 import React, { useState } from 'react';
 import { 
   User, Mail, ShieldCheck, LogOut, CheckCircle, 
   Settings2, ChevronDown, ChevronUp, Save, RotateCcw,
-  Star, Users, Clock, Book, GraduationCap, Zap, Plus, Trash2, Tags, AlertCircle, BookOpen, LayoutList
+  Star, Users, Clock, Book, GraduationCap, Zap, Plus, Trash2, Tags, AlertCircle, BookOpen, LayoutList,
+  LockKeyhole,
+  Waves,
+  Globe,
+  ToggleRight,
+  ToggleLeft
 } from 'lucide-react';
 import { AppWeights, CustomSunnah } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
@@ -11,11 +15,13 @@ import { DEFAULT_WEIGHTS } from '../constants';
 interface UserProfileProps {
   user: { name: string; email: string } | null;
   weights: AppWeights;
+  isGlobalSync: boolean;
+  onToggleSync: (enabled: boolean) => void;
   onUpdateUser: (user: { name: string; email: string } | null) => void;
   onUpdateWeights: (weights: AppWeights) => void;
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ user, weights, onUpdateUser, onUpdateWeights }) => {
+const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, onToggleSync, onUpdateUser, onUpdateWeights }) => {
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [isSavedUser, setIsSavedUser] = useState(false);
@@ -95,6 +101,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, onUpdateUser, 
 
   return (
     <div className="space-y-6 animate-in slide-in-from-top duration-300 pb-12">
+      {/* 1. Profile Section */}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
         <div className="flex flex-col items-center mb-8">
           <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg">
@@ -159,6 +166,39 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, onUpdateUser, 
         )}
       </div>
 
+      {/* 2. NEW: Global Sync Section - الارتباط بالمحراب العالمي */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
+        <div className={`absolute top-0 right-0 w-1 h-full transition-all ${isGlobalSync ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-2xl transition-all ${isGlobalSync ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+              <Globe className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 header-font">الارتباط بالمحراب العالمي</h3>
+              <p className="text-[10px] text-slate-400 font-bold header-font">رؤية أعداد المصلين الحقيقية الآن</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => onToggleSync(!isGlobalSync)}
+            className={`w-14 h-8 rounded-full transition-all relative ${isGlobalSync ? 'bg-emerald-500' : 'bg-slate-200'}`}
+          >
+            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-sm flex items-center justify-center ${isGlobalSync ? 'left-1' : 'left-7'}`}>
+                {isGlobalSync ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <ShieldCheck className="w-3 h-3 text-slate-300" />}
+            </div>
+          </button>
+        </div>
+        <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <p className="text-[11px] text-slate-600 font-bold leading-relaxed header-font italic">
+                {isGlobalSync 
+                  ? "أنت الآن ترسل إشارة 'مجهولة' بأنك تتعبد الآن، لتساهم في إظهار نبض الأمة الحقيقي وتشجيع الآخرين."
+                  : "مغلق: لن تظهر في أعداد المصلين الآن، ولن ترى الأعداد الحقيقية للآخرين."
+                }
+            </p>
+        </div>
+      </div>
+
+      {/* 3. Settings Section */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <button 
           onClick={() => setShowWeights(!showWeights)}
@@ -186,6 +226,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, onUpdateUser, 
               {weightInput('صلاة الجماعة', localWeights.fardCongregation, (val) => setLocalWeights({ ...localWeights, fardCongregation: val }), <Users className="w-4 h-4" />)}
               {weightInput('صلاة منفردة', localWeights.fardSolo, (val) => setLocalWeights({ ...localWeights, fardSolo: val }), <User className="w-4 h-4" />)}
               {weightInput('السنن الرواتب', localWeights.sunnahRawatib, (val) => setLocalWeights({ ...localWeights, sunnahRawatib: val }), <Zap className="w-4 h-4" />)}
+              {weightInput('الجؤار بالدعاء', localWeights.supplicationAloud, (val) => setLocalWeights({ ...localWeights, supplicationAloud: val }), <Waves className="w-4 h-4" />)}
             </div>
 
             <div className="space-y-3">
@@ -271,10 +312,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, onUpdateUser, 
         )}
       </div>
 
-      <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-3">
-        <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-        <p className="text-[10px] text-emerald-700 font-bold leading-relaxed header-font">
-          هذا التطبيق يعمل الآن بنظام محلي 100%. لا يتم إرسال أي بيانات إلى أي خوادم خارجية. خصوصيتك وعباداتك محفوظة على جهازك فقط.
+      <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-4 shadow-sm">
+        <LockKeyhole className="w-6 h-6 text-emerald-600 shrink-0" />
+        <p className="text-[11px] text-emerald-800 font-bold leading-relaxed header-font">
+          تطبيق الميزان يحترم خصوصيتك المطلقة؛ بياناتك وعباداتك تُحفظ محلياً على جهازك فقط، بينما تساهم المزامنة العالمية في إحصائيات الأمة دون كشف أسرارك مع الله.
         </p>
       </div>
     </div>

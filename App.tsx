@@ -51,6 +51,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
   jihadFactor: JihadFactor.NORMAL,
   hasBurden: false,
   isRepented: true,
+  isSupplicatingAloud: false,
   notes: ''
 });
 
@@ -62,6 +63,7 @@ const App: React.FC = () => {
   const [targetScore, setTargetScore] = useState(5000);
   const [user, setUser] = useState<{name: string, email: string} | null>(null);
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
+  const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,10 +72,13 @@ const App: React.FC = () => {
     const savedTarget = localStorage.getItem('mizan_target');
     const savedUser = localStorage.getItem('mizan_user');
     const savedWeights = localStorage.getItem('mizan_weights');
+    const savedSync = localStorage.getItem('mizan_global_sync');
     
     if (savedLogs) setLogs(JSON.parse(savedLogs));
     if (savedTarget) setTargetScore(parseInt(savedTarget));
     if (savedUser) setUser(JSON.parse(savedUser));
+    if (savedSync) setIsGlobalSyncEnabled(JSON.parse(savedSync));
+    
     if (savedWeights) {
       const parsedWeights = JSON.parse(savedWeights);
       if (!parsedWeights.customSunnahs) parsedWeights.customSunnahs = [];
@@ -92,6 +97,11 @@ const App: React.FC = () => {
   const saveWeights = (newWeights: AppWeights) => {
     setWeights(newWeights);
     localStorage.setItem('mizan_weights', JSON.stringify(newWeights));
+  };
+
+  const saveSync = (enabled: boolean) => {
+    setIsGlobalSyncEnabled(enabled);
+    localStorage.setItem('mizan_global_sync', JSON.stringify(enabled));
   };
 
   const saveTarget = (newTarget: number) => {
@@ -153,7 +163,7 @@ const App: React.FC = () => {
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
         {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={handleDateChange} targetScore={targetScore} onTargetChange={saveTarget} onOpenSettings={() => setActiveTab('profile')} />}
         {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} customSunnahs={weights.customSunnahs} />}
-        {activeTab === 'timer' && <WorshipTimer onApplyTime={(field, mins) => {
+        {activeTab === 'timer' && <WorshipTimer isSync={isGlobalSyncEnabled} onApplyTime={(field, mins) => {
           const newLog = { ...currentLog };
           if (field === 'shariDuration' || field === 'readingDuration') {
             const f = field as keyof typeof currentLog.knowledge;
@@ -165,12 +175,12 @@ const App: React.FC = () => {
           updateLog(newLog);
           setActiveTab('entry');
         }} />}
-        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} />}
+        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
         {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
         {activeTab === 'contact' && <ContactUs />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} onUpdateUser={(u) => { setUser(u); localStorage.setItem('mizan_user', JSON.stringify(u)); }} onUpdateWeights={saveWeights} />}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={saveSync} onUpdateUser={(u) => { setUser(u); localStorage.setItem('mizan_user', JSON.stringify(u)); }} onUpdateWeights={saveWeights} />}
       </main>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-4 md:gap-8 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95%]">

@@ -1,4 +1,3 @@
-
 import { DailyLog, PrayerEntry, TranquilityLevel, AppWeights } from '../types';
 import { 
   TRANQUILITY_MULTIPLIERS,
@@ -35,13 +34,16 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   
   const nawafilPrayers = (log.nawafil.duhaDuration + log.nawafil.witrDuration + log.nawafil.qiyamDuration) * weights.nawafilPerMin;
   const fasting = log.nawafil.fasting ? weights.fastingDay : 0;
+  
+  // نقاط الجؤار بالدعاء
+  const supplicationScore = log.isSupplicatingAloud ? (weights.supplicationAloud || 300) : 0;
 
   const customSunnahPoints = (log.customSunnahIds || []).reduce((sum, id) => {
     const sunnah = (weights.customSunnahs || []).find(s => s.id === id);
     return sum + (sunnah ? sunnah.points : 0);
   }, 0);
   
-  const total = (prayers + quran + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints) * (log.hasBurden ? 0.8 : log.jihadFactor);
+  const total = (prayers + quran + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + supplicationScore + customSunnahPoints) * (log.hasBurden ? 0.8 : log.jihadFactor);
 
   return Math.round(total);
 };
