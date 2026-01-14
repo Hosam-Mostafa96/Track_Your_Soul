@@ -1,7 +1,6 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Trophy, Medal, Crown, Sparkles, Flame, Zap, Moon, Sun, Stars, GraduationCap, BookOpen, AlertCircle, User, TrendingUp, CalendarDays, ShieldCheck, Radio, Activity, Users, Globe, ArrowUp, History } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity } from 'lucide-react';
 import { DailyLog, AppWeights } from '../types';
-import { calculateTotalScore } from '../utils/scoring';
 
 // استبدل هذا الرابط بالرابط الذي حصلت عليه من Google Apps Script بعد النشر (Deploy)
 const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzkeDYwB-XGbaDFOeQur9m_sLG6jtMU40eP7Y71GTOCY0m3bRzkDmY8dPjjxwY1fSvq/exec"; 
@@ -14,7 +13,7 @@ interface LeaderboardProps {
   isSync: boolean;
 }
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, logs, weights, isSync }) => {
+const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync }) => {
   const [liveStats, setLiveStats] = useState({
     qiyam: 0, duha: 0, knowledge: 0, athkar: 0, totalUsers: 0
   });
@@ -36,6 +35,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, logs, wei
       await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: anonId.current,
           name: user?.name || "مصلٍ مجهول",
@@ -47,9 +47,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, logs, wei
       const res = await fetch(`${GOOGLE_STATS_API}?userId=${anonId.current}`);
       if (res.ok) {
         const data = await res.json();
-        setLiveStats(data.stats);
-        setGlobalTop(data.leaderboard);
-        setUserGlobalRank(data.userRank);
+        setLiveStats(data.stats || { qiyam: 0, duha: 0, knowledge: 0, athkar: 0, totalUsers: 0 });
+        setGlobalTop(data.leaderboard || []);
+        setUserGlobalRank(data.userRank || null);
       }
     } catch (e) {
       console.error("Global Sync Error:", e);
@@ -63,16 +63,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, logs, wei
     const interval = setInterval(fetchGlobalData, 60000); // تحديث كل دقيقة
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.name]);
-
-  const personalTopScores = useMemo(() => {
-    return (Object.entries(logs) as [string, DailyLog][])
-      .map(([date, log]) => ({
-        date,
-        score: calculateTotalScore(log, weights)
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
-  }, [logs, weights]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -153,23 +143,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, logs, wei
           )) : (
             <p className="text-center text-[10px] text-slate-400 font-bold py-4">فعل المزامنة لتظهر هنا!</p>
           )}
-        </div>
-      </div>
-
-      {/* Personal History */}
-      <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-6">
-          {/* Fix: Added History icon import from lucide-react to avoid conflict with browser window.History */}
-          <History className="w-5 h-5 text-blue-500" />
-          <h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">سجلك الشخصي (أفضل 5)</h3>
-        </div>
-        <div className="space-y-3">
-          {personalTopScores.map((entry, idx) => (
-            <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-              <span className="text-xs font-bold text-slate-600 header-font">{entry.date}</span>
-              <span className="text-sm font-black text-emerald-600 font-mono">{entry.score.toLocaleString()}</span>
-            </div>
-          ))}
         </div>
       </div>
     </div>
