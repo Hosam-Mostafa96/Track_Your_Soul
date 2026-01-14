@@ -6,7 +6,7 @@ import {
   History, 
   Trophy,
   Info,
-  Timer,
+  Timer as TimerIcon,
   NotebookPen,
   UserCircle,
   Medal,
@@ -21,7 +21,7 @@ import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights } from 
 import { calculateTotalScore } from './utils/scoring';
 import { DEFAULT_WEIGHTS } from './constants';
 import Dashboard from './components/Dashboard';
-import DailyEntry from './components/DailyEntry';
+import DailyEntry from './DailyEntry'; // تم تعديل المسار ليكون في الجذر
 import WorshipHistory from './components/WorshipHistory';
 import WorshipGuide from './components/WorshipGuide';
 import WorshipTimer from './components/WorshipTimer';
@@ -52,7 +52,6 @@ const INITIAL_LOG = (date: string): DailyLog => ({
   jihadFactor: JihadFactor.NORMAL,
   hasBurden: false,
   isRepented: true,
-  // Fix: Initialize the new isSupplicatingAloud property
   isSupplicatingAloud: false,
   notes: ''
 });
@@ -66,8 +65,49 @@ const App: React.FC = () => {
   const [user, setUser] = useState<{name: string, email: string} | null>(null);
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
-  
-  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  // --- نظام المؤقت العالمي الثابت (Global Timer) ---
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [activeActivity, setActiveActivity] = useState('qiyamDuration');
+  const timerIntervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const savedTimer = localStorage.getItem('mizan_active_timer_v2');
+    if (savedTimer) {
+      const { seconds, isRunning, activity, lastUpdate } = JSON.parse(savedTimer);
+      setActiveActivity(activity);
+      if (isRunning) {
+        // حساب الوقت الذي مضى والصفحة مغلقة
+        const elapsed = Math.floor((Date.now() - lastUpdate) / 1000);
+        setTimerSeconds(seconds + elapsed);
+        setIsTimerRunning(true);
+      } else {
+        setTimerSeconds(seconds);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isTimerRunning) {
+      timerIntervalRef.current = window.setInterval(() => {
+        setTimerSeconds(s => s + 1);
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+    return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
+  }, [isTimerRunning]);
+
+  useEffect(() => {
+    localStorage.setItem('mizan_active_timer_v2', JSON.stringify({
+      seconds: timerSeconds,
+      isRunning: isTimerRunning,
+      activity: activeActivity,
+      lastUpdate: Date.now()
+    }));
+  }, [timerSeconds, isTimerRunning, activeActivity]);
+  // ---------------------------------------------
 
   useEffect(() => {
     const savedLogs = localStorage.getItem('mizan_logs');
@@ -80,48 +120,17 @@ const App: React.FC = () => {
     if (savedTarget) setTargetScore(parseInt(savedTarget));
     if (savedUser) setUser(JSON.parse(savedUser));
     if (savedSync) setIsGlobalSyncEnabled(JSON.parse(savedSync));
-    
-    if (savedWeights) {
-      const parsedWeights = JSON.parse(savedWeights);
-      if (!parsedWeights.customSunnahs) parsedWeights.customSunnahs = [];
-      setWeights(parsedWeights);
-    }
+    if (savedWeights) setWeights(JSON.parse(savedWeights));
   }, []);
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
 
-  const saveLogs = useCallback((updatedLogs: Record<string, DailyLog>) => {
-    setLogs(updatedLogs);
-    localStorage.setItem('mizan_logs', JSON.stringify(updatedLogs));
-  }, []);
-
-  const saveWeights = (newWeights: AppWeights) => {
-    setWeights(newWeights);
-    localStorage.setItem('mizan_weights', JSON.stringify(newWeights));
-  };
-
-  const saveSync = (enabled: boolean) => {
-    setIsGlobalSyncEnabled(enabled);
-    localStorage.setItem('mizan_global_sync', JSON.stringify(enabled));
-  };
-
-  const saveTarget = (newTarget: number) => {
-    setTargetScore(newTarget);
-    localStorage.setItem('mizan_target', newTarget.toString());
-  };
-
   const updateLog = (updated: DailyLog) => {
     const newLogs = { ...logs, [updated.date]: updated };
-    saveLogs(newLogs);
+    setLogs(newLogs);
+    localStorage.setItem('mizan_logs', JSON.stringify(newLogs));
   };
-
-  const handleDateChange = (date: string) => {
-    setCurrentDate(date);
-    if (activeTab === 'history') setActiveTab('dashboard');
-  };
-
-  const isToday = currentDate === format(new Date(), 'yyyy-MM-dd');
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50">
@@ -132,7 +141,7 @@ const App: React.FC = () => {
             <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
               <UserCircle className={`w-7 h-7 ${user ? 'text-yellow-400' : 'text-white/50'}`} />
             </button>
-            <h1 className="text-xl md:text-2xl font-bold header-font tracking-tight drop-shadow-md leading-tight">إدارة العبادات والأوراد</h1>
+            <h1 className="text-xl md:text-2xl font-bold header-font">إدارة العبادات والأوراد</h1>
             <button onClick={() => setActiveTab('leaderboard')} className="p-2 hover:bg-white/10 rounded-full transition-all relative flex-shrink-0">
               <Medal className="w-7 h-7 text-yellow-400" />
             </button>
@@ -142,62 +151,66 @@ const App: React.FC = () => {
             <div className="flex items-center gap-4">
               <div className="bg-yellow-400/20 p-3 rounded-2xl"><Trophy className="w-8 h-8 text-yellow-400" /></div>
               <div className="text-right">
-                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">نقاط {isToday ? 'اليوم' : 'تاريخ الإدخال'}</p>
+                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">نقاط اليوم</p>
                 <span className="text-3xl font-bold font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
               </div>
             </div>
             <div className="h-10 w-px bg-white/10 mx-2"></div>
-            <button onClick={() => dateInputRef.current?.showPicker()} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all group bg-white/5 border border-white/10">
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] text-emerald-200 uppercase tracking-widest font-bold header-font">{isToday ? 'اليوم' : format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
-                <Calendar className="w-3 h-3 text-emerald-300" />
-              </div>
-              <div className="flex items-center gap-1">
-                <p className="text-lg font-semibold header-font leading-tight">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
-                <ChevronDown className="w-3 h-3 text-white/50 group-hover:text-white" />
-              </div>
-              <input ref={dateInputRef} type="date" className="absolute inset-0 opacity-0 cursor-pointer pointer-events-none" value={currentDate} onChange={(e) => handleDateChange(e.target.value)} max={format(new Date(), 'yyyy-MM-dd')} />
+            <button onClick={() => setActiveTab('dashboard')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
+              <p className="text-[10px] text-emerald-200 uppercase font-bold header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
+              <p className="text-lg font-semibold header-font leading-tight">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
             </button>
           </div>
         </div>
       </header>
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
-        {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={handleDateChange} targetScore={targetScore} onTargetChange={saveTarget} onOpenSettings={() => setActiveTab('profile')} />}
+        {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('mizan_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
         {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} customSunnahs={weights.customSunnahs} />}
-        {activeTab === 'timer' && <WorshipTimer isSync={isGlobalSyncEnabled} onApplyTime={(field, mins) => {
-          const newLog = { ...currentLog };
-          if (field === 'shariDuration' || field === 'readingDuration') {
-            const f = field as keyof typeof currentLog.knowledge;
-            newLog.knowledge = { ...newLog.knowledge, [f]: newLog.knowledge[f] + mins };
-          } else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
-            const f = field as keyof typeof currentLog.nawafil;
-            newLog.nawafil = { ...newLog.nawafil, [f]: (newLog.nawafil[f] as number) + mins };
-          }
-          updateLog(newLog);
-          setActiveTab('entry');
-        }} />}
+        {activeTab === 'timer' && (
+          <WorshipTimer 
+            isSync={isGlobalSyncEnabled} 
+            seconds={timerSeconds}
+            isRunning={isTimerRunning}
+            selectedActivity={activeActivity}
+            onToggle={() => setIsTimerRunning(!isTimerRunning)}
+            onReset={() => { setTimerSeconds(0); setIsTimerRunning(false); }}
+            onActivityChange={setActiveActivity}
+            onApplyTime={(field, mins) => {
+              const newLog = { ...currentLog };
+              if (field === 'shariDuration' || field === 'readingDuration') {
+                newLog.knowledge = { ...newLog.knowledge, [field]: newLog.knowledge[field] + mins };
+              } else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
+                newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] as number) + mins };
+              }
+              updateLog(newLog);
+              setTimerSeconds(0);
+              setIsTimerRunning(false);
+              setActiveTab('entry');
+            }} 
+          />
+        )}
         {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
         {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
         {activeTab === 'contact' && <ContactUs />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={saveSync} onUpdateUser={(u) => { setUser(u); localStorage.setItem('mizan_user', JSON.stringify(u)); }} onUpdateWeights={saveWeights} />}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(e) => { setIsGlobalSyncEnabled(e); localStorage.setItem('mizan_global_sync', JSON.stringify(e)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('mizan_user', JSON.stringify(u)); }} onUpdateWeights={(w) => { setWeights(w); localStorage.setItem('mizan_weights', JSON.stringify(w)); }} />}
       </main>
 
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-4 md:gap-8 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95%]">
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-4 border border-slate-200 backdrop-blur-lg z-50">
         {[
           {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
           {id: 'entry', icon: PenLine, label: 'تسجيل'},
-          {id: 'timer', icon: Timer, label: 'مؤقت'},
+          {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
           {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
-          {id: 'notes', icon: NotebookPen, label: 'يوميات'},
-          {id: 'guide', icon: Info, label: 'دليل'},
-          {id: 'history', icon: History, label: 'السجل'},
-          {id: 'contact', icon: Mail, label: 'تواصل'}
+          {id: 'notes', icon: NotebookPen, label: 'يوميات'}
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.5rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
-            <tab.icon className="w-5 h-5" />
+            <div className="relative">
+              <tab.icon className="w-5 h-5" />
+              {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
+            </div>
             <span className="text-[8px] mt-1 font-bold header-font">{tab.label}</span>
           </button>
         ))}
