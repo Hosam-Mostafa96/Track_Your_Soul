@@ -1,0 +1,47 @@
+
+import { DailyLog, PrayerEntry, TranquilityLevel, AppWeights } from '../types';
+import { 
+  TRANQUILITY_MULTIPLIERS,
+  DEFAULT_WEIGHTS
+} from '../constants';
+
+export const calculatePrayerScore = (entry: PrayerEntry, hasBurden: boolean, weights: AppWeights = DEFAULT_WEIGHTS) => {
+  if (!entry.performed) return 0;
+  
+  const base = entry.inCongregation ? weights.fardCongregation : weights.fardSolo;
+  let tranqMult = TRANQUILITY_MULTIPLIERS[entry.tranquility as TranquilityLevel];
+  if (hasBurden && tranqMult > 0) tranqMult = 0;
+  
+  const fardScore = base * (1 + tranqMult);
+  
+  const sunnahScore = (entry.surroundingSunnahIds || []).reduce((acc, id) => {
+    const weight = weights.surroundingSunnahs[id] || weights.sunnahRawatib;
+    return acc + weight;
+  }, 0);
+  
+  return fardScore + sunnahScore;
+};
+
+export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT_WEIGHTS) => {
+  const prayers = Object.values(log.prayers).reduce((sum, p) => sum + calculatePrayerScore(p, log.hasBurden, weights), 0);
+  
+  const quran = (log.quran.hifzRub * weights.quranHifz) + (log.quran.revisionRub * weights.quranRevision);
+  
+  const knowledge = (log.knowledge.shariDuration * weights.knowledgeShari) + 
+                    (log.knowledge.readingDuration * weights.knowledgeGeneral);
+  
+  const athkarCheck = Object.values(log.athkar.checklists).filter(Boolean).length * weights.athkarChecklist;
+  const athkarCount = Object.values(log.athkar.counters).reduce((sum, count) => sum + (count * weights.athkarCounter), 0);
+  
+  const nawafilPrayers = (log.nawafil.duhaDuration + log.nawafil.witrDuration + log.nawafil.qiyamDuration) * weights.nawafilPerMin;
+  const fasting = log.nawafil.fasting ? weights.fastingDay : 0;
+
+  const customSunnahPoints = (log.customSunnahIds || []).reduce((sum, id) => {
+    const sunnah = (weights.customSunnahs || []).find(s => s.id === id);
+    return sum + (sunnah ? sunnah.points : 0);
+  }, 0);
+  
+  const total = (prayers + quran + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints) * (log.hasBurden ? 0.8 : log.jihadFactor);
+
+  return Math.round(total);
+};
