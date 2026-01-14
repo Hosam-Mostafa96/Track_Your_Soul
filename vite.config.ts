@@ -2,13 +2,13 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  // تحميل متغيرات البيئة من النظام
+  // تحميل متغيرات البيئة
   const env = loadEnv(mode, (process as any).cwd(), '');
 
   return {
     plugins: [react()],
     define: {
-      // تعريف مفتاح الـ API للوصول إليه في الكود بشكل آمن
+      // حقن المفتاح بشكل آمن ليتمكن التطبيق من قراءته في المتصفح
       'process.env.API_KEY': JSON.stringify(env.API_KEY || (process.env as any).API_KEY),
     },
     server: {

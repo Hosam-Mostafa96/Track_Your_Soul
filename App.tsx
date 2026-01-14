@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   LayoutDashboard, 
@@ -155,8 +154,15 @@ const App: React.FC = () => {
         {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={handleDateChange} targetScore={targetScore} onTargetChange={saveTarget} onOpenSettings={() => setActiveTab('profile')} />}
         {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} customSunnahs={weights.customSunnahs} />}
         {activeTab === 'timer' && <WorshipTimer onApplyTime={(field, mins) => {
-          const section = field === 'shariDuration' || field === 'readingDuration' ? 'knowledge' : 'nawafil';
-          updateLog({ ...currentLog, [section]: { ...currentLog[section], [field]: currentLog[section][field] + mins } });
+          const newLog = { ...currentLog };
+          if (field === 'shariDuration' || field === 'readingDuration') {
+            const f = field as keyof typeof currentLog.knowledge;
+            newLog.knowledge = { ...newLog.knowledge, [f]: newLog.knowledge[f] + mins };
+          } else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
+            const f = field as keyof typeof currentLog.nawafil;
+            newLog.nawafil = { ...newLog.nawafil, [f]: (newLog.nawafil[f] as number) + mins };
+          }
+          updateLog(newLog);
           setActiveTab('entry');
         }} />}
         {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} />}
