@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   User, Mail, ShieldCheck, LogOut, CheckCircle, 
@@ -6,10 +7,13 @@ import {
   LockKeyhole,
   Globe,
   ToggleRight,
-  ToggleLeft
+  ToggleLeft,
+  Loader2
 } from 'lucide-react';
 import { AppWeights, CustomSunnah } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
+
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzkeDYwB-XGbaDFOeQur9m_sLG6jtMU40eP7Y71GTOCY0m3bRzkDmY8dPjjxwY1fSvq/exec"; 
 
 interface UserProfileProps {
   user: { name: string; email: string } | null;
@@ -23,6 +27,7 @@ interface UserProfileProps {
 const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, onToggleSync, onUpdateUser, onUpdateWeights }) => {
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [isSaving, setIsSaving] = useState(false);
   const [isSavedUser, setIsSavedUser] = useState(false);
   
   const [localWeights, setLocalWeights] = useState<AppWeights>({ ...weights });
@@ -32,12 +37,36 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
   const [newSunnahName, setNewSunnahName] = useState('');
   const [newSunnahPoints, setNewSunnahPoints] = useState(50);
 
-  const handleSaveUser = (e: React.FormEvent) => {
+  const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name && email) {
+    if (!name || !email) return;
+
+    setIsSaving(true);
+    const anonId = localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7);
+
+    try {
+      // إرسال البيانات للجوجل شيت للتسجيل
+      if (isGlobalSync && !GOOGLE_STATS_API.includes("FIX_ME")) {
+        await fetch(GOOGLE_STATS_API, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'registerUser',
+            id: anonId,
+            name: name,
+            email: email
+          })
+        });
+      }
+
       onUpdateUser({ name, email });
       setIsSavedUser(true);
       setTimeout(() => setIsSavedUser(false), 3000);
+    } catch (error) {
+      console.error("Failed to register user:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -127,7 +156,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">البريد الإلكتروني (اختياري)</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">البريد الإلكتروني (إجباري للمزامنة)</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
               <input 
@@ -136,21 +165,26 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@mail.com"
                 className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 outline-none transition-all font-bold header-font text-sm text-right"
+                required
               />
             </div>
           </div>
 
           <button 
             type="submit"
+            disabled={isSaving}
             className={`w-full py-4 rounded-2xl font-bold header-font transition-all flex items-center justify-center gap-2 shadow-lg ${
+              isSaving ? 'bg-slate-400 cursor-not-allowed' :
               isSavedUser ? 'bg-emerald-500 text-white' : 
               'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.98]'
             }`}
           >
-            {isSavedUser ? (
+            {isSaving ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> جاري الحفظ...</>
+            ) : isSavedUser ? (
               <><CheckCircle className="w-5 h-5" /> تم حفظ الملف الشخصي</>
             ) : (
-              <><Save className="w-5 h-5" /> حفظ البيانات محلياً</>
+              <><Save className="w-5 h-5" /> حفظ البيانات والمزامنة</>
             )}
           </button>
         </form>
