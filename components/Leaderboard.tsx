@@ -53,7 +53,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   useEffect(() => {
     fetchGlobalData();
     // تحديث كل 5 ثوانٍ بناءً على طلب المستخدم لتجربة لحظية فائقة السرعة
-    const interval = setInterval(fetchGlobalData, 5000); 
+    const interval = setInterval(fetchGlobalData, 1000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.name]);
 

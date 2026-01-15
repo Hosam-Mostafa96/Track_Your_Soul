@@ -50,7 +50,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   useEffect(() => {
     if (isRunning && isSync) {
       // إرسال النبض كل 3 ثوانٍ لضمان البقاء في القائمة النشطة (بناءً على طلب الـ 5 ثوانٍ)
-      syncRef.current = window.setInterval(sendHeartbeat, 3000);
+      syncRef.current = window.setInterval(sendHeartbeat, 1000);
       sendHeartbeat();
     } else {
       if (syncRef.current) {
