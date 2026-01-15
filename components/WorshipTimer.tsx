@@ -32,7 +32,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
             body: JSON.stringify({ action: 'heartbeat', activity: selectedActivity, id: anonId.current }) 
         });
         setSyncStatus('success');
-        setTimeout(() => setSyncStatus('idle'), 1000);
+        setTimeout(() => setSyncStatus('idle'), 500); // تصفير الحالة بسرعة
     } catch (e) { setSyncStatus('error'); }
   };
 
@@ -49,7 +49,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      // إرسال النبض كل 3 ثوانٍ لضمان البقاء في القائمة النشطة (بناءً على طلب الـ 5 ثوانٍ)
+      // إرسال النبض كل ثانية واحدة (1000ms) بناءً على طلب المستخدم
       syncRef.current = window.setInterval(sendHeartbeat, 1000);
       sendHeartbeat();
     } else {

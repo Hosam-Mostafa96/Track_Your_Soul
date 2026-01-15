@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2 } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzCaBexjkZftaMQMA1Szlgd0BPpKnecWkm2DjjlTXZem5-9ndUmfy9zT2DwNQVJR9Ox/exec"; 
 
 interface LeaderboardProps {
   user: User | null;
@@ -22,10 +22,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [isLoading, setIsLoading] = useState(false);
   const anonId = useRef(localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7));
   
-  const fetchGlobalData = async () => {
+  const fetchGlobalData = async (isSilent = false) => {
     if (!isSync || GOOGLE_STATS_API.includes("FIX_ME")) return;
     
-    setIsLoading(true);
+    if (!isSilent) setIsLoading(true);
     try {
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
@@ -46,14 +46,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     } catch (e) {
       console.error("Global Sync Error:", e);
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchGlobalData();
-    // تحديث كل 5 ثوانٍ بناءً على طلب المستخدم لتجربة لحظية فائقة السرعة
-    const interval = setInterval(fetchGlobalData, 1000); 
+    fetchGlobalData(); // تحميل أول مرة
+    // تحديث كل ثانية واحدة (1000ms) لتجربة لحظية كاملة
+    const interval = setInterval(() => fetchGlobalData(true), 1000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.name]);
 
@@ -121,7 +121,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
         <div className="space-y-3">
           {globalTop.length > 0 ? globalTop.map((player, index) => (
-            <div key={player.id} className={`flex items-center justify-between p-3 rounded-2xl ${player.id === anonId.current ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border-transparent'}`}>
+            <div key={player.id} className={`flex items-center justify-between p-3 rounded-2xl transition-colors duration-500 ${player.id === anonId.current ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border-transparent'}`}>
               <div className="flex items-center gap-3">
                 <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${index === 0 ? 'bg-yellow-400 text-white' : index === 1 ? 'bg-slate-300 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'text-slate-400'}`}>
                     {index + 1}
