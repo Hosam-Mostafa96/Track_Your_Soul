@@ -14,7 +14,7 @@ import {
 import { AppWeights, CustomSunnah, User as UserType } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzkeDYwB-XGbaDFOeQur9m_sLG6jtMU40eP7Y71GTOCY0m3bRzkDmY8dPjjxwY1fSvq/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzCaBexjkZftaMQMA1Szlgd0BPpKnecWkm2DjjlTXZem5-9ndUmfy9zT2DwNQVJR9Ox/exec"; 
 
 interface UserProfileProps {
   user: UserType | null;

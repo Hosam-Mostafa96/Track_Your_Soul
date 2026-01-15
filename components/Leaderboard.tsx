@@ -3,7 +3,7 @@ import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity } from 'lucide
 import { DailyLog, AppWeights } from '../types';
 
 // استبدل هذا الرابط بالرابط الذي حصلت عليه من Google Apps Script بعد النشر (Deploy)
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzkeDYwB-XGbaDFOeQur9m_sLG6jtMU40eP7Y71GTOCY0m3bRzkDmY8dPjjxwY1fSvq/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzCaBexjkZftaMQMA1Szlgd0BPpKnecWkm2DjjlTXZem5-9ndUmfy9zT2DwNQVJR9Ox/exec"; 
 
 interface LeaderboardProps {
   user: { name: string, email: string } | null;

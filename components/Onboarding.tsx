@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { User, Mail, Globe, Calendar, GraduationCap, ArrowRight, CheckCircle, Loader2, Sparkles, ShieldCheck } from 'lucide-react';
 import { User as UserType } from '../types';
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzkeDYwB-XGbaDFOeQur9m_sLG6jtMU40eP7Y71GTOCY0m3bRzkDmY8dPjjxwY1fSvq/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzCaBexjkZftaMQMA1Szlgd0BPpKnecWkm2DjjlTXZem5-9ndUmfy9zT2DwNQVJR9Ox/exec"; 
 
 interface OnboardingProps {
   onComplete: (user: UserType) => void;
