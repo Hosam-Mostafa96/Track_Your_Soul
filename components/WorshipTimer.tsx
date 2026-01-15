@@ -31,8 +31,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     try {
         await fetch(GOOGLE_STATS_API, { 
             method: 'POST', 
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ 
                 action: 'heartbeat',
                 activity: selectedActivity, 
@@ -51,8 +50,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     try {
         await fetch(GOOGLE_STATS_API, { 
             method: 'POST', 
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ 
                 action: 'stop',
                 id: anonId.current
@@ -65,7 +63,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      syncRef.current = window.setInterval(sendHeartbeat, 60000);
+      // إرسال النبض كل 20 ثانية ليكون متوافقاً مع TTL السكريبت (40 ثانية)
+      syncRef.current = window.setInterval(sendHeartbeat, 20000);
       sendHeartbeat();
     } else {
       if (syncRef.current) clearInterval(syncRef.current);
@@ -75,18 +74,18 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   const handleToggle = () => {
     if (isRunning) {
-        sendStopSignal();
+        sendStopSignal(); // حذف من القائمة النشطة فور الإيقاف
     }
     onToggle();
   };
 
   const handleReset = () => {
-    sendStopSignal();
+    sendStopSignal(); // حذف من القائمة النشطة فور التصفير
     onReset();
   };
 
   const handleApply = () => {
-    sendStopSignal();
+    sendStopSignal(); // حذف من القائمة النشطة فور الحفظ
     onApplyTime(selectedActivity, Math.floor(seconds / 60));
   };
 
@@ -151,6 +150,9 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
           <button onClick={handleApply} className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl transition-all hover:bg-emerald-200"><CheckCircle2 className="w-5 h-5" /></button>
         </div>
       </div>
+      <p className="text-center text-[10px] text-slate-400 font-bold header-font px-8 leading-relaxed">
+        بمجرد بدء المؤقت، ستظهر في "نبض المحراب" العالمي لتشجيع الآخرين، وعند الإيقاف أو الحفظ سيتم إخفاء نشاطك تلقائياً.
+      </p>
     </div>
   );
 };

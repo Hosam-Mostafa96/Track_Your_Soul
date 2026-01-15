@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity } from 'lucide-react';
-import { DailyLog, AppWeights } from '../types';
 
-// استبدل هذا الرابط بالرابط الذي حصلت عليه من Google Apps Script بعد النشر (Deploy)
+import React, { useState, useEffect, useRef } from 'react';
+import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2 } from 'lucide-react';
+import { DailyLog, AppWeights, User } from '../types';
+
 const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzCaBexjkZftaMQMA1Szlgd0BPpKnecWkm2DjjlTXZem5-9ndUmfy9zT2DwNQVJR9Ox/exec"; 
 
 interface LeaderboardProps {
-  user: { name: string, email: string } | null;
+  user: User | null;
   currentScore: number;
   logs: Record<string, DailyLog>;
   weights: AppWeights;
@@ -18,24 +18,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     qiyam: 0, duha: 0, knowledge: 0, athkar: 0, totalUsers: 0
   });
   const [globalTop, setGlobalTop] = useState<any[]>([]);
-  const [userGlobalRank, setUserGlobalRank] = useState<number | null>(null);
+  const [userGlobalRank, setUserGlobalRank] = useState<number | string>("---");
   const [isLoading, setIsLoading] = useState(false);
   const anonId = useRef(localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7));
   
-  useEffect(() => {
-    localStorage.setItem('mizan_anon_id', anonId.current);
-  }, []);
-
   const fetchGlobalData = async () => {
     if (!isSync || GOOGLE_STATS_API.includes("FIX_ME")) return;
     
     setIsLoading(true);
     try {
-      // 1. إرسال نقاط المستخدم الحالية ليتم تسجيله في القائمة
-      await fetch(GOOGLE_STATS_API, {
+      // إرسال النقاط وجلب البيانات في طلب واحد (أسرع بكثير)
+      const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' }, // استخدام text/plain لتجنب مشاكل CORS مع Google Apps Script
         body: JSON.stringify({
           id: anonId.current,
           name: user?.name || "مصلٍ مجهول",
@@ -43,13 +38,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         })
       });
 
-      // 2. جلب البيانات المحدثة
-      const res = await fetch(`${GOOGLE_STATS_API}?userId=${anonId.current}`);
       if (res.ok) {
         const data = await res.json();
-        setLiveStats(data.stats || { qiyam: 0, duha: 0, knowledge: 0, athkar: 0, totalUsers: 0 });
-        setGlobalTop(data.leaderboard || []);
-        setUserGlobalRank(data.userRank || null);
+        if (data.stats) setLiveStats(data.stats);
+        if (data.leaderboard) setGlobalTop(data.leaderboard);
+        if (data.userRank) setUserGlobalRank(data.userRank);
       }
     } catch (e) {
       console.error("Global Sync Error:", e);
@@ -60,7 +53,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(fetchGlobalData, 60000); // تحديث كل دقيقة
+    // تقليل زمن التحديث إلى 15 ثانية لجعل البيانات "حية" فعلاً
+    const interval = setInterval(fetchGlobalData, 15000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.name]);
 
@@ -74,14 +68,16 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             <Trophy className="w-10 h-10 text-yellow-400 fill-yellow-400" />
           </div>
           <h2 className="text-2xl font-bold header-font">مقامك العالمي</h2>
-          {isSync && userGlobalRank ? (
+          {isSync ? (
             <div className="mt-2 flex flex-col items-center">
-                <span className="text-4xl font-black font-mono text-yellow-400">#{userGlobalRank}</span>
+                <span className="text-4xl font-black font-mono text-yellow-400">
+                  {userGlobalRank === "---" ? "..." : `#${userGlobalRank}`}
+                </span>
                 <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-widest mt-1 opacity-80">ترتيبك بين جميع المتعبدين</p>
             </div>
           ) : (
             <p className="text-emerald-100 text-[11px] font-bold header-font opacity-80 mt-1 uppercase tracking-widest">
-                {isSync ? "جاري جلب ترتيبك..." : "المزامنة معطلة"}
+                المزامنة معطلة
             </p>
           )}
         </div>
@@ -97,7 +93,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           {isSync && (
             <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-              Live Data
+              بث مباشر
             </div>
           )}
         </div>
@@ -109,27 +105,35 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             { label: 'طلاب علم', val: liveStats.knowledge, icon: <GraduationCap className="w-3 h-3 text-emerald-500" /> },
             { label: 'ذاكرون', val: liveStats.athkar, icon: <Activity className="w-3 h-3 text-rose-500" /> }
           ].map((s, i) => (
-            <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-transparent">
+            <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-transparent hover:border-emerald-100 transition-all">
               <div className="flex items-center gap-2 mb-1">
                 {s.icon}
                 <span className="text-[10px] font-bold text-slate-500 header-font">{s.label}</span>
               </div>
-              <span className="text-lg font-black text-slate-800 font-mono">{isLoading && liveStats.totalUsers === 0 ? '..' : s.val}</span>
+              <span className="text-xl font-black text-slate-800 font-mono">
+                {isLoading && liveStats.totalUsers === 0 ? <Loader2 className="w-4 h-4 animate-spin inline" /> : s.val}
+              </span>
             </div>
           ))}
         </div>
+        <p className="mt-4 text-[9px] text-center text-slate-400 font-bold header-font italic">
+          إجمالي المتصلين بالمحراب حالياً: {liveStats.totalUsers} متعبد
+        </p>
       </div>
 
       {/* Global Leaderboard (Top 10) */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-6">
-          <Crown className="w-5 h-5 text-yellow-500" />
-          <h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">المتصدرون عالمياً</h3>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Crown className="w-5 h-5 text-yellow-500" />
+            <h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">المتصدرون عالمياً</h3>
+          </div>
+          {isLoading && <Loader2 className="w-3 h-3 text-slate-300 animate-spin" />}
         </div>
 
         <div className="space-y-3">
           {globalTop.length > 0 ? globalTop.map((player, index) => (
-            <div key={player.id} className={`flex items-center justify-between p-3 rounded-2xl ${player.id === anonId.current ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-transparent'}`}>
+            <div key={player.id} className={`flex items-center justify-between p-3 rounded-2xl animate-in slide-in-from-bottom duration-300 ${player.id === anonId.current ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-transparent'}`}>
               <div className="flex items-center gap-3">
                 <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${index === 0 ? 'bg-yellow-400 text-white' : index === 1 ? 'bg-slate-300 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'text-slate-400'}`}>
                     {index + 1}
@@ -141,7 +145,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               <span className="text-sm font-black text-slate-800 font-mono">{player.score.toLocaleString()}</span>
             </div>
           )) : (
-            <p className="text-center text-[10px] text-slate-400 font-bold py-4">فعل المزامنة لتظهر هنا!</p>
+            <p className="text-center text-[10px] text-slate-400 font-bold py-4 italic">فعل المزامنة لتظهر هنا!</p>
           )}
         </div>
       </div>
