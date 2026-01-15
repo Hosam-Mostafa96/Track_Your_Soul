@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2 } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzCaBexjkZftaMQMA1Szlgd0BPpKnecWkm2DjjlTXZem5-9ndUmfy9zT2DwNQVJR9Ox/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
 
 interface LeaderboardProps {
   user: User | null;
@@ -27,10 +27,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     
     setIsLoading(true);
     try {
-      // إرسال النقاط وجلب البيانات في طلب واحد (أسرع بكثير)
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' }, // استخدام text/plain لتجنب مشاكل CORS مع Google Apps Script
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           id: anonId.current,
           name: user?.name || "مصلٍ مجهول",
@@ -53,14 +52,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    // تقليل زمن التحديث إلى 15 ثانية لجعل البيانات "حية" فعلاً
-    const interval = setInterval(fetchGlobalData, 15000); 
+    // تحديث كل 5 ثوانٍ بناءً على طلب المستخدم لتجربة لحظية فائقة السرعة
+    const interval = setInterval(fetchGlobalData, 5000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.name]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
-      {/* User Status Card */}
       <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -76,14 +74,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                 <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-widest mt-1 opacity-80">ترتيبك بين جميع المتعبدين</p>
             </div>
           ) : (
-            <p className="text-emerald-100 text-[11px] font-bold header-font opacity-80 mt-1 uppercase tracking-widest">
-                المزامنة معطلة
-            </p>
+            <p className="text-emerald-100 text-[11px] font-bold header-font opacity-80 mt-1 uppercase tracking-widest">المزامنة معطلة</p>
           )}
         </div>
       </div>
 
-      {/* Global Pulse (Live Now) */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -92,8 +87,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           </div>
           {isSync && (
             <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-              بث مباشر
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> بث مباشر
             </div>
           )}
         </div>
@@ -107,21 +101,15 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           ].map((s, i) => (
             <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-transparent hover:border-emerald-100 transition-all">
               <div className="flex items-center gap-2 mb-1">
-                {s.icon}
-                <span className="text-[10px] font-bold text-slate-500 header-font">{s.label}</span>
+                {s.icon} <span className="text-[10px] font-bold text-slate-500 header-font">{s.label}</span>
               </div>
-              <span className="text-xl font-black text-slate-800 font-mono">
-                {isLoading && liveStats.totalUsers === 0 ? <Loader2 className="w-4 h-4 animate-spin inline" /> : s.val}
-              </span>
+              <span className="text-xl font-black text-slate-800 font-mono">{s.val}</span>
             </div>
           ))}
         </div>
-        <p className="mt-4 text-[9px] text-center text-slate-400 font-bold header-font italic">
-          إجمالي المتصلين بالمحراب حالياً: {liveStats.totalUsers} متعبد
-        </p>
+        <p className="mt-4 text-[9px] text-center text-slate-400 font-bold header-font italic">إجمالي المتصلين بالمحراب حالياً: {liveStats.totalUsers} متعبد</p>
       </div>
 
-      {/* Global Leaderboard (Top 10) */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -133,7 +121,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
         <div className="space-y-3">
           {globalTop.length > 0 ? globalTop.map((player, index) => (
-            <div key={player.id} className={`flex items-center justify-between p-3 rounded-2xl animate-in slide-in-from-bottom duration-300 ${player.id === anonId.current ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-transparent'}`}>
+            <div key={player.id} className={`flex items-center justify-between p-3 rounded-2xl ${player.id === anonId.current ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border-transparent'}`}>
               <div className="flex items-center gap-3">
                 <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${index === 0 ? 'bg-yellow-400 text-white' : index === 1 ? 'bg-slate-300 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'text-slate-400'}`}>
                     {index + 1}
@@ -145,7 +133,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               <span className="text-sm font-black text-slate-800 font-mono">{player.score.toLocaleString()}</span>
             </div>
           )) : (
-            <p className="text-center text-[10px] text-slate-400 font-bold py-4 italic">فعل المزامنة لتظهر هنا!</p>
+            <p className="text-center text-[10px] text-slate-400 font-bold py-4 italic">قائمة المتصدرين فارغة حالياً</p>
           )}
         </div>
       </div>
