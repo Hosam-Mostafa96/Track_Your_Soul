@@ -3,18 +3,15 @@ import React, { useState } from 'react';
 import { 
   User, Mail, ShieldCheck, LogOut, CheckCircle, 
   Settings2, ChevronDown, ChevronUp, Save, RotateCcw,
-  Star, Users, Clock, Book, GraduationCap, Zap, Plus, Trash2, Tags, AlertCircle, BookOpen, LayoutList,
+  Star, Users, Clock, Book, GraduationCap, Zap, LayoutList,
   LockKeyhole,
   Globe,
-  ToggleRight,
-  ToggleLeft,
-  Loader2,
-  Calendar
+  Calendar,
+  MapPin,
+  Fingerprint
 } from 'lucide-react';
-import { AppWeights, CustomSunnah, User as UserType } from '../types';
+import { AppWeights, User as UserType } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
-
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
 
 interface UserProfileProps {
   user: UserType | null;
@@ -26,54 +23,9 @@ interface UserProfileProps {
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, onToggleSync, onUpdateUser, onUpdateWeights }) => {
-  const [formData, setFormData] = useState<UserType>({
-    name: user?.name || '',
-    email: user?.email || '',
-    country: user?.country || '',
-    age: user?.age || '',
-    qualification: user?.qualification || ''
-  });
-  
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSavedUser, setIsSavedUser] = useState(false);
-  
   const [localWeights, setLocalWeights] = useState<AppWeights>({ ...weights });
-  const [showWeights, setShowWeights] = useState(false);
+  const [showWeights, setShowWeights] = useState(true);
   const [isSavedWeights, setIsSavedWeights] = useState(false);
-
-  const [newSunnahName, setNewSunnahName] = useState('');
-  const [newSunnahPoints, setNewSunnahPoints] = useState(50);
-
-  const handleSaveUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email) return;
-
-    setIsSaving(true);
-    const anonId = localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7);
-
-    try {
-      if (isGlobalSync && !GOOGLE_STATS_API.includes("FIX_ME")) {
-        await fetch(GOOGLE_STATS_API, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'registerUser',
-            id: anonId,
-            ...formData
-          })
-        });
-      }
-
-      onUpdateUser(formData);
-      setIsSavedUser(true);
-      setTimeout(() => setIsSavedUser(false), 3000);
-    } catch (error) {
-      console.error("Failed to update user:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleSaveWeights = () => {
     onUpdateWeights(localWeights);
@@ -88,32 +40,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
   };
 
   const handleLogout = () => {
-    if (window.confirm('هل تريد مسح بيانات الحساب من هذا الجهاز؟')) {
+    if (window.confirm('هل تريد مسح بيانات الحساب بالكامل من هذا الجهاز؟ (سيتم مسح اسمك ودولتك وأوزانك المخصصة)')) {
       onUpdateUser(null);
-      setFormData({ name: '', email: '', country: '', age: '', qualification: '' });
     }
-  };
-
-  const addCustomSunnah = () => {
-    if (!newSunnahName.trim()) return;
-    const newSunnah: CustomSunnah = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newSunnahName,
-      points: newSunnahPoints
-    };
-    setLocalWeights({
-      ...localWeights,
-      customSunnahs: [...(localWeights.customSunnahs || []), newSunnah]
-    });
-    setNewSunnahName('');
-    setNewSunnahPoints(50);
-  };
-
-  const deleteCustomSunnah = (id: string) => {
-    setLocalWeights({
-      ...localWeights,
-      customSunnahs: (localWeights.customSunnahs || []).filter(s => s.id !== id)
-    });
   };
 
   const weightInput = (label: string, value: number, onChange: (val: number) => void, icon?: any) => (
@@ -131,112 +60,46 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
     </div>
   );
 
+  const infoItem = (label: string, value: string | undefined, icon: any) => (
+    <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl border border-slate-100">
+      <div className="p-2 bg-white rounded-xl shadow-sm text-slate-400">
+        {icon}
+      </div>
+      <div className="text-right">
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter header-font">{label}</p>
+        <p className="text-xs font-bold text-slate-700 header-font">{value || '---'}</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6 animate-in slide-in-from-top duration-300 pb-12">
-      {/* 1. Profile Section */}
+      {/* 1. Header & Identity Section */}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg">
+          <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg relative">
             <User className="w-12 h-12 text-emerald-600" />
+            <div className="absolute bottom-0 right-0 bg-emerald-500 p-1.5 rounded-full border-2 border-white shadow-sm">
+              <ShieldCheck className="w-3 h-3 text-white" />
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 header-font">{user ? user.name : 'حساب محلي'}</h2>
-          <p className="text-xs text-slate-400 font-bold header-font">بياناتك من مزامنة المحراب العالمي</p>
+          <h2 className="text-2xl font-bold text-slate-800 header-font">{user?.name}</h2>
+          <p className="text-[10px] text-emerald-600 font-black header-font uppercase tracking-widest mt-1">هوية معتمدة في المحراب</p>
         </div>
 
-        <form onSubmit={handleSaveUser} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">الاسم التعريفي</label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input 
-                  type="text" 
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">البريد الإلكتروني</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input 
-                  type="email" 
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">الدولة</label>
-              <div className="relative">
-                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input 
-                  type="text" 
-                  value={formData.country}
-                  onChange={(e) => setFormData({...formData, country: e.target.value})}
-                  className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">العمر</label>
-              <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input 
-                  type="number" 
-                  value={formData.age}
-                  onChange={(e) => setFormData({...formData, age: e.target.value})}
-                  className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">المؤهل الدراسي</label>
-            <div className="relative">
-              <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-              <input 
-                type="text" 
-                value={formData.qualification}
-                onChange={(e) => setFormData({...formData, qualification: e.target.value})}
-                className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
-              />
-            </div>
-          </div>
-
-          <button 
-            type="submit"
-            disabled={isSaving}
-            className={`w-full py-4 rounded-2xl font-bold header-font transition-all flex items-center justify-center gap-2 shadow-lg ${
-              isSaving ? 'bg-slate-400 cursor-not-allowed' :
-              isSavedUser ? 'bg-emerald-500 text-white' : 
-              'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.98]'
-            }`}
-          >
-            {isSaving ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> جاري التحديث...</>
-            ) : isSavedUser ? (
-              <><CheckCircle className="w-5 h-5" /> تم الحفظ</>
-            ) : (
-              <><Save className="w-5 h-5" /> تحديث البيانات</>
-            )}
-          </button>
-        </form>
+        {/* عرض البيانات الشخصية كمعلومات ثابتة */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+          {infoItem('البريد الإلكتروني', user?.email, <Mail className="w-4 h-4" />)}
+          {infoItem('الدولة والمنطقة', user?.country, <MapPin className="w-4 h-4" />)}
+          {infoItem('العمر المسجل', user?.age ? `${user.age} عاماً` : '', <Calendar className="w-4 h-4" />)}
+          {infoItem('المؤهل الدراسي', user?.qualification, <Fingerprint className="w-4 h-4" />)}
+        </div>
 
         <button 
           onClick={handleLogout}
-          className="w-full mt-4 py-3 text-slate-400 hover:text-rose-500 font-bold text-xs header-font flex items-center justify-center gap-2"
+          className="w-full py-3 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-2xl font-bold text-xs header-font transition-all flex items-center justify-center gap-2 border border-dashed border-slate-200 hover:border-rose-200"
         >
-          <LogOut className="w-4 h-4" /> مسح بيانات المتصفح (خروج)
+          <LogOut className="w-4 h-4" /> تسجيل خروج وإعادة تعيين الحساب
         </button>
       </div>
 
@@ -250,7 +113,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
             </div>
             <div>
               <h3 className="font-bold text-slate-800 header-font">الارتباط بالمحراب العالمي</h3>
-              <p className="text-[10px] text-slate-400 font-bold header-font">رؤية أعداد المصلين الحقيقية الآن</p>
+              <p className="text-[10px] text-slate-400 font-bold header-font">مشاركة الإحصائيات مع الأمة الآن</p>
             </div>
           </div>
           <button 
@@ -275,8 +138,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               <Settings2 className="w-5 h-5 text-slate-600" />
             </div>
             <div className="text-right">
-              <h3 className="font-bold text-slate-800 header-font">إعدادات الميزان</h3>
-              <p className="text-[10px] text-slate-400 font-bold header-font">تخصيص أوزان العبادات والسنن</p>
+              <h3 className="font-bold text-slate-800 header-font">إعدادات أوزان الميزان</h3>
+              <p className="text-[10px] text-slate-400 font-bold header-font">تخصيص قيمة كل عبادة في ميزانك</p>
             </div>
           </div>
           {showWeights ? <ChevronUp className="w-5 h-5 text-slate-300" /> : <ChevronDown className="w-5 h-5 text-slate-300" />}
@@ -315,49 +178,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               {weightInput('أذكار القائمة (الواحد)', localWeights.athkarChecklist, (val) => setLocalWeights({ ...localWeights, athkarChecklist: val }), <LayoutList className="w-4 h-4" />)}
             </div>
 
-            <div className="pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-2 mb-4">
-                <Tags className="w-4 h-4 text-emerald-500" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">إضافة سنن مخصصة</h4>
-              </div>
-              
-              <div className="space-y-3 mb-6">
-                {(localWeights.customSunnahs || []).map(s => (
-                  <div key={s.id} className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                    <div>
-                      <span className="text-xs font-bold text-emerald-800 header-font">{s.name}</span>
-                      <span className="text-[10px] text-emerald-500 font-bold block">+{s.points} نقطة</span>
-                    </div>
-                    <button onClick={() => deleteCustomSunnah(s.id)} className="p-2 text-rose-500 hover:bg-rose-100 rounded-lg transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={newSunnahName}
-                  onChange={(e) => setNewSunnahName(e.target.value)}
-                  placeholder="اسم السنة"
-                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold header-font outline-none focus:border-emerald-300"
-                />
-                <input 
-                  type="number" 
-                  value={newSunnahPoints}
-                  onChange={(e) => setNewSunnahPoints(parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold font-mono text-center outline-none focus:border-emerald-300"
-                />
-                <button 
-                  onClick={addCustomSunnah}
-                  className="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all active:scale-90 shadow-md shadow-emerald-100"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
             <div className="flex gap-4 pt-4">
               <button 
                 onClick={resetWeights}
@@ -370,7 +190,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
                 className={`flex-1 py-3 rounded-2xl font-bold header-font text-xs flex items-center justify-center gap-2 shadow-lg transition-all ${isSavedWeights ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-white hover:bg-slate-900 active:scale-95'}`}
               >
                 {isSavedWeights ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                {isSavedWeights ? 'تم الحفظ' : 'حفظ الإعدادات'}
+                {isSavedWeights ? 'تم الحفظ' : 'حفظ الأوزان'}
               </button>
             </div>
           </div>
@@ -380,7 +200,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
       <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-4 shadow-sm">
         <LockKeyhole className="w-6 h-6 text-emerald-600 shrink-0" />
         <p className="text-[11px] text-emerald-800 font-bold leading-relaxed header-font">
-          تطبيق الميزان يحترم خصوصيتك المطلقة؛ بياناتك وعباداتك تُحفظ محلياً على جهازك فقط، بينما تساهم المزامنة العالمية في إحصائيات الأمة دون كشف أسرارك مع الله.
+          تطبيق الميزان يحترم خصوصيتك؛ لا يمكن تعديل بياناتك الأساسية بعد التسجيل لضمان استقرار ملفك الروحي، بينما يمكنك دائماً ضبط ميزانك الخاص.
         </p>
       </div>
     </div>

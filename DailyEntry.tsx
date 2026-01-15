@@ -4,9 +4,9 @@ import {
   Star, Users, Clock, Book, GraduationCap, Plus, Minus, Heart, ShieldAlert,
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
-  CalendarDays, ChevronRight, ChevronLeft
+  CalendarDays, ChevronRight, ChevronLeft, Edit3, Trash2, X, Check
 } from 'lucide-react';
-import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah } from './types';
+import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
 import { format, subDays, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -14,7 +14,8 @@ import { ar } from 'date-fns/locale';
 interface DailyEntryProps {
   log: DailyLog;
   onUpdate: (log: DailyLog) => void;
-  customSunnahs?: CustomSunnah[];
+  weights: AppWeights;
+  onUpdateWeights: (weights: AppWeights) => void;
   currentDate: string;
   onDateChange: (date: string) => void;
 }
@@ -30,8 +31,11 @@ const PRAYER_SUNNAHS: Record<string, {id: string, label: string}[]> = {
   [PrayerName.ISHA]: [{id: 'isha_post', label: 'سنة العشاء (ركعتان بعدية)'}]
 };
 
-const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = [], currentDate, onDateChange }) => {
+const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdateWeights, currentDate, onDateChange }) => {
   const [activePrayer, setActivePrayer] = useState<PrayerName>(PrayerName.FAJR);
+  const [isManagingSunnahs, setIsManagingSunnahs] = useState(false);
+  const [newSunnahName, setNewSunnahName] = useState('');
+  const [newSunnahPoints, setNewSunnahPoints] = useState(50);
 
   const updateSection = (section: keyof DailyLog, data: any) => {
     onUpdate({ ...log, [section]: { ...(log[section] as any), ...data } });
@@ -55,6 +59,32 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
       ? current.filter(id => id !== sunnahId)
       : [...current, sunnahId];
     onUpdate({ ...log, customSunnahIds: newIds });
+  };
+
+  const addSunnah = () => {
+    if (!newSunnahName.trim()) return;
+    const newSunnah: CustomSunnah = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newSunnahName,
+      points: newSunnahPoints
+    };
+    onUpdateWeights({
+      ...weights,
+      customSunnahs: [...(weights.customSunnahs || []), newSunnah]
+    });
+    setNewSunnahName('');
+    setNewSunnahPoints(50);
+  };
+
+  const removeSunnah = (id: string) => {
+    onUpdateWeights({
+      ...weights,
+      customSunnahs: (weights.customSunnahs || []).filter(s => s.id !== id)
+    });
+    // أيضاً يجب إزالتها من تسجيل اليوم الحالي إذا كانت مختارة
+    if (log.customSunnahIds.includes(id)) {
+      onUpdate({ ...log, customSunnahIds: log.customSunnahIds.filter(cid => cid !== id) });
+    }
   };
 
   const getTranquilityLabel = (level: number) => {
@@ -222,7 +252,90 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         </div>
       </div>
 
-      {/* بقية الأقسام: القرآن، الأذكار، النوافل... كما هي */}
+      {/* قسم السنن المخصصة المحدث */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Tags className="w-5 h-5 text-emerald-500" />
+            <h3 className="font-bold text-slate-800 header-font text-lg">سنن مخصصة</h3>
+          </div>
+          <button 
+            onClick={() => setIsManagingSunnahs(!isManagingSunnahs)}
+            className={`p-2 rounded-xl transition-all ${isManagingSunnahs ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+          >
+            <Edit3 className="w-4 h-4" />
+          </button>
+        </div>
+
+        {isManagingSunnahs && (
+          <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 animate-in slide-in-from-top duration-300">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">إضافة سنة جديدة</span>
+              <button onClick={() => setIsManagingSunnahs(false)} className="text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                value={newSunnahName}
+                onChange={(e) => setNewSunnahName(e.target.value)}
+                placeholder="مثال: بر الوالدين، صلة رحم.."
+                className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold header-font focus:border-emerald-500 outline-none"
+              />
+              <input 
+                type="number" 
+                value={newSunnahPoints}
+                onChange={(e) => setNewSunnahPoints(parseInt(e.target.value) || 0)}
+                className="w-16 px-2 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-center outline-none focus:border-emerald-500"
+              />
+              <button 
+                onClick={addSunnah}
+                className="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-sm"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="h-px bg-slate-200 my-4" />
+            <div className="space-y-2">
+              {(weights.customSunnahs || []).map(s => (
+                <div key={s.id} className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-600 header-font">{s.name} ({s.points}ن)</span>
+                  <button onClick={() => removeSunnah(s.id)} className="p-1.5 text-rose-400 hover:bg-rose-50 rounded-lg"><Trash2 className="w-3 h-3" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-2">
+          {(weights.customSunnahs || []).length > 0 ? (
+            (weights.customSunnahs || []).map((sunnah) => (
+              <button
+                key={sunnah.id}
+                onClick={() => toggleCustomSunnah(sunnah.id)}
+                className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                  (log.customSunnahIds || []).includes(sunnah.id)
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-sm'
+                  : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-emerald-100'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${ (log.customSunnahIds || []).includes(sunnah.id) ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-300' }`}>
+                    {(log.customSunnahIds || []).includes(sunnah.id) && <Check className="w-3 h-3 text-white" />}
+                  </div>
+                  <span className="text-sm font-bold header-font">{sunnah.name}</span>
+                </div>
+                <span className="text-xs font-black font-mono bg-white px-2 py-1 rounded-lg border border-slate-100">+{sunnah.points}</span>
+              </button>
+            ))
+          ) : (
+            <div className="text-center py-4 border-2 border-dashed border-slate-100 rounded-2xl">
+              <p className="text-[10px] text-slate-400 font-bold header-font">لا توجد سنن مخصصة مضافة حالياً</p>
+              <button onClick={() => setIsManagingSunnahs(true)} className="text-[10px] text-emerald-600 font-bold underline mt-1">أضف سنتك الخاصة الآن</button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="flex gap-4">
         <div className="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-2"><span className="text-[10px] font-bold text-slate-500 header-font">معامل المجاهدة</span><Heart className={`w-4 h-4 ${log.jihadFactor > 1 ? 'text-rose-500 fill-rose-500' : 'text-slate-300'}`} /></div>
@@ -269,6 +382,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
           })}
         </div>
         <div className="space-y-3">
+          {/* Fixed typo in field name 'baقiyat' to 'baqiyat' */}
           {counterItem('الصلاة على النبي', 'salawat', <Zap className="w-4 h-4" />)}
           {counterItem('الحوقلة', 'hawqalah', <Zap className="w-4 h-4" />)}
           {counterItem('لا إله إلا الله', 'tahlil', <Zap className="w-4 h-4" />)}

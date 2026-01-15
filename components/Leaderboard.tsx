@@ -74,7 +74,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           <div className="p-4 bg-white/10 rounded-full mb-4 backdrop-blur-md">
             <Trophy className="w-10 h-10 text-yellow-400 fill-yellow-400" />
           </div>
-          <h2 className="text-2xl font-bold header-font">مقامك العالمي</h2>
+          <h2 className="text-2xl font-bold header-font">والسابقون السابقون أولئك المقربون </h2>
           {isSync ? (
             <div className="mt-2 flex flex-col items-center">
                 <span className="text-4xl font-black font-mono text-yellow-400">

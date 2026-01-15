@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { 
   Flame, 
   Target, 
@@ -12,14 +12,29 @@ import {
   TrendingUp, 
   Zap,
   Activity,
-  History
+  History,
+  Award,
+  ShieldCheck,
+  Sun,
+  Moon,
+  BookOpen,
+  CheckCircle2,
+  Lock,
+  Home,
+  Key,
+  Coins,
+  Shield,
+  CloudMoon,
+  Heart,
+  BarChart3
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { format, subDays, isBefore, parseISO } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { DailyLog, AppWeights } from '../types';
+import { DailyLog, AppWeights, PrayerName, PrayerEntry } from '../types';
 import { calculateTotalScore } from '../utils/scoring';
 import { GoogleGenAI } from "@google/genai";
+import confetti from 'canvas-confetti';
 
 interface DashboardProps {
   log: DailyLog;
@@ -36,11 +51,112 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
   const [aiAdvice, setAiAdvice] = useState<string | null>(null);
   const [isEditingTarget, setIsEditingTarget] = useState(false);
   const [tempTarget, setTempTarget] = useState(targetScore.toString());
+  
+  // حفظ الحالة السابقة للأوسمة لاكتشاف التغيرات الحقيقية فقط
+  const prevBadgesActiveState = useRef<Record<string, boolean>>({});
+  const isFirstRender = useRef(true);
 
   const currentTotalScore = calculateTotalScore(log, weights);
   const progressPercent = Math.min((currentTotalScore / targetScore) * 100, 100);
 
-  // حساب الزخم الروحي (مقارنة اليوم بمتوسط الـ 7 أيام الماضية)
+  // حساب نظام الشارات
+  const badges = useMemo(() => {
+    const rawatibIds = ['fajr_pre', 'dhuhr_pre', 'dhuhr_post', 'maghrib_post', 'isha_post'];
+    const allUserSunnahs = (Object.values(log.prayers) as PrayerEntry[]).flatMap(p => p.surroundingSunnahIds || []);
+    const fullRawatibDone = rawatibIds.every(id => allUserSunnahs.includes(id));
+    
+    return [
+      {
+        id: 'fajr',
+        title: 'بشرى الرؤية',
+        desc: 'تستحق رؤية الله في الآخرة',
+        icon: <Sun className="w-5 h-5" />,
+        active: log.prayers[PrayerName.FAJR]?.performed,
+        color: 'from-amber-400 to-orange-500'
+      },
+      {
+        id: 'rawatib',
+        title: 'بيت في الجنة',
+        desc: 'من صلى ثنتي عشرة ركعة..',
+        icon: <Home className="w-5 h-5" />,
+        active: fullRawatibDone,
+        color: 'from-emerald-400 to-teal-600'
+      },
+      {
+        id: 'fasting',
+        title: 'بعيد عن النار',
+        desc: 'باعد الله وجهه عن النار ٧٠ خريفاً',
+        icon: <Flame className="w-5 h-5" />,
+        active: log.nawafil.fasting,
+        color: 'from-orange-400 to-rose-600'
+      },
+      {
+        id: 'istighfar',
+        title: 'مفتاح الرزق',
+        desc: 'فقلت استغفروا ربكم.. يرسل السماء',
+        icon: <Coins className="w-5 h-5" />,
+        active: log.athkar.counters.istighfar > 0,
+        color: 'from-blue-400 to-cyan-600'
+      },
+      {
+        id: 'hawqalah',
+        title: 'مفتاح النجاح',
+        desc: 'لا حول ولا قوة إلا بالله كنز الجنة',
+        icon: <Key className="w-5 h-5" />,
+        active: log.athkar.counters.hawqalah > 0,
+        color: 'from-indigo-400 to-blue-700'
+      },
+      {
+        id: 'salawat',
+        title: 'مفتاح القرب',
+        desc: 'أقربكم مني مجلساً أكثركم صلاة علي',
+        icon: <Heart className="w-5 h-5" />,
+        active: log.athkar.counters.salawat > 0,
+        color: 'from-rose-400 to-pink-600'
+      },
+      {
+        id: 'witr',
+        title: 'محبوب الرحمن',
+        desc: 'إن الله وتر يحب الوتر فأوتروا',
+        icon: <CloudMoon className="w-5 h-5" />,
+        active: log.nawafil.witrDuration > 0,
+        color: 'from-slate-700 to-indigo-900'
+      }
+    ];
+  }, [log]);
+
+  // مراقبة تفعيل الأوسمة لإطلاق الاحتفال
+  useEffect(() => {
+    // في أول رندر، نقوم فقط بتسجيل الحالة الحالية دون إطلاق مفرقعات
+    if (isFirstRender.current) {
+      badges.forEach(badge => {
+        prevBadgesActiveState.current[badge.id] = !!badge.active;
+      });
+      isFirstRender.current = false;
+      return;
+    }
+
+    let triggered = false;
+    badges.forEach(badge => {
+      // الاحتفال فقط إذا تغيرت الحالة من "غير مفعل" إلى "مفعل"
+      if (badge.active && !prevBadgesActiveState.current[badge.id]) {
+        triggered = true;
+      }
+      // تحديث المرجع للحالة الحالية
+      prevBadgesActiveState.current[badge.id] = !!badge.active;
+    });
+
+    if (triggered) {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#10b981', '#fbbf24', '#3b82f6', '#f43f5e', '#a855f7'],
+        zIndex: 9999
+      });
+    }
+  }, [badges]);
+
   const momentumInfo = useMemo(() => {
     const scores = Array.from({ length: 7 }).map((_, i) => {
       const d = format(subDays(new Date(), i + 1), 'yyyy-MM-dd');
@@ -57,23 +173,18 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
     };
   }, [logs, currentTotalScore, weights]);
 
-  // حساب سلسلة الاستقامة (الأيام المتتالية فوق 50% من الهدف)
   const streakCount = useMemo(() => {
     let count = 0;
     let checkDate = new Date();
-    
     while (true) {
       const dateStr = format(checkDate, 'yyyy-MM-dd');
       const dayLog = logs[dateStr];
       if (!dayLog) break;
-      
       const dayScore = calculateTotalScore(dayLog, weights);
       if (dayScore >= targetScore * 0.5) {
         count++;
         checkDate = subDays(checkDate, 1);
-      } else {
-        break;
-      }
+      } else { break; }
     }
     return count;
   }, [logs, weights, targetScore]);
@@ -90,7 +201,6 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
       });
       setAiAdvice(response.text || "استمر في مجاهدة نفسك، فكل خطوة تقربك من الله هي ربح عظيم.");
     } catch (e) {
-      console.error("Gemini Error:", e);
       setAiAdvice("النية الصالحة هي روح العمل، واصل مسيرك بارك الله فيك ونفع بك.");
     } finally {
       setIsAiLoading(false);
@@ -149,12 +259,45 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
         )}
       </div>
 
+      {/* نظام الشارات الروحية */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-2 mb-4">
+          <Award className="w-5 h-5 text-amber-500" />
+          <h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">أوسمة الأبرار اليوم</h3>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {badges.map(badge => (
+            <div 
+              key={badge.id}
+              className={`relative flex flex-col items-center p-3 rounded-2xl border transition-all duration-500 overflow-hidden min-h-[110px] ${
+                badge.active 
+                ? `bg-gradient-to-br ${badge.color} text-white border-transparent shadow-lg shadow-emerald-100` 
+                : 'bg-slate-50 text-slate-400 border-slate-100 grayscale opacity-60'
+              }`}
+            >
+              <div className={`p-2 rounded-xl mb-2 ${badge.active ? 'bg-white/20' : 'bg-slate-200'}`}>
+                {badge.active ? badge.icon : <Lock className="w-5 h-5" />}
+              </div>
+              <span className="text-[10px] font-black header-font text-center leading-tight mb-1">{badge.title}</span>
+              <p className={`text-[8px] text-center leading-tight font-bold px-1 ${badge.active ? 'text-white/80' : 'text-slate-400'}`}>
+                {badge.desc}
+              </p>
+              {badge.active && (
+                <div className="absolute top-1 left-1 bg-white/30 rounded-full p-0.5">
+                   <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* التقدم نحو الهدف وتعديله */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <Target className="w-5 h-5 text-emerald-500" />
-            <h3 className="font-bold text-slate-800 header-font">الهدف اليومي</h3>
+            <h3 className="font-bold text-slate-800 header-font text-sm">الهدف اليومي</h3>
           </div>
           <div className="flex items-center gap-2">
             {isEditingTarget ? (
@@ -191,7 +334,6 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
         </div>
       </div>
 
-      {/* الخواص البديلة: الزخم الروحي وسلسلة النور */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
           <div className={`p-3 rounded-2xl mb-3 ${momentumInfo.percent >= 0 ? 'bg-emerald-50' : 'bg-amber-50'}`}>

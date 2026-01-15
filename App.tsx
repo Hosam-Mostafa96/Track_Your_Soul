@@ -17,7 +17,8 @@ import {
   Sparkles,
   ArrowRight,
   Globe,
-  Loader2
+  Loader2,
+  BarChart3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -35,6 +36,7 @@ import UserProfile from './components/UserProfile';
 import Leaderboard from './components/Leaderboard';
 import ContactUs from './components/ContactUs';
 import Onboarding from './components/Onboarding';
+import Statistics from './components/Statistics';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -59,11 +61,12 @@ const INITIAL_LOG = (date: string): DailyLog => ({
   hasBurden: false,
   isRepented: true,
   isSupplicatingAloud: false,
-  notes: ''
+  notes: '',
+  reflections: []
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'timer' | 'leaderboard' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
+  type Tab = 'dashboard' | 'entry' | 'timer' | 'leaderboard' | 'notes' | 'stats' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -138,6 +141,11 @@ const App: React.FC = () => {
     localStorage.setItem('mizan_logs', JSON.stringify(newLogs));
   };
 
+  const handleUpdateWeights = (newWeights: AppWeights) => {
+    setWeights(newWeights);
+    localStorage.setItem('mizan_weights', JSON.stringify(newWeights));
+  };
+
   if (!isAppReady) {
     return (
       <div className="min-h-screen bg-emerald-900 flex items-center justify-center">
@@ -146,7 +154,6 @@ const App: React.FC = () => {
     );
   }
 
-  // إذا لم يكن هناك مستخدم، نعرض شاشة التسجيل أولاً
   if (!user) {
     return <Onboarding onComplete={(userData) => {
       setUser(userData);
@@ -198,7 +205,16 @@ const App: React.FC = () => {
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
         {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('mizan_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
-        {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} customSunnahs={weights.customSunnahs} currentDate={currentDate} onDateChange={setCurrentDate} />}
+        {activeTab === 'entry' && (
+          <DailyEntry 
+            log={currentLog} 
+            onUpdate={updateLog} 
+            weights={weights}
+            onUpdateWeights={handleUpdateWeights}
+            currentDate={currentDate} 
+            onDateChange={setCurrentDate} 
+          />
+        )}
         {activeTab === 'timer' && (
           <WorshipTimer 
             isSync={isGlobalSyncEnabled} 
@@ -224,26 +240,28 @@ const App: React.FC = () => {
         )}
         {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
         {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
+        {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
         {activeTab === 'contact' && <ContactUs />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(e) => { setIsGlobalSyncEnabled(e); localStorage.setItem('mizan_global_sync', JSON.stringify(e)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('mizan_user', JSON.stringify(u)); }} onUpdateWeights={(w) => { setWeights(w); localStorage.setItem('mizan_weights', JSON.stringify(w)); }} />}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(e) => { setIsGlobalSyncEnabled(e); localStorage.setItem('mizan_global_sync', JSON.stringify(e)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('mizan_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-4 border border-slate-200 backdrop-blur-lg z-50">
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50">
         {[
           {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
           {id: 'entry', icon: PenLine, label: 'تسجيل'},
           {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
+          {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
           {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
           {id: 'notes', icon: NotebookPen, label: 'يوميات'}
         ].map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.5rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
             <div className="relative">
               <tab.icon className="w-5 h-5" />
               {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
             </div>
-            <span className="text-[8px] mt-1 font-bold header-font">{tab.label}</span>
+            <span className="text-[7px] mt-1 font-bold header-font">{tab.label}</span>
           </button>
         ))}
       </nav>

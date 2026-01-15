@@ -53,6 +53,12 @@ export interface ActiveActivity {
   count: number;
 }
 
+export interface ReflectionNote {
+  id: string;
+  text: string;
+  timestamp: number;
+}
+
 export interface AppWeights {
   fardCongregation: number;
   fardSolo: number;
@@ -85,6 +91,7 @@ export interface DailyLog {
   isRepented: boolean;
   isSupplicatingAloud: boolean;
   notes?: string;
+  reflections: ReflectionNote[];
 }
 
 export interface PrayerEntry {
