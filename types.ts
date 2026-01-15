@@ -22,6 +22,14 @@ export enum JihadFactor {
   HIGH_STRUGGLE = 1.1
 }
 
+export interface User {
+  name: string;
+  email: string;
+  country: string;
+  age: string;
+  qualification: string;
+}
+
 export interface CustomSunnah {
   id: string;
   name: string;
@@ -75,7 +83,6 @@ export interface DailyLog {
   jihadFactor: number;
   hasBurden: boolean;
   isRepented: boolean;
-  // Fix: Added missing property for the supplication (ابتهال) feature
   isSupplicatingAloud: boolean;
   notes?: string;
 }

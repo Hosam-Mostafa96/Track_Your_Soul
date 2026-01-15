@@ -8,25 +8,32 @@ import {
   Globe,
   ToggleRight,
   ToggleLeft,
-  Loader2
+  Loader2,
+  Calendar
 } from 'lucide-react';
-import { AppWeights, CustomSunnah } from '../types';
+import { AppWeights, CustomSunnah, User as UserType } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
 
 const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzkeDYwB-XGbaDFOeQur9m_sLG6jtMU40eP7Y71GTOCY0m3bRzkDmY8dPjjxwY1fSvq/exec"; 
 
 interface UserProfileProps {
-  user: { name: string; email: string } | null;
+  user: UserType | null;
   weights: AppWeights;
   isGlobalSync: boolean;
   onToggleSync: (enabled: boolean) => void;
-  onUpdateUser: (user: { name: string; email: string } | null) => void;
+  onUpdateUser: (user: UserType | null) => void;
   onUpdateWeights: (weights: AppWeights) => void;
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, onToggleSync, onUpdateUser, onUpdateWeights }) => {
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const [formData, setFormData] = useState<UserType>({
+    name: user?.name || '',
+    email: user?.email || '',
+    country: user?.country || '',
+    age: user?.age || '',
+    qualification: user?.qualification || ''
+  });
+  
   const [isSaving, setIsSaving] = useState(false);
   const [isSavedUser, setIsSavedUser] = useState(false);
   
@@ -39,13 +46,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email) return;
+    if (!formData.name || !formData.email) return;
 
     setIsSaving(true);
     const anonId = localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7);
 
     try {
-      // إرسال البيانات للجوجل شيت للتسجيل
       if (isGlobalSync && !GOOGLE_STATS_API.includes("FIX_ME")) {
         await fetch(GOOGLE_STATS_API, {
           method: 'POST',
@@ -54,17 +60,16 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
           body: JSON.stringify({
             action: 'registerUser',
             id: anonId,
-            name: name,
-            email: email
+            ...formData
           })
         });
       }
 
-      onUpdateUser({ name, email });
+      onUpdateUser(formData);
       setIsSavedUser(true);
       setTimeout(() => setIsSavedUser(false), 3000);
     } catch (error) {
-      console.error("Failed to register user:", error);
+      console.error("Failed to update user:", error);
     } finally {
       setIsSaving(false);
     }
@@ -85,8 +90,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
   const handleLogout = () => {
     if (window.confirm('هل تريد مسح بيانات الحساب من هذا الجهاز؟')) {
       onUpdateUser(null);
-      setName('');
-      setEmail('');
+      setFormData({ name: '', email: '', country: '', age: '', qualification: '' });
     }
   };
 
@@ -136,36 +140,75 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
             <User className="w-12 h-12 text-emerald-600" />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 header-font">{user ? user.name : 'حساب محلي'}</h2>
-          <p className="text-xs text-slate-400 font-bold header-font">بياناتك محفوظة على هذا الجهاز فقط</p>
+          <p className="text-xs text-slate-400 font-bold header-font">بياناتك من مزامنة المحراب العالمي</p>
         </div>
 
         <form onSubmit={handleSaveUser} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">الاسم التعريفي</label>
-            <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-              <input 
-                type="text" 
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="ادخل اسمك"
-                className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 outline-none transition-all font-bold header-font text-sm text-right"
-                required
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">الاسم التعريفي</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input 
+                  type="text" 
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">البريد الإلكتروني</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input 
+                  type="email" 
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">الدولة</label>
+              <div className="relative">
+                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input 
+                  type="text" 
+                  value={formData.country}
+                  onChange={(e) => setFormData({...formData, country: e.target.value})}
+                  className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">العمر</label>
+              <div className="relative">
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input 
+                  type="number" 
+                  value={formData.age}
+                  onChange={(e) => setFormData({...formData, age: e.target.value})}
+                  className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
+                />
+              </div>
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">البريد الإلكتروني (إجباري للمزامنة)</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase mr-1 header-font">المؤهل الدراسي</label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+              <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
               <input 
-                type="email" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@mail.com"
-                className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 focus:border-emerald-300 outline-none transition-all font-bold header-font text-sm text-right"
-                required
+                type="text" 
+                value={formData.qualification}
+                onChange={(e) => setFormData({...formData, qualification: e.target.value})}
+                className="w-full pl-4 pr-11 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none transition-all font-bold text-xs"
               />
             </div>
           </div>
@@ -180,23 +223,21 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
             }`}
           >
             {isSaving ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> جاري الحفظ...</>
+              <><Loader2 className="w-5 h-5 animate-spin" /> جاري التحديث...</>
             ) : isSavedUser ? (
-              <><CheckCircle className="w-5 h-5" /> تم حفظ الملف الشخصي</>
+              <><CheckCircle className="w-5 h-5" /> تم الحفظ</>
             ) : (
-              <><Save className="w-5 h-5" /> حفظ البيانات والمزامنة</>
+              <><Save className="w-5 h-5" /> تحديث البيانات</>
             )}
           </button>
         </form>
 
-        {user && (
-          <button 
-            onClick={handleLogout}
-            className="w-full mt-4 py-3 text-slate-400 hover:text-rose-500 font-bold text-xs header-font flex items-center justify-center gap-2"
-          >
-            <LogOut className="w-4 h-4" /> مسح بيانات المتصفح
-          </button>
-        )}
+        <button 
+          onClick={handleLogout}
+          className="w-full mt-4 py-3 text-slate-400 hover:text-rose-500 font-bold text-xs header-font flex items-center justify-center gap-2"
+        >
+          <LogOut className="w-4 h-4" /> مسح بيانات المتصفح (خروج)
+        </button>
       </div>
 
       {/* 2. Global Sync Section */}

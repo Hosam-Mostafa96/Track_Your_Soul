@@ -13,12 +13,16 @@ import {
   Calendar,
   ChevronDown,
   Mail,
-  CalendarDays
+  CalendarDays,
+  Sparkles,
+  ArrowRight,
+  Globe,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
-import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights } from './types';
+import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User } from './types';
 import { calculateTotalScore } from './utils/scoring';
 import { DEFAULT_WEIGHTS } from './constants';
 import Dashboard from './components/Dashboard';
@@ -30,6 +34,7 @@ import Reflections from './components/Reflections';
 import UserProfile from './components/UserProfile';
 import Leaderboard from './components/Leaderboard';
 import ContactUs from './components/ContactUs';
+import Onboarding from './components/Onboarding';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -63,9 +68,10 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [targetScore, setTargetScore] = useState(5000);
-  const [user, setUser] = useState<{name: string, email: string} | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
+  const [isAppReady, setIsAppReady] = useState(false);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -119,6 +125,8 @@ const App: React.FC = () => {
     if (savedUser) setUser(JSON.parse(savedUser));
     if (savedSync) setIsGlobalSyncEnabled(JSON.parse(savedSync));
     if (savedWeights) setWeights(JSON.parse(savedWeights));
+    
+    setIsAppReady(true);
   }, []);
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
@@ -129,6 +137,24 @@ const App: React.FC = () => {
     setLogs(newLogs);
     localStorage.setItem('mizan_logs', JSON.stringify(newLogs));
   };
+
+  if (!isAppReady) {
+    return (
+      <div className="min-h-screen bg-emerald-900 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+      </div>
+    );
+  }
+
+  // إذا لم يكن هناك مستخدم، نعرض شاشة التسجيل أولاً
+  if (!user) {
+    return <Onboarding onComplete={(userData) => {
+      setUser(userData);
+      localStorage.setItem('mizan_user', JSON.stringify(userData));
+      setIsGlobalSyncEnabled(true);
+      localStorage.setItem('mizan_global_sync', JSON.stringify(true));
+    }} />;
+  }
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50">
