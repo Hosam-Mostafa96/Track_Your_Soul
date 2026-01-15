@@ -155,9 +155,14 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
           <TrendingUp className="w-4 h-4 text-emerald-500" />
           <h3 className="font-bold text-slate-700 text-xs header-font">تكرار الأعمال في هذه الفترة</h3>
         </div>
-        <div className="h-64 w-full">
+        {/* زيادة الارتفاع ليعطي مساحة أكبر للبارات */}
+        <div className="h-72 w-full pr-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={statsData} layout="vertical">
+            <BarChart 
+              data={statsData} 
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
               <XAxis type="number" hide />
               <YAxis 
@@ -165,14 +170,21 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
                 type="category" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b', fontFamily: 'Cairo' }}
-                width={70}
+                tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b', fontFamily: 'Cairo' }}
+                width={85}
               />
               <Tooltip 
                 cursor={{ fill: '#f8fafc' }}
-                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo' }}
+                contentStyle={{ 
+                  borderRadius: '16px', 
+                  border: 'none', 
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', 
+                  fontFamily: 'Cairo',
+                  fontSize: '12px'
+                }}
               />
-              <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={24}>
+              {/* تعديل barSize ليكون 32 بدلاً من 24 ليكون أكثر "امتلاءً" */}
+              <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={32}>
                 {statsData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
