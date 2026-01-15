@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2 } from 'lucide-react';
+import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzCaBexjkZftaMQMA1Szlgd0BPpKnecWkm2DjjlTXZem5-9ndUmfy9zT2DwNQVJR9Ox/exec"; 
+// الرابط الموحد المحدث - تأكد أنه نفس الرابط في جميع الملفات
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
 
 interface LeaderboardProps {
   user: User | null;
@@ -20,6 +21,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [globalTop, setGlobalTop] = useState<any[]>([]);
   const [userGlobalRank, setUserGlobalRank] = useState<number | string>("---");
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const anonId = useRef(localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7));
   
   const fetchGlobalData = async (isSilent = false) => {
@@ -29,8 +31,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     try {
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain' }, 
         body: JSON.stringify({
+          action: 'getStats',
           id: anonId.current,
           name: user?.name || "مصلٍ مجهول",
           score: currentScore
@@ -39,21 +42,27 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
       if (res.ok) {
         const data = await res.json();
-        if (data.stats) setLiveStats(data.stats);
-        if (data.leaderboard) setGlobalTop(data.leaderboard);
-        if (data.userRank) setUserGlobalRank(data.userRank);
+        if (data) {
+          if (data.stats) setLiveStats(data.stats);
+          if (data.leaderboard) setGlobalTop(data.leaderboard);
+          if (data.userRank) setUserGlobalRank(data.userRank);
+          setHasError(false);
+        }
+      } else {
+        setHasError(true);
       }
     } catch (e) {
       console.error("Global Sync Error:", e);
+      setHasError(true);
     } finally {
       if (!isSilent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchGlobalData(); // تحميل أول مرة
-    // تحديث كل ثانية واحدة (1000ms) لتجربة لحظية كاملة
-    const interval = setInterval(() => fetchGlobalData(true), 1000); 
+    fetchGlobalData(); // أول جلب عند التحميل
+    // تحديث لحظي كل 3 ثوانٍ (3000ms) بناءً على طلب المستخدم
+    const interval = setInterval(() => fetchGlobalData(true), 3000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.name]);
 
@@ -78,6 +87,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           )}
         </div>
       </div>
+
+      {hasError && (
+        <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600">
+          <WifiOff className="w-5 h-5" />
+          <p className="text-xs font-bold header-font">تعذر الاتصال بالمحراب العالمي. جاري المحاولة...</p>
+        </div>
+      )}
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
@@ -121,7 +137,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
         <div className="space-y-3">
           {globalTop.length > 0 ? globalTop.map((player, index) => (
-            <div key={player.id} className={`flex items-center justify-between p-3 rounded-2xl transition-colors duration-500 ${player.id === anonId.current ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border-transparent'}`}>
+            <div key={player.id} className={`flex items-center justify-between p-3 rounded-2xl transition-all duration-300 ${player.id === anonId.current ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border-transparent'}`}>
               <div className="flex items-center gap-3">
                 <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${index === 0 ? 'bg-yellow-400 text-white' : index === 1 ? 'bg-slate-300 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'text-slate-400'}`}>
                     {index + 1}
@@ -133,7 +149,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               <span className="text-sm font-black text-slate-800 font-mono">{player.score.toLocaleString()}</span>
             </div>
           )) : (
-            <p className="text-center text-[10px] text-slate-400 font-bold py-4 italic">قائمة المتصدرين فارغة حالياً</p>
+            <div className="text-center py-8">
+                <p className="text-[10px] text-slate-400 font-bold header-font animate-pulse italic">جاري جلب قائمة الأبرار...</p>
+            </div>
           )}
         </div>
       </div>

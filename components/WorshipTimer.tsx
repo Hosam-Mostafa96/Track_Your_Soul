@@ -29,10 +29,14 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
         await fetch(GOOGLE_STATS_API, { 
             method: 'POST', 
             headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ action: 'heartbeat', activity: selectedActivity, id: anonId.current }) 
+            body: JSON.stringify({ 
+              action: 'heartbeat', 
+              activity: selectedActivity, 
+              id: anonId.current 
+            }) 
         });
         setSyncStatus('success');
-        setTimeout(() => setSyncStatus('idle'), 500); // تصفير الحالة بسرعة
+        setTimeout(() => setSyncStatus('idle'), 500);
     } catch (e) { setSyncStatus('error'); }
   };
 
@@ -49,8 +53,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      // إرسال النبض كل ثانية واحدة (1000ms) بناءً على طلب المستخدم
-      syncRef.current = window.setInterval(sendHeartbeat, 1000);
+      // إرسال النبض كل 3 ثوانٍ لضمان الدقة اللحظية مع تقليل الضغط على الخادم
+      syncRef.current = window.setInterval(sendHeartbeat, 3000);
       sendHeartbeat();
     } else {
       if (syncRef.current) {

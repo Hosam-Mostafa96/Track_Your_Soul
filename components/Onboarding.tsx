@@ -34,8 +34,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       if (!GOOGLE_STATS_API.includes("FIX_ME")) {
         await fetch(GOOGLE_STATS_API, {
           method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'registerUser',
             id: anonId,
@@ -46,7 +45,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       onComplete(formData);
     } catch (error) {
       console.error("Registration failed:", error);
-      // Even if API fails, allow entry locally
       onComplete(formData);
     } finally {
       setIsSaving(false);
