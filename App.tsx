@@ -1,34 +1,45 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  LayoutDashboard, PenLine, Medal, UserCircle, Sparkles, Loader2, BarChart3
+  LayoutDashboard, 
+  PenLine, 
+  History, 
+  Trophy,
+  Info,
+  Timer as TimerIcon,
+  NotebookPen,
+  UserCircle,
+  Medal,
+  Calendar,
+  ChevronDown,
+  Mail,
+  CalendarDays,
+  Sparkles,
+  ArrowRight,
+  Globe,
+  Loader2,
+  BarChart3,
+  TrendingUp,
+  Activity
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { createClient } from '@supabase/supabase-js';
 
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User } from './types';
 import { calculateTotalScore } from './utils/scoring';
 import { DEFAULT_WEIGHTS } from './constants';
 import Dashboard from './components/Dashboard';
-import DailyEntry from './components/DailyEntry';
+import DailyEntry from './DailyEntry';
+import WorshipHistory from './components/WorshipHistory';
+import WorshipGuide from './components/WorshipGuide';
+import WorshipTimer from './components/WorshipTimer';
+import Reflections from './components/Reflections';
 import UserProfile from './components/UserProfile';
 import Leaderboard from './components/Leaderboard';
+import ContactUs from './components/ContactUs';
 import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
-
-// استرداد المتغيرات من البيئة (سواء من define في vite أو من الملف مباشرة)
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
-let supabase: any = null;
-if (supabaseUrl && supabaseAnonKey) {
-  try {
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-  } catch (e) {
-    console.error("Supabase initialization error:", e);
-  }
-}
+import WorshipPatterns from './components/WorshipPatterns';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -45,7 +56,9 @@ const INITIAL_LOG = (date: string): DailyLog => ({
     checklists: { morning: false, evening: false, sleep: false, travel: false },
     counters: { salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0 }
   },
-  nawafil: { duhaDuration: 0, witrDuration: 0, qiyamDuration: 0, fasting: false, custom: [] },
+  nawafil: {
+    duhaDuration: 0, witrDuration: 0, qiyamDuration: 0, fasting: false, custom: []
+  },
   customSunnahIds: [],
   jihadFactor: JihadFactor.NORMAL,
   hasBurden: false,
@@ -56,154 +69,204 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'stats' | 'profile';
+  type Tab = 'dashboard' | 'entry' | 'timer' | 'leaderboard' | 'notes' | 'stats' | 'patterns' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [targetScore, setTargetScore] = useState(5000);
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<any>(null);
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
+  const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [activeActivity, setActiveActivity] = useState('qiyamDuration');
+  const timerIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // تحميل البيانات المحلية
-    const savedLogs = localStorage.getItem('worship_logs');
-    if (savedLogs) setLogs(JSON.parse(savedLogs));
-
-    if (!supabase) {
-      setIsAppReady(true);
-      return;
-    }
-
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        if (session) await fetchUserProfile(session.user.id);
-      } catch (e) {
-        console.error("Auth Session Error:", e);
-      } finally {
-        setIsAppReady(true);
+    const savedTimer = localStorage.getItem('worship_active_timer_v1');
+    if (savedTimer) {
+      const { seconds, isRunning, activity, lastUpdate } = JSON.parse(savedTimer);
+      setActiveActivity(activity);
+      if (isRunning) {
+        const elapsed = Math.floor((Date.now() - lastUpdate) / 1000);
+        setTimerSeconds(seconds + elapsed);
+        setIsTimerRunning(true);
+      } else {
+        setTimerSeconds(seconds);
       }
-    };
-
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      setSession(session);
-      if (session) fetchUserProfile(session.user.id);
-      else { setUser(null); }
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
-    if (!supabase) return;
-    try {
-      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (data) setUser(data);
-      await fetchUserLogs(userId);
-    } catch (e) {
-      console.error("Profile fetch error:", e);
+  useEffect(() => {
+    if (isTimerRunning) {
+      timerIntervalRef.current = window.setInterval(() => {
+        setTimerSeconds(s => s + 1);
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     }
-  };
+    return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
+  }, [isTimerRunning]);
 
-  const fetchUserLogs = async (userId: string) => {
-    if (!supabase) return;
-    try {
-      const { data } = await supabase.from('worship_logs').select('*').eq('user_id', userId);
-      if (data) {
-        const logsMap: Record<string, DailyLog> = { ...logs };
-        data.forEach((item: any) => { 
-          if (item.date && item.data) {
-            logsMap[item.date] = item.data; 
-          }
-        });
-        setLogs(logsMap);
-        localStorage.setItem('worship_logs', JSON.stringify(logsMap));
-      }
-    } catch (e) {
-      console.error("Logs fetch error:", e);
-    }
-  };
+  useEffect(() => {
+    localStorage.setItem('worship_active_timer_v1', JSON.stringify({
+      seconds: timerSeconds,
+      isRunning: isTimerRunning,
+      activity: activeActivity,
+      lastUpdate: Date.now()
+    }));
+  }, [timerSeconds, isTimerRunning, activeActivity]);
 
-  const updateLog = async (updated: DailyLog) => {
-    const newLogs = { ...logs, [updated.date]: updated };
-    setLogs(newLogs);
-    localStorage.setItem('worship_logs', JSON.stringify(newLogs));
+  useEffect(() => {
+    const savedLogs = localStorage.getItem('worship_logs');
+    const savedTarget = localStorage.getItem('worship_target');
+    const savedUser = localStorage.getItem('worship_user');
+    const savedWeights = localStorage.getItem('worship_weights');
+    const savedSync = localStorage.getItem('worship_global_sync');
     
-    if (session && supabase) {
-      setIsSyncing(true);
-      try {
-        await supabase.from('worship_logs').upsert({ 
-          user_id: session.user.id, 
-          date: updated.date, 
-          data: updated 
-        }, { onConflict: 'user_id,date' });
-      } catch (e) { console.error("Sync Error:", e); } finally { setIsSyncing(false); }
-    }
-  };
-
-  if (!isAppReady) {
-    return (
-      <div className="min-h-screen bg-emerald-900 flex flex-col items-center justify-center p-6 text-center">
-        <Loader2 className="w-12 h-12 text-emerald-400 animate-spin mb-4" />
-        <p className="text-emerald-100 font-bold header-font">جاري تحضير المحراب الخاص بك...</p>
-      </div>
-    );
-  }
-
-  // السماح بالاستمرار حتى لو لم يتم تسجيل الدخول (يعمل محلياً)
-  if (!session && supabase && supabaseAnonKey && supabaseAnonKey.startsWith('eyJ')) {
-    return <Onboarding supabase={supabase} onComplete={() => {}} />;
-  }
+    if (savedLogs) setLogs(JSON.parse(savedLogs));
+    if (savedTarget) setTargetScore(parseInt(savedTarget));
+    if (savedUser) setUser(JSON.parse(savedUser));
+    if (savedSync) setIsGlobalSyncEnabled(JSON.parse(savedSync));
+    if (savedWeights) setWeights(JSON.parse(savedWeights));
+    
+    setIsAppReady(true);
+  }, []);
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
 
+  const updateLog = (updated: DailyLog) => {
+    const newLogs = { ...logs, [updated.date]: updated };
+    setLogs(newLogs);
+    localStorage.setItem('worship_logs', JSON.stringify(newLogs));
+  };
+
+  const handleUpdateWeights = (newWeights: AppWeights) => {
+    setWeights(newWeights);
+    localStorage.setItem('worship_weights', JSON.stringify(newWeights));
+  };
+
+  if (!isAppReady) {
+    return (
+      <div className="min-h-screen bg-emerald-900 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Onboarding onComplete={(userData) => {
+      setUser(userData);
+      localStorage.setItem('worship_user', JSON.stringify(userData));
+      setIsGlobalSyncEnabled(true);
+      localStorage.setItem('worship_global_sync', JSON.stringify(true));
+    }} />;
+  }
+
   return (
     <div className="min-h-screen pb-32 bg-slate-50">
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="w-full flex justify-between items-start mb-4 gap-4">
-            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all"><UserCircle className="w-7 h-7 text-white" /></button>
+            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
+              <UserCircle className={`w-7 h-7 ${user ? 'text-yellow-400' : 'text-white/50'}`} />
+            </button>
             <h1 className="text-xl md:text-2xl font-bold header-font">إدارة العبادات والأوراد</h1>
-            <button onClick={() => setActiveTab('leaderboard')} className="p-2 hover:bg-white/10 rounded-full transition-all"><Medal className="w-7 h-7 text-yellow-400" /></button>
+            <div className="flex gap-2">
+              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
+                <Mail className="w-6 h-6 text-white/70" />
+              </button>
+              <button onClick={() => setActiveTab('guide')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
+                <Info className="w-6 h-6 text-white/70" />
+              </button>
+              <button onClick={() => setActiveTab('leaderboard')} className="p-2 hover:bg-white/10 rounded-full transition-all relative flex-shrink-0">
+                <Medal className="w-7 h-7 text-yellow-400" />
+              </button>
+            </div>
           </div>
-          <p className="text-emerald-50 quran-font text-xl opacity-95">{user?.name || 'مرحباً بك'}</p>
-          <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md flex items-center justify-between border border-white/20 shadow-2xl">
+          <p className="text-emerald-50 quran-font text-xl opacity-95 max-w-sm px-4">{user ? `مرحباً، ${user.name}` : '"حاسِبوا أنفسَكم قبل أن تُحاسَبوا"'}</p>
+          <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md flex items-center justify-between border border-white/20 shadow-2xl relative">
             <div className="flex items-center gap-4">
-              <Sparkles className="w-8 h-8 text-yellow-400" />
+              <div className="bg-yellow-400/20 p-3 rounded-2xl"><Sparkles className="w-8 h-8 text-yellow-400" /></div>
               <div className="text-right">
-                <p className="text-[10px] text-emerald-200 font-bold uppercase header-font">الرصيد الروحي {isSyncing && "..."}</p>
-                <span className="text-3xl font-bold font-mono">{todayScore.toLocaleString()}</span>
+                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">الرصيد الروحي</p>
+                <span className="text-3xl font-bold font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
               </div>
             </div>
+            <div className="h-10 w-px bg-white/10 mx-2"></div>
+            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
+              <p className="text-[10px] text-emerald-200 uppercase font-bold header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
+              <p className="text-lg font-semibold header-font leading-tight">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
+            </button>
           </div>
         </div>
       </header>
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
-        {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={setTargetScore} onOpenSettings={() => setActiveTab('profile')} />}
-        {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />}
-        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={!!session} />}
+        {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('worship_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
+        {activeTab === 'entry' && (
+          <DailyEntry 
+            log={currentLog} 
+            onUpdate={updateLog} 
+            weights={weights}
+            onUpdateWeights={handleUpdateWeights}
+            currentDate={currentDate} 
+            onDateChange={setCurrentDate} 
+          />
+        )}
+        {activeTab === 'timer' && (
+          <WorshipTimer 
+            isSync={isGlobalSyncEnabled} 
+            seconds={timerSeconds}
+            isRunning={isTimerRunning}
+            selectedActivity={activeActivity}
+            onToggle={() => setIsTimerRunning(!isTimerRunning)}
+            onReset={() => { setTimerSeconds(0); setIsTimerRunning(false); }}
+            onActivityChange={setActiveActivity}
+            onApplyTime={(field, mins) => {
+              const newLog = { ...currentLog };
+              if (field === 'shariDuration' || field === 'readingDuration') {
+                newLog.knowledge = { ...newLog.knowledge, [field]: newLog.knowledge[field] + mins };
+              } else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
+                newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] as number) + mins };
+              }
+              updateLog(newLog);
+              setTimerSeconds(0);
+              setIsTimerRunning(false);
+              setActiveTab('entry');
+            }} 
+          />
+        )}
+        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
+        {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={!!session} onToggleSync={() => {}} onUpdateUser={setUser} onUpdateWeights={setWeights} />}
+        {activeTab === 'patterns' && <WorshipPatterns logs={logs} weights={weights} />}
+        {activeTab === 'guide' && <WorshipGuide />}
+        {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
+        {activeTab === 'contact' && <ContactUs />}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(e) => { setIsGlobalSyncEnabled(e); localStorage.setItem('worship_global_sync', JSON.stringify(e)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
         {[
           {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
           {id: 'entry', icon: PenLine, label: 'تسجيل'},
+          {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
           {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'}
+          {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
+          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
+          {id: 'notes', icon: NotebookPen, label: 'يوميات'}
         ].map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[4rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400'}`}>
-            <tab.icon className="w-5 h-5" />
-            <span className="text-[8px] mt-1 font-bold header-font">{tab.label}</span>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
+            <div className="relative">
+              <tab.icon className="w-5 h-5" />
+              {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
+            </div>
+            <span className="text-[7px] mt-1 font-bold header-font">{tab.label}</span>
           </button>
         ))}
       </nav>
