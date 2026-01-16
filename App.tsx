@@ -17,7 +17,7 @@ import Leaderboard from './components/Leaderboard';
 import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
 
-// إعداد عميل Supabase باستخدام القيم المتاحة
+// إعداد عميل Supabase
 const supabaseUrl = (process.env as any).SUPABASE_URL || 'https://ihtizttdlpkyvuvdbfhi.supabase.co';
 const supabaseAnonKey = (process.env as any).SUPABASE_ANON_KEY || 'sb_publishable_aTxQsRADxaWV3pkvuP5QTg_XgQ-9omL_';
 
@@ -97,9 +97,11 @@ const App: React.FC = () => {
     const { data } = await supabase.from('worship_logs').select('*').eq('user_id', userId);
     if (data) {
       const logsMap: Record<string, DailyLog> = {};
-      // تحديد النوع لـ item لمنع خطأ TS7006
-      data.forEach((item: { date: string, data: DailyLog }) => { 
-        logsMap[item.date] = item.data; 
+      // تحديد نوع item بشكل صريح لتجنب خطأ TS7006
+      data.forEach((item: any) => { 
+        if (item.date && item.data) {
+          logsMap[item.date] = item.data; 
+        }
       });
       setLogs(logsMap);
     }
