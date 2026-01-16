@@ -18,7 +18,8 @@ import {
   ArrowRight,
   Globe,
   Loader2,
-  BarChart3
+  BarChart3,
+  TrendingUp
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -37,6 +38,7 @@ import Leaderboard from './components/Leaderboard';
 import ContactUs from './components/ContactUs';
 import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
+import WorshipPatterns from './components/WorshipPatterns';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -66,7 +68,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'timer' | 'leaderboard' | 'notes' | 'stats' | 'guide' | 'history' | 'profile' | 'contact';
+  type Tab = 'dashboard' | 'entry' | 'timer' | 'leaderboard' | 'notes' | 'stats' | 'patterns' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -241,18 +243,20 @@ const App: React.FC = () => {
         {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
         {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
+        {activeTab === 'patterns' && <WorshipPatterns logs={logs} weights={weights} />}
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
         {activeTab === 'contact' && <ContactUs />}
         {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(e) => { setIsGlobalSyncEnabled(e); localStorage.setItem('mizan_global_sync', JSON.stringify(e)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('mizan_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50">
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
         {[
           {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
           {id: 'entry', icon: PenLine, label: 'تسجيل'},
           {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
           {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
+          {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
           {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
           {id: 'notes', icon: NotebookPen, label: 'يوميات'}
         ].map((tab) => (
