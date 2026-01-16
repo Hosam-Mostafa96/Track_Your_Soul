@@ -78,11 +78,22 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
   const timerIntervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // الاستماع لحدث طلب التثبيت (PWA)
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
 
   useEffect(() => {
     const savedTimer = localStorage.getItem('worship_active_timer_v1');
@@ -123,8 +134,8 @@ const App: React.FC = () => {
     const savedLogs = localStorage.getItem('worship_logs');
     const savedTarget = localStorage.getItem('worship_target');
     const savedUser = localStorage.getItem('worship_user');
-    const savedWeights = localStorage.getItem('worship_weights');
     const savedSync = localStorage.getItem('worship_global_sync');
+    const savedWeights = localStorage.getItem('worship_weights');
     
     if (savedLogs) setLogs(JSON.parse(savedLogs));
     if (savedTarget) setTargetScore(parseInt(savedTarget));
@@ -134,6 +145,12 @@ const App: React.FC = () => {
     
     setIsAppReady(true);
   }, []);
+
+  useEffect(() => {
+    const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
+    const score = calculateTotalScore(currentLog, weights);
+    localStorage.setItem('today_score_cache', score.toString());
+  }, [logs, weights, currentDate]);
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
@@ -158,12 +175,17 @@ const App: React.FC = () => {
   }
 
   if (!user) {
-    return <Onboarding onComplete={(userData) => {
-      setUser(userData);
-      localStorage.setItem('worship_user', JSON.stringify(userData));
-      setIsGlobalSyncEnabled(true);
-      localStorage.setItem('worship_global_sync', JSON.stringify(true));
-    }} />;
+    return (
+      <Onboarding 
+        installPrompt={deferredPrompt}
+        onComplete={(userData) => {
+          setUser(userData);
+          localStorage.setItem('worship_user', JSON.stringify(userData));
+          setIsGlobalSyncEnabled(true);
+          localStorage.setItem('worship_global_sync', JSON.stringify(true));
+        }} 
+      />
+    );
   }
 
   return (

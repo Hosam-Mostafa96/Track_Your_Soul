@@ -15,4 +15,17 @@ root.render(
   </React.StrictMode>
 );
 
-console.log("تطبيق إدارة العبادات والأوراد يعمل الآن بنجاح!");
+// تسجيل Service Worker لـ PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('Service Worker registered successfully:', registration.scope);
+      })
+      .catch(error => {
+        console.log('Service Worker registration failed:', error);
+      });
+  });
+}
+
+console.log("تطبيق إدارة العبادات والأوراد يعمل الآن كـ PWA بنجاح!");

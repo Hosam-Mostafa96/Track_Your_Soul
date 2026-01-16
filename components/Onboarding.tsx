@@ -1,17 +1,33 @@
 
 import React, { useState } from 'react';
-import { User, Mail, Globe, Calendar, GraduationCap, ArrowRight, CheckCircle, Loader2, Sparkles, ShieldCheck } from 'lucide-react';
+import { 
+  User, 
+  Mail, 
+  Globe, 
+  Calendar, 
+  GraduationCap, 
+  ArrowRight, 
+  CheckCircle, 
+  Loader2, 
+  Sparkles, 
+  ShieldCheck, 
+  Smartphone,
+  Zap,
+  Check
+} from 'lucide-react';
 import { User as UserType } from '../types';
 
 const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
 
 interface OnboardingProps {
+  installPrompt: any;
   onComplete: (user: UserType) => void;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ installPrompt, onComplete }) => {
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
   const [formData, setFormData] = useState<UserType>({
     name: '',
     email: '',
@@ -23,7 +39,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const handleNext = () => setStep(s => s + 1);
   const handleBack = () => setStep(s => s - 1);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     
@@ -42,13 +58,30 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           })
         });
       }
-      onComplete(formData);
+      
+      // إذا كان التثبيت متاحاً، انتقل لخطوة التثبيت، وإلا أكمل العملية
+      if (installPrompt) {
+        setStep(3);
+      } else {
+        onComplete(formData);
+      }
     } catch (error) {
       console.error("Registration failed:", error);
-      onComplete(formData);
+      if (installPrompt) setStep(3);
+      else onComplete(formData);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleInstallApp = async () => {
+    if (!installPrompt) return;
+    setIsInstalling(true);
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    setIsInstalling(false);
+    onComplete(formData);
   };
 
   const countries = ["مصر", "السعودية", "الجزائر", "المغرب", "تونس", "الأردن", "العراق", "الإمارات", "الكويت", "قطر", "سلطنة عمان", "لبنان", "سوريا", "فلسطين", "أخرى"];
@@ -150,12 +183,62 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               </div>
 
               <button 
-                onClick={handleSubmit}
+                onClick={handleSubmitInfo}
                 disabled={isSaving || !formData.country || !formData.age}
                 className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                {isSaving ? 'جاري الإعداد...' : 'ابدأ رحلة الأوراد'}
+                {isSaving ? 'جاري الإعداد...' : 'حفظ البيانات'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6 animate-in slide-in-from-top duration-500">
+             <div className="flex flex-col items-center text-center">
+              <div className="p-4 bg-emerald-100 rounded-3xl mb-4 relative">
+                <Smartphone className="w-10 h-10 text-emerald-600" />
+                <div className="absolute -top-2 -right-2 bg-emerald-500 p-1.5 rounded-full border-4 border-white">
+                  <Zap className="w-3 h-3 text-white fill-white" />
+                </div>
+              </div>
+              <h2 className="text-xl font-black text-slate-800 header-font mb-2">ثبّت التطبيق على شاشتك</h2>
+              <p className="text-xs text-slate-500 font-bold leading-relaxed header-font">
+                للحصول على تجربة أسرع، والوصول لأورادك حتى بدون إنترنت، أضف التطبيق لشاشتك الرئيسية الآن.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-3">
+              <div className="flex items-center gap-3">
+                 <div className="w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center text-white font-black text-[10px]">1</div>
+                 <span className="text-xs font-bold text-slate-700 header-font">وصول فوري من الشاشة الرئيسية.</span>
+              </div>
+              <div className="flex items-center gap-3">
+                 <div className="w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center text-white font-black text-[10px]">2</div>
+                 <span className="text-xs font-bold text-slate-700 header-font">يعمل بكفاءة عالية بدون إنترنت.</span>
+              </div>
+              <div className="flex items-center gap-3">
+                 <div className="w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center text-white font-black text-[10px]">3</div>
+                 <span className="text-xs font-bold text-slate-700 header-font">تلقي تنبيهات الأذكار والأوراد.</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={handleInstallApp}
+                disabled={isInstalling}
+                className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                {isInstalling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Smartphone className="w-5 h-5" />}
+                {isInstalling ? 'جاري التثبيت...' : 'تثبيت التطبيق الآن'}
+              </button>
+              
+              <button 
+                onClick={() => onComplete(formData)}
+                className="w-full py-3 text-slate-400 hover:text-slate-600 font-bold text-xs header-font transition-all flex items-center justify-center gap-1"
+              >
+                تخطي والدخول للتطبيق <Check className="w-3 h-3" />
               </button>
             </div>
           </div>
@@ -164,6 +247,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         <div className="mt-8 flex justify-center gap-2">
           <div className={`w-2 h-2 rounded-full transition-all ${step === 1 ? 'bg-emerald-600 w-6' : 'bg-slate-200'}`}></div>
           <div className={`w-2 h-2 rounded-full transition-all ${step === 2 ? 'bg-emerald-600 w-6' : 'bg-slate-200'}`}></div>
+          {installPrompt && <div className={`w-2 h-2 rounded-full transition-all ${step === 3 ? 'bg-emerald-600 w-6' : 'bg-slate-200'}`}></div>}
         </div>
       </div>
     </div>
