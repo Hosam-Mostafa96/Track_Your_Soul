@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { User, Mail, Globe, Calendar, GraduationCap, ArrowRight, CheckCircle, Loader2, Sparkles, ShieldCheck, Lock, AlertCircle } from 'lucide-react';
+import { User, Mail, Globe, Calendar, GraduationCap, ArrowRight, CheckCircle, Loader2, Sparkles, AlertCircle, Lock } from 'lucide-react';
 
 interface OnboardingProps {
   supabase: any;
@@ -27,7 +27,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) return;
+    if (!supabase) {
+      setError("لم يتم تهيئة نظام السحابة بشكل صحيح. يرجى التحقق من مفاتيح API.");
+      return;
+    }
     
     setIsProcessing(true);
     setError(null);
@@ -42,8 +45,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
         if (authError) throw authError;
 
         if (authData.user) {
-          // حفظ بيانات الملف الشخصي في جدول profiles
-          const { error: profileError } = await supabase
+          await supabase
             .from('profiles')
             .upsert({
               id: authData.user.id,
@@ -52,8 +54,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
               age: formData.age,
               qualification: formData.qualification
             });
-          
-          if (profileError) throw profileError;
         }
       } else {
         const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -64,27 +64,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
       }
       onComplete();
     } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع");
+      console.error("Auth error details:", err);
+      if (err.message?.toLowerCase().includes("api key") || err.message?.toLowerCase().includes("invalid")) {
+        setError("خطأ في مفتاح Supabase. يبدو أنك تستخدم مفتاح 'sb_publishable' بينما التطبيق يحتاج مفتاح 'anon' الذي يبدأ بـ 'eyJ...'. يرجى تحديث الإعدادات في Vercel.");
+      } else {
+        setError(err.message || "حدث خطأ غير متوقع أثناء الاتصال.");
+      }
     } finally {
       setIsProcessing(false);
     }
   };
 
   const countries = ["مصر", "السعودية", "الجزائر", "المغرب", "تونس", "الأردن", "العراق", "الإمارات", "الكويت", "قطر", "سلطنة عمان", "لبنان", "سوريا", "فلسطين", "أخرى"];
-
-  if (!supabase) {
-    return (
-      <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-[3rem] p-8 shadow-2xl text-center">
-          <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 header-font mb-2">تكوين Supabase مطلوب</h2>
-          <p className="text-sm text-slate-500 mb-6 font-bold header-font">
-            يرجى ضبط متغير البيئة <code>SUPABASE_ANON_KEY</code> لتفعيل نظام تسجيل الدخول والمزامنة السحابية.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
@@ -102,7 +93,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
           >تسجيل دخول</button>
         </div>
 
-        {error && <div className="mb-4 p-3 bg-rose-50 border border-rose-100 text-rose-600 text-[10px] rounded-xl font-bold">{error}</div>}
+        {error && (
+          <div className="mb-4 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] rounded-2xl font-bold flex items-start gap-2 shadow-sm">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{error}</span>
+          </div>
+        )}
 
         {step === 1 && (
           <div className="space-y-6 animate-in slide-in-from-left duration-300">
@@ -116,16 +112,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
               <p className="text-xs text-slate-500 font-bold leading-relaxed header-font">سجل دخولك لمزامنة عباداتك عبر السحابة والوصول إليها من أي مكان.</p>
             </div>
 
-            <div className="space-y-4 pt-4">
+            <form onSubmit={mode === 'login' ? handleAuth : (e) => { e.preventDefault(); handleNext(); }} className="space-y-4 pt-4">
               {mode === 'signup' && (
                 <div className="relative">
                   <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                   <input 
                     type="text" 
+                    required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     placeholder="الاسم الكريم"
-                    className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm"
+                    className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm focus:border-emerald-500 transition-all"
                   />
                 </div>
               )}
@@ -134,10 +131,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
                 <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                 <input 
                   type="email" 
+                  required
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   placeholder="البريد الإلكتروني"
-                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm"
+                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm focus:border-emerald-500 transition-all"
                 />
               </div>
 
@@ -145,22 +143,23 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
                 <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                 <input 
                   type="password" 
+                  required
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                   placeholder="كلمة المرور"
-                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm"
+                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm focus:border-emerald-500 transition-all"
                 />
               </div>
 
               <button 
-                onClick={mode === 'signup' ? handleNext : handleAuth}
-                disabled={isProcessing || !formData.email || !formData.password || (mode === 'signup' && !formData.name)}
+                type="submit"
+                disabled={isProcessing}
                 className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : mode === 'signup' ? 'المتابعة' : 'دخول'}
-                {mode === 'signup' && <ArrowRight className="w-5 h-5 rotate-180" />}
+                {mode === 'signup' && !isProcessing && <ArrowRight className="w-5 h-5 rotate-180" />}
               </button>
-            </div>
+            </form>
           </div>
         )}
 
@@ -171,13 +170,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
               <h2 className="text-lg font-bold text-slate-800 header-font">بيانات إضافية</h2>
             </div>
 
-            <div className="space-y-4">
+            <form onSubmit={handleAuth} className="space-y-4">
               <div className="relative">
                 <Globe className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                 <select 
+                  required
                   value={formData.country}
                   onChange={(e) => setFormData({...formData, country: e.target.value})}
-                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm appearance-none"
+                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm appearance-none focus:border-emerald-500 transition-all"
                 >
                   <option value="">اختر الدولة</option>
                   {countries.map(c => <option key={c} value={c}>{c}</option>)}
@@ -188,10 +188,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
                 <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                 <input 
                   type="number" 
+                  required
                   value={formData.age}
                   onChange={(e) => setFormData({...formData, age: e.target.value})}
                   placeholder="العمر"
-                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm"
+                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm focus:border-emerald-500 transition-all"
                 />
               </div>
 
@@ -202,19 +203,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ supabase, onComplete }) => {
                   value={formData.qualification}
                   onChange={(e) => setFormData({...formData, qualification: e.target.value})}
                   placeholder="المؤهل الدراسي (اختياري)"
-                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm"
+                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm focus:border-emerald-500 transition-all"
                 />
               </div>
 
               <button 
-                onClick={handleAuth}
-                disabled={isProcessing || !formData.country || !formData.age}
+                type="submit"
+                disabled={isProcessing}
                 className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
                 {isProcessing ? 'جاري الإعداد...' : 'ابدأ رحلة الأوراد'}
               </button>
-            </div>
+            </form>
           </div>
         )}
       </div>

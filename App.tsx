@@ -17,13 +17,18 @@ import Leaderboard from './components/Leaderboard';
 import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
 
-// إعداد عميل Supabase
-const supabaseUrl = (process.env as any).SUPABASE_URL || 'https://ihtizttdlpkyvuvdbfhi.supabase.co';
-const supabaseAnonKey = (process.env as any).SUPABASE_ANON_KEY || 'sb_publishable_aTxQsRADxaWV3pkvuP5QTg_XgQ-9omL_';
+// استرداد المتغيرات من البيئة (سواء من define في vite أو من الملف مباشرة)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-const supabase: any = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : null;
+let supabase: any = null;
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  } catch (e) {
+    console.error("Supabase initialization error:", e);
+  }
+}
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -63,23 +68,33 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
+    // تحميل البيانات المحلية
+    const savedLogs = localStorage.getItem('worship_logs');
+    if (savedLogs) setLogs(JSON.parse(savedLogs));
+
     if (!supabase) {
-      const savedLogs = localStorage.getItem('worship_logs');
-      if (savedLogs) setLogs(JSON.parse(savedLogs));
       setIsAppReady(true);
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }: any) => {
-      setSession(session);
-      if (session) fetchUserProfile(session.user.id);
-      else setIsAppReady(true);
-    });
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        if (session) await fetchUserProfile(session.user.id);
+      } catch (e) {
+        console.error("Auth Session Error:", e);
+      } finally {
+        setIsAppReady(true);
+      }
+    };
+
+    checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setSession(session);
       if (session) fetchUserProfile(session.user.id);
-      else { setUser(null); setIsAppReady(true); }
+      else { setUser(null); }
     });
 
     return () => subscription.unsubscribe();
@@ -87,31 +102,39 @@ const App: React.FC = () => {
 
   const fetchUserProfile = async (userId: string) => {
     if (!supabase) return;
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (data) setUser(data);
-    await fetchUserLogs(userId);
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (data) setUser(data);
+      await fetchUserLogs(userId);
+    } catch (e) {
+      console.error("Profile fetch error:", e);
+    }
   };
 
   const fetchUserLogs = async (userId: string) => {
     if (!supabase) return;
-    const { data } = await supabase.from('worship_logs').select('*').eq('user_id', userId);
-    if (data) {
-      const logsMap: Record<string, DailyLog> = {};
-      // تحديد نوع item بشكل صريح لتجنب خطأ TS7006
-      data.forEach((item: any) => { 
-        if (item.date && item.data) {
-          logsMap[item.date] = item.data; 
-        }
-      });
-      setLogs(logsMap);
+    try {
+      const { data } = await supabase.from('worship_logs').select('*').eq('user_id', userId);
+      if (data) {
+        const logsMap: Record<string, DailyLog> = { ...logs };
+        data.forEach((item: any) => { 
+          if (item.date && item.data) {
+            logsMap[item.date] = item.data; 
+          }
+        });
+        setLogs(logsMap);
+        localStorage.setItem('worship_logs', JSON.stringify(logsMap));
+      }
+    } catch (e) {
+      console.error("Logs fetch error:", e);
     }
-    setIsAppReady(true);
   };
 
   const updateLog = async (updated: DailyLog) => {
     const newLogs = { ...logs, [updated.date]: updated };
     setLogs(newLogs);
     localStorage.setItem('worship_logs', JSON.stringify(newLogs));
+    
     if (session && supabase) {
       setIsSyncing(true);
       try {
@@ -120,7 +143,7 @@ const App: React.FC = () => {
           date: updated.date, 
           data: updated 
         }, { onConflict: 'user_id,date' });
-      } catch (e) { console.error(e); } finally { setIsSyncing(false); }
+      } catch (e) { console.error("Sync Error:", e); } finally { setIsSyncing(false); }
     }
   };
 
@@ -133,7 +156,10 @@ const App: React.FC = () => {
     );
   }
 
-  if (!session && supabase) return <Onboarding supabase={supabase} onComplete={() => {}} />;
+  // السماح بالاستمرار حتى لو لم يتم تسجيل الدخول (يعمل محلياً)
+  if (!session && supabase && supabaseAnonKey && supabaseAnonKey.startsWith('eyJ')) {
+    return <Onboarding supabase={supabase} onComplete={() => {}} />;
+  }
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
@@ -163,9 +189,9 @@ const App: React.FC = () => {
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
         {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={setTargetScore} onOpenSettings={() => setActiveTab('profile')} />}
         {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />}
-        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={!!supabase} />}
+        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={!!session} />}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={!!supabase} onToggleSync={() => {}} onUpdateUser={setUser} onUpdateWeights={setWeights} />}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={!!session} onToggleSync={() => {}} onUpdateUser={setUser} onUpdateWeights={setWeights} />}
       </main>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
