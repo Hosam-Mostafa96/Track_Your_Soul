@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   PenLine, 
@@ -19,7 +19,8 @@ import {
   Globe,
   Loader2,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Activity
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -84,7 +85,7 @@ const App: React.FC = () => {
   const timerIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const savedTimer = localStorage.getItem('mizan_active_timer_v2');
+    const savedTimer = localStorage.getItem('worship_active_timer_v1');
     if (savedTimer) {
       const { seconds, isRunning, activity, lastUpdate } = JSON.parse(savedTimer);
       setActiveActivity(activity);
@@ -110,7 +111,7 @@ const App: React.FC = () => {
   }, [isTimerRunning]);
 
   useEffect(() => {
-    localStorage.setItem('mizan_active_timer_v2', JSON.stringify({
+    localStorage.setItem('worship_active_timer_v1', JSON.stringify({
       seconds: timerSeconds,
       isRunning: isTimerRunning,
       activity: activeActivity,
@@ -119,11 +120,11 @@ const App: React.FC = () => {
   }, [timerSeconds, isTimerRunning, activeActivity]);
 
   useEffect(() => {
-    const savedLogs = localStorage.getItem('mizan_logs');
-    const savedTarget = localStorage.getItem('mizan_target');
-    const savedUser = localStorage.getItem('mizan_user');
-    const savedWeights = localStorage.getItem('mizan_weights');
-    const savedSync = localStorage.getItem('mizan_global_sync');
+    const savedLogs = localStorage.getItem('worship_logs');
+    const savedTarget = localStorage.getItem('worship_target');
+    const savedUser = localStorage.getItem('worship_user');
+    const savedWeights = localStorage.getItem('worship_weights');
+    const savedSync = localStorage.getItem('worship_global_sync');
     
     if (savedLogs) setLogs(JSON.parse(savedLogs));
     if (savedTarget) setTargetScore(parseInt(savedTarget));
@@ -140,12 +141,12 @@ const App: React.FC = () => {
   const updateLog = (updated: DailyLog) => {
     const newLogs = { ...logs, [updated.date]: updated };
     setLogs(newLogs);
-    localStorage.setItem('mizan_logs', JSON.stringify(newLogs));
+    localStorage.setItem('worship_logs', JSON.stringify(newLogs));
   };
 
   const handleUpdateWeights = (newWeights: AppWeights) => {
     setWeights(newWeights);
-    localStorage.setItem('mizan_weights', JSON.stringify(newWeights));
+    localStorage.setItem('worship_weights', JSON.stringify(newWeights));
   };
 
   if (!isAppReady) {
@@ -159,9 +160,9 @@ const App: React.FC = () => {
   if (!user) {
     return <Onboarding onComplete={(userData) => {
       setUser(userData);
-      localStorage.setItem('mizan_user', JSON.stringify(userData));
+      localStorage.setItem('worship_user', JSON.stringify(userData));
       setIsGlobalSyncEnabled(true);
-      localStorage.setItem('mizan_global_sync', JSON.stringify(true));
+      localStorage.setItem('worship_global_sync', JSON.stringify(true));
     }} />;
   }
 
@@ -190,9 +191,9 @@ const App: React.FC = () => {
           <p className="text-emerald-50 quran-font text-xl opacity-95 max-w-sm px-4">{user ? `مرحباً، ${user.name}` : '"حاسِبوا أنفسَكم قبل أن تُحاسَبوا"'}</p>
           <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md flex items-center justify-between border border-white/20 shadow-2xl relative">
             <div className="flex items-center gap-4">
-              <div className="bg-yellow-400/20 p-3 rounded-2xl"><Trophy className="w-8 h-8 text-yellow-400" /></div>
+              <div className="bg-yellow-400/20 p-3 rounded-2xl"><Sparkles className="w-8 h-8 text-yellow-400" /></div>
               <div className="text-right">
-                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">نقاط ميزانك</p>
+                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">الرصيد الروحي</p>
                 <span className="text-3xl font-bold font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
               </div>
             </div>
@@ -206,7 +207,7 @@ const App: React.FC = () => {
       </header>
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
-        {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('mizan_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
+        {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('worship_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
         {activeTab === 'entry' && (
           <DailyEntry 
             log={currentLog} 
@@ -247,7 +248,7 @@ const App: React.FC = () => {
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
         {activeTab === 'contact' && <ContactUs />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(e) => { setIsGlobalSyncEnabled(e); localStorage.setItem('mizan_global_sync', JSON.stringify(e)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('mizan_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(e) => { setIsGlobalSyncEnabled(e); localStorage.setItem('worship_global_sync', JSON.stringify(e)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App'; // أزلنا .tsx هنا لحل مشكلة الـ Resolve في Vite
+import App from './App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -15,4 +15,4 @@ root.render(
   </React.StrictMode>
 );
 
-console.log("تطبيق الميزان يعمل الآن بنجاح!");
+console.log("تطبيق إدارة العبادات والأوراد يعمل الآن بنجاح!");

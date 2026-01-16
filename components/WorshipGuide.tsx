@@ -17,10 +17,10 @@ const WorshipGuide: React.FC = () => {
           <div className="p-2 bg-emerald-100 rounded-xl">
             <Target className="w-6 h-6 text-emerald-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 header-font">دليل ميزان الأعمال</h2>
+          <h2 className="text-xl font-bold text-slate-800 header-font">دليل إدارة العبادات والأوراد</h2>
         </div>
         <p className="text-sm text-slate-500 leading-relaxed header-font">
-          نظام ميزان هو أسلوب لمحاسبة النفس يربط الأجر بالمشقة والزمن، مصمم ليشجعك على "حبس النفس" في طاعة الله والارتقاء في معارج القبول.
+          هذا النظام هو أسلوب لمحاسبة النفس يربط الأجر والمواظبة بالمشقة والزمن، مصمم ليشجعك على "حبس النفس" في طاعة الله والارتقاء بالأداء الروحي.
         </p>
       </div>
 
@@ -92,7 +92,7 @@ const WorshipGuide: React.FC = () => {
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6">
           <Clock className="w-5 h-5 text-emerald-500" />
-          <h3 className="font-bold text-slate-800 header-font text-lg">قاعدة الوقت (النوافل)</h3>
+          <h3 className="font-bold text-slate-800 header-font text-lg">قاعدة الوقت (النوافل والأوراد)</h3>
         </div>
         <div className="space-y-4">
           <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
@@ -101,7 +101,7 @@ const WorshipGuide: React.FC = () => {
               <span className="text-lg font-black text-emerald-600 header-font">{DEFAULT_WEIGHTS.nawafilPerMin} نقطة/دقيقة</span>
             </div>
             <p className="text-[11px] text-emerald-700 font-bold header-font">
-              هذا هو "المحرك الأساسي" للميزان. كلما طال وقوفك بين يدي الله، زاد وزن عملك بشكل مطرد. 
+              هذا هو "المحرك الأساسي" للنظام. كلما طال وقت وردك ووقوفك بين يدي الله، زاد رصيدك الروحي بشكل مطرد. 
             </p>
           </div>
 
@@ -110,7 +110,7 @@ const WorshipGuide: React.FC = () => {
               <Flame className="w-3 h-3 text-orange-500" /> سر المضاعفة
             </h4>
             <p className="text-[11px] text-slate-600 leading-relaxed font-bold header-font">
-              عندما تصلي القيام بالقرآن، فأنت تجمع بين نقاط الوقت ونقاط الورد. 
+              عندما تؤدي وردك بالقرآن، فأنت تجمع بين نقاط الوقت ونقاط الورد. 
               <br/>مثال: صلاة 20 دقيقة بـ ربعين = 100 (وقت) + 30 (قرآن) = <span className="text-emerald-600 text-sm">130 نقطة</span>.
             </p>
           </div>
@@ -147,7 +147,7 @@ const WorshipGuide: React.FC = () => {
             <Info className="w-3 h-3" /> مضاعف الخشوع
           </h4>
           <p className="text-[11px] text-amber-700 leading-relaxed font-bold header-font">
-            الخشوع ليس إضافة بسيطة، بل هو "مضاعف" لإجمالي نقاط الصلاة. الصلاة الخاشعة جداً تزيد قيمتها بنسبة تصل لـ <span className="text-amber-900">20%</span>.
+            الخشوع ليس إضافة بسيطة، بل هو "مضاعف" لإجمالي نقاط العبادة. الصلاة الخاشعة جداً تزيد قيمتها بنسبة تصل لـ <span className="text-amber-900">20%</span>.
           </p>
         </div>
       </div>
@@ -177,7 +177,7 @@ const WorshipGuide: React.FC = () => {
 
       <div className="text-center p-4">
         <p className="text-[10px] text-slate-400 font-bold header-font">
-          "تذكر أن الميزان وسيلة للتحفيز، والقبول عند الله وحده سبحانه."
+          "تذكر أن هذا النظام وسيلة للتحفيز، والقبول عند الله وحده سبحانه."
         </p>
       </div>
     </div>

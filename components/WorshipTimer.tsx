@@ -20,7 +20,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 }) => {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const syncRef = useRef<number | null>(null);
-  const anonId = useRef(localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7));
+  const anonId = useRef(localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7));
 
   const sendHeartbeat = async () => {
     if (!isSync || !isRunning || GOOGLE_STATS_API.includes("FIX_ME")) return;
@@ -53,7 +53,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      // إرسال النبض كل 3 ثوانٍ لضمان الدقة اللحظية مع تقليل الضغط على الخادم
       syncRef.current = window.setInterval(sendHeartbeat, 3000);
       sendHeartbeat();
     } else {
@@ -112,7 +111,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
           </div>
         </div>
         <div className="text-8xl font-black font-mono text-emerald-900 mb-4 mt-8 tabular-nums tracking-tighter">{formatTime(seconds)}</div>
-        <p className="text-[11px] font-bold text-slate-400 header-font mb-10 uppercase tracking-widest">{isRunning ? 'العداد يعمل الآن في الخلفية' : 'المؤقت متوقف'}</p>
+        <p className="text-[11px] font-bold text-slate-400 header-font mb-10 uppercase tracking-widest">{isRunning ? 'العداد يسجل وردك الآن' : 'المؤقت متوقف'}</p>
         <div className="grid grid-cols-2 gap-2 w-full mb-10">
           {activities.map(a => (
             <button key={a.id} onClick={() => !isRunning && onActivityChange(a.id)} className={`flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all text-xs font-bold header-font ${selectedActivity === a.id ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg' : 'bg-slate-50 border-transparent text-slate-400'}`}>

@@ -27,8 +27,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     e.preventDefault();
     setIsSaving(true);
     
-    const anonId = localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7);
-    localStorage.setItem('mizan_anon_id', anonId);
+    const anonId = localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7);
+    localStorage.setItem('worship_anon_id', anonId);
 
     try {
       if (!GOOGLE_STATS_API.includes("FIX_ME")) {
@@ -64,8 +64,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <div className="p-4 bg-emerald-100 rounded-3xl mb-4">
                 <Sparkles className="w-10 h-10 text-emerald-600" />
               </div>
-              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">مرحباً بك في الميزان</h1>
-              <p className="text-xs text-slate-500 font-bold leading-relaxed header-font">رحلة المحاسبة والارتقاء تبدأ من هنا. نحتاج لبعض البيانات الأساسية لبناء ملفك الروحي.</p>
+              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">مرحباً بك في إدارة العبادات والأوراد</h1>
+              <p className="text-xs text-slate-500 font-bold leading-relaxed header-font">رحلة المحاسبة والارتقاء بالأوراد تبدأ من هنا. نحتاج لبعض البيانات الأساسية لبناء ملفك الروحي.</p>
             </div>
 
             <div className="space-y-4 pt-4">
@@ -155,7 +155,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                {isSaving ? 'جاري التسجيل...' : 'ابدأ رحلة الميزان'}
+                {isSaving ? 'جاري الإعداد...' : 'ابدأ رحلة الأوراد'}
               </button>
             </div>
           </div>

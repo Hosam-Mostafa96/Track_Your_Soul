@@ -13,7 +13,6 @@ interface ReflectionsProps {
 const Reflections: React.FC<ReflectionsProps> = ({ log, onUpdate }) => {
   const [inputText, setInputText] = useState('');
   
-  // استخدام reflections من اللوج، مع دعم الملاحظات القديمة (notes) إذا وجدت
   const reflections = log.reflections || [];
 
   const handleAddNote = () => {
@@ -25,7 +24,6 @@ const Reflections: React.FC<ReflectionsProps> = ({ log, onUpdate }) => {
       timestamp: Date.now()
     };
     
-    // الملاحظات الجديدة دائماً في البداية (Top)
     onUpdate({
       ...log,
       reflections: [newNote, ...reflections]
@@ -44,8 +42,8 @@ const Reflections: React.FC<ReflectionsProps> = ({ log, onUpdate }) => {
 
   const handleShareNote = async (text: string) => {
     const shareData = {
-      title: 'خاطرة من تطبيق الميزان',
-      text: `"${text}"\n\n- من يوميات ميزان العبادات`,
+      title: 'خاطرة من إدارة العبادات والأوراد',
+      text: `"${text}"\n\n- من يوميات رحلة الأوراد`,
       url: window.location.href
     };
 
@@ -63,7 +61,6 @@ const Reflections: React.FC<ReflectionsProps> = ({ log, onUpdate }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
-      {/* رأس الصفحة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden relative">
         <div className="absolute top-0 right-0 p-4 opacity-5">
           <Quote className="w-20 h-20 text-emerald-900" />
@@ -74,17 +71,16 @@ const Reflections: React.FC<ReflectionsProps> = ({ log, onUpdate }) => {
             <NotebookPen className="w-6 h-6 text-emerald-600" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800 header-font">يوميات المحاسبة</h2>
+            <h2 className="text-xl font-bold text-slate-800 header-font">يوميات المحاسبة والأوراد</h2>
             <p className="text-[10px] text-slate-400 font-bold uppercase header-font">دوّن خواطرك، نجواك، وتجليات يومك</p>
           </div>
         </div>
 
-        {/* حقل الإضافة الذكي */}
         <div className="relative group z-10">
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="كيف كان قلبك في صلاة الفجر؟ هل شعرت بلحظة إحسان اليوم؟"
+            placeholder="كيف كان قلبك في صلاة الفجر؟ هل شعرت بلحظة إحسان مع وردك اليوم؟"
             className="w-full min-h-[120px] p-5 bg-amber-50/40 rounded-2xl border border-amber-100/50 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-50 outline-none text-slate-700 leading-relaxed quran-font text-xl resize-none shadow-inner transition-all"
           />
           
@@ -104,7 +100,6 @@ const Reflections: React.FC<ReflectionsProps> = ({ log, onUpdate }) => {
         </div>
       </div>
 
-      {/* قائمة الخواطر */}
       <div className="space-y-4">
         {reflections.length > 0 ? (
           reflections.map((note) => (
@@ -151,7 +146,6 @@ const Reflections: React.FC<ReflectionsProps> = ({ log, onUpdate }) => {
         )}
       </div>
 
-      {/* تنبيه الخصوصية */}
       <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
         <div className="flex gap-3">
           <div className="p-2 bg-white rounded-lg self-start">
@@ -160,17 +154,10 @@ const Reflections: React.FC<ReflectionsProps> = ({ log, onUpdate }) => {
           <div>
             <h4 className="text-sm font-bold text-emerald-800 mb-1 header-font">خصوصيتك مطلقة</h4>
             <p className="text-xs text-emerald-700 leading-relaxed font-bold header-font">
-              هذه الخواطر تُحفظ فقط على ذاكرة متصفحك. لا ترسل لخوادمنا ولا يراها أحد سواك، إلا إذا اخترت مشاركتها بنفسك.
+              هذه الخواطر تُحفظ فقط على ذاكرة متصفحك. لا يراها أحد سواك، إلا إذا اخترت مشاركتها بنفسك.
             </p>
           </div>
         </div>
-      </div>
-
-      <div className="p-4 bg-white rounded-2xl border border-slate-100 flex items-center gap-3">
-        <Sparkles className="w-4 h-4 text-amber-500" />
-        <p className="text-[10px] text-slate-500 font-bold header-font">
-          "تذكر أن تدوين الذنب خطوة أولى للندم، وتدوين النعمة خطوة أولى للشكر."
-        </p>
       </div>
     </div>
   );

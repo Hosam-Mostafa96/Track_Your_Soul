@@ -74,7 +74,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
 
   return (
     <div className="space-y-6 animate-in slide-in-from-top duration-300 pb-12">
-      {/* 1. Header & Identity Section */}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
         <div className="flex flex-col items-center mb-8">
           <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg relative">
@@ -87,7 +86,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
           <p className="text-[10px] text-emerald-600 font-black header-font uppercase tracking-widest mt-1">هوية معتمدة في المحراب</p>
         </div>
 
-        {/* عرض البيانات الشخصية كمعلومات ثابتة */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
           {infoItem('البريد الإلكتروني', user?.email, <Mail className="w-4 h-4" />)}
           {infoItem('الدولة والمنطقة', user?.country, <MapPin className="w-4 h-4" />)}
@@ -103,7 +101,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </button>
       </div>
 
-      {/* 2. Global Sync Section */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
         <div className={`absolute top-0 right-0 w-1 h-full transition-all ${isGlobalSync ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
         <div className="flex items-center justify-between">
@@ -127,7 +124,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </div>
       </div>
 
-      {/* 3. Settings Section */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <button 
           onClick={() => setShowWeights(!showWeights)}
@@ -138,8 +134,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               <Settings2 className="w-5 h-5 text-slate-600" />
             </div>
             <div className="text-right">
-              <h3 className="font-bold text-slate-800 header-font">إعدادات أوزان الميزان</h3>
-              <p className="text-[10px] text-slate-400 font-bold header-font">تخصيص قيمة كل عبادة في ميزانك</p>
+              <h3 className="font-bold text-slate-800 header-font">إعدادات أوزان النظام</h3>
+              <p className="text-[10px] text-slate-400 font-bold header-font">تخصيص قيمة كل ورد وعبادة</p>
             </div>
           </div>
           {showWeights ? <ChevronUp className="w-5 h-5 text-slate-300" /> : <ChevronDown className="w-5 h-5 text-slate-300" />}
@@ -157,27 +153,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               {weightInput('السنن الرواتب', localWeights.sunnahRawatib, (val) => setLocalWeights({ ...localWeights, sunnahRawatib: val }), <Zap className="w-4 h-4" />)}
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Book className="w-4 h-4 text-emerald-500" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">القرآن والعلم الشرعي</h4>
-              </div>
-              {weightInput('حفظ ربع جديد', localWeights.quranHifz, (val) => setLocalWeights({ ...localWeights, quranHifz: val }))}
-              {weightInput('مراجعة ربع', localWeights.quranRevision, (val) => setLocalWeights({ ...localWeights, quranRevision: val }))}
-              {weightInput('طلب علم شرعي (دقيقة)', localWeights.knowledgeShari, (val) => setLocalWeights({ ...localWeights, knowledgeShari: val }), <GraduationCap className="w-4 h-4" />)}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-emerald-500" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">النوافل والأذكار</h4>
-              </div>
-              {weightInput('دقيقة قيام/نوافل', localWeights.nawafilPerMin, (val) => setLocalWeights({ ...localWeights, nawafilPerMin: val }))}
-              {weightInput('أذكار (الواحد)', localWeights.athkarCounter, (val) => setLocalWeights({ ...localWeights, athkarCounter: val }))}
-              {weightInput('يوم صيام نفل', localWeights.fastingDay, (val) => setLocalWeights({ ...localWeights, fastingDay: val }))}
-              {weightInput('أذكار القائمة (الواحد)', localWeights.athkarChecklist, (val) => setLocalWeights({ ...localWeights, athkarChecklist: val }), <LayoutList className="w-4 h-4" />)}
-            </div>
-
             <div className="flex gap-4 pt-4">
               <button 
                 onClick={resetWeights}
@@ -190,7 +165,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
                 className={`flex-1 py-3 rounded-2xl font-bold header-font text-xs flex items-center justify-center gap-2 shadow-lg transition-all ${isSavedWeights ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-white hover:bg-slate-900 active:scale-95'}`}
               >
                 {isSavedWeights ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                {isSavedWeights ? 'تم الحفظ' : 'حفظ الأوزان'}
+                {isSavedWeights ? 'تم الحفظ' : 'حفظ الإعدادات'}
               </button>
             </div>
           </div>
@@ -200,7 +175,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
       <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-4 shadow-sm">
         <LockKeyhole className="w-6 h-6 text-emerald-600 shrink-0" />
         <p className="text-[11px] text-emerald-800 font-bold leading-relaxed header-font">
-          تطبيق الميزان يحترم خصوصيتك؛ لا يمكن تعديل بياناتك الأساسية بعد التسجيل لضمان استقرار ملفك الروحي، بينما يمكنك دائماً ضبط ميزانك الخاص.
+          تطبيق إدارة العبادات يحترم خصوصيتك؛ بياناتك تُحفظ فقط في ذاكرة متصفحك ولا تُرسل لأي خادم خارجي.
         </p>
       </div>
     </div>
