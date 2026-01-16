@@ -1,15 +1,14 @@
-
 {
   "name": "إدارة العبادات والأوراد",
   "short_name": "أوراد",
   "description": "نظام شامل لمتابعة العبادات والأوراد اليومية والارتقاء الروحي بناءً على الجهد والمواظبة.",
   "start_url": "./index.html",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#f8fafc",
   "theme_color": "#065f46",
   "dir": "rtl",
   "lang": "ar",
-  "orientation": "portrait",
+  "orientation": "any",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2972/2972531.png",
