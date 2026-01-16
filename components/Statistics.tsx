@@ -10,11 +10,25 @@ import {
   TrendingUp,
   Loader2,
   CalendarDays,
-  Sparkles
+  Target,
+  Layers,
+  Sparkles,
+  Zap,
+  Activity,
+  Filter
 } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
+import { 
+  ResponsiveContainer, 
+  RadarChart, 
+  PolarGrid, 
+  PolarAngleAxis, 
+  PolarRadiusAxis, 
+  Radar,
+  Tooltip as RechartsTooltip
+} from 'recharts';
 import { DailyLog, AppWeights, User, PrayerName, PrayerEntry } from '../types';
-import { subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { subDays, isWithinInterval, startOfDay, endOfDay, format } from 'date-fns';
+import { calculateTotalScore } from '../utils/scoring';
 
 interface StatisticsProps {
   user: User | null;
@@ -22,190 +36,243 @@ interface StatisticsProps {
   weights: AppWeights;
 }
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
+type ActivityType = 'all' | 'prayers' | 'quran' | 'knowledge' | 'fasting' | 'athkar';
 
 const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
-  const [filter, setFilter] = useState<'day' | 'week' | 'month' | 'all'>('week');
+  const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'all'>('month');
+  const [activityFilter, setActivityFilter] = useState<ActivityType>('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  const filteredLogs = useMemo<DailyLog[]>(() => {
+  const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec";
+
+  // خيارات الفلترة
+  const activityOptions: { id: ActivityType; label: string; icon: any; color: string }[] = [
+    { id: 'all', label: 'الالتزام العام', icon: <Activity className="w-3 h-3" />, color: 'emerald' },
+    { id: 'prayers', label: 'الصلوات', icon: <CheckCircle2 className="w-3 h-3" />, color: 'blue' },
+    { id: 'quran', label: 'القرآن', icon: <BookOpen className="w-3 h-3" />, color: 'amber' },
+    { id: 'knowledge', label: 'طلب العلم', icon: <Clock className="w-3 h-3" />, color: 'purple' },
+    { id: 'fasting', label: 'الصيام', icon: <Flame className="w-3 h-3" />, color: 'orange' },
+    { id: 'athkar', label: 'الأذكار', icon: <Zap className="w-3 h-3" />, color: 'rose' },
+  ];
+
+  // حساب البيانات للمخطط الراداري
+  const radarData = useMemo(() => {
     const now = new Date();
-    let startDate: Date;
-
-    const allLogs = Object.values(logs) as DailyLog[];
-
-    if (filter === 'day') startDate = startOfDay(now);
-    else if (filter === 'week') startDate = subDays(now, 7);
-    else if (filter === 'month') startDate = subDays(now, 30);
-    else return allLogs;
-
-    return allLogs.filter((log: DailyLog) => {
+    const startDate = timeFilter === 'week' ? subDays(now, 7) : timeFilter === 'month' ? subDays(now, 30) : subDays(now, 365);
+    
+    const periodLogs = (Object.values(logs) as DailyLog[]).filter(log => {
       const logDate = new Date(log.date.replace(/-/g, '/'));
       return isWithinInterval(logDate, { start: startDate, end: endOfDay(now) });
     });
-  }, [logs, filter]);
 
-  const statsData = useMemo(() => {
-    let totalPrayers = 0;
-    let congregationPrayers = 0;
-    let quranRubs = 0;
-    let knowledgeMins = 0;
-    let fastingDays = 0;
-
-    filteredLogs.forEach((log: DailyLog) => {
-      (Object.values(log.prayers) as PrayerEntry[]).forEach(p => {
-        if (p.performed) {
-          totalPrayers++;
-          if (p.inCongregation) congregationPrayers++;
-        }
-      });
-      quranRubs += (log.quran.hifzRub + log.quran.revisionRub);
-      knowledgeMins += (log.knowledge.shariDuration + log.knowledge.readingDuration);
-      if (log.nawafil.fasting) fastingDays++;
+    let counts = { prayers: 0, quran: 0, knowledge: 0, fasting: 0, dhikr: 0 };
+    
+    periodLogs.forEach(log => {
+      counts.prayers += Object.values(log.prayers).filter(p => (p as PrayerEntry).performed).length;
+      counts.quran += (log.quran.hifzRub + log.quran.revisionRub);
+      counts.knowledge += (log.knowledge.shariDuration + log.knowledge.readingDuration) / 30;
+      counts.fasting += log.nawafil.fasting ? 10 : 0;
+      counts.dhikr += Object.values(log.athkar.counters).reduce((a, b) => a + (b as number), 0) / 100;
     });
 
+    const max = Math.max(...Object.values(counts), 1);
+
     return [
-      { name: 'الصلوات', value: totalPrayers, color: '#10b981', icon: <CheckCircle2 className="w-4 h-4" /> },
-      { name: 'الجماعة', value: congregationPrayers, color: '#059669', icon: <Sparkles className="w-4 h-4" /> },
-      { name: 'أرباع قرآن', value: quranRubs, color: '#3b82f6', icon: <BookOpen className="w-4 h-4" /> },
-      { name: 'دقائق علم', value: knowledgeMins, color: '#f59e0b', icon: <Clock className="w-4 h-4" /> },
-      { name: 'أيام صيام', value: fastingDays, color: '#ef4444', icon: <Flame className="w-4 h-4" /> },
+      { subject: 'الصلاة', A: (counts.prayers / max) * 100 },
+      { subject: 'القرآن', A: (counts.quran / max) * 100 },
+      { subject: 'العلم', A: (counts.knowledge / max) * 100 },
+      { subject: 'الصيام', A: (counts.fasting / max) * 100 },
+      { subject: 'الأذكار', A: (counts.dhikr / max) * 100 },
     ];
-  }, [filteredLogs]);
+  }, [logs, timeFilter]);
+
+  // إنشاء شبكة الاستقامة المحدثة (Binary Grid)
+  const consistencyGrid = useMemo(() => {
+    return Array.from({ length: 30 }).map((_, i) => {
+      const date = subDays(new Date(), 29 - i);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const log = logs[dateStr];
+      
+      let isConnected = false;
+
+      if (log) {
+        switch (activityFilter) {
+          case 'all':
+            isConnected = calculateTotalScore(log, weights) > 0;
+            break;
+          case 'prayers':
+            isConnected = Object.values(log.prayers).some(p => p.performed);
+            break;
+          case 'quran':
+            isConnected = (log.quran.hifzRub + log.quran.revisionRub) > 0;
+            break;
+          case 'knowledge':
+            isConnected = (log.knowledge.shariDuration + log.knowledge.readingDuration) > 0;
+            break;
+          case 'fasting':
+            isConnected = log.nawafil.fasting;
+            break;
+          case 'athkar':
+            const hasChecklist = Object.values(log.athkar.checklists).some(v => v);
+            const hasCounters = Object.values(log.athkar.counters).some(v => v > 0);
+            isConnected = hasChecklist || hasCounters;
+            break;
+        }
+      }
+
+      // اختيار اللون حسب الفلتر المختار
+      const activeColor = {
+        all: 'bg-emerald-500',
+        prayers: 'bg-blue-500',
+        quran: 'bg-amber-500',
+        knowledge: 'bg-purple-500',
+        fasting: 'bg-orange-500',
+        athkar: 'bg-rose-500'
+      }[activityFilter];
+
+      return { 
+        date, 
+        isConnected, 
+        colorClass: isConnected ? activeColor : 'bg-slate-100', 
+        dateStr 
+      };
+    });
+  }, [logs, weights, activityFilter]);
 
   const handleExport = async () => {
     if (GOOGLE_STATS_API.includes("FIX_ME")) {
       alert("خاصية التصدير السحابي تتطلب تكوين الرابط الموحد.");
       return;
     }
-    
     setIsExporting(true);
-    const anonId = localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7);
-
     try {
+      const anonId = localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7);
       const payload = {
         action: 'exportData',
         id: anonId,
         userName: user?.name,
-        userEmail: user?.email,
-        data: (Object.values(logs) as DailyLog[]).map((l: DailyLog) => ({
+        data: (Object.values(logs) as DailyLog[]).map(l => ({
           التاريخ: l.date,
-          الفجر: l.prayers[PrayerName.FAJR]?.performed ? 'تم' : 'لم يتم',
-          الظهر: l.prayers[PrayerName.DHUHR]?.performed ? 'تم' : 'لم يتم',
-          العصر: l.prayers[PrayerName.ASR]?.performed ? 'تم' : 'لم يتم',
-          المغرب: l.prayers[PrayerName.MAGHRIB]?.performed ? 'تم' : 'لم يتم',
-          العشاء: l.prayers[PrayerName.ISHA]?.performed ? 'تم' : 'لم يتم',
-          أرباع_القرآن: l.quran.hifzRub + l.quran.revisionRub,
-          دقائق_طلب_العلم: l.knowledge.shariDuration + l.knowledge.readingDuration,
-          الصيام: l.nawafil.fasting ? 'نعم' : 'لا'
+          النقاط: calculateTotalScore(l, weights)
         }))
       };
-
-      await fetch(GOOGLE_STATS_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload)
-      });
-
-      alert("تم إرسال بياناتك بنجاح إلى Google Sheets المرتبط بحسابك.");
+      await fetch(GOOGLE_STATS_API, { method: 'POST', body: JSON.stringify(payload) });
+      alert("تم التصدير بنجاح");
     } catch (e) {
-      console.error("Export Error:", e);
-      alert("حدث خطأ أثناء التصدير. يرجى المحاولة لاحقاً.");
+      alert("فشل التصدير");
     } finally {
       setIsExporting(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-12">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-24">
+      {/* الرأس */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-xl">
             <BarChart3 className="w-6 h-6 text-emerald-600" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800 header-font">إحصائيات الميزان</h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase header-font">تحليل بياني لمسارك الروحي</p>
+            <h2 className="text-xl font-bold text-slate-800 header-font">بصمتك الروحية</h2>
+            <p className="text-[10px] text-slate-400 font-bold uppercase header-font">أنماط الاتصال والانقطاع</p>
           </div>
         </div>
         <button 
           onClick={handleExport}
           disabled={isExporting}
-          className={`p-3 rounded-2xl transition-all ${isExporting ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 shadow-sm'}`}
-          title="تصدير إلى Google Sheets"
+          className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all"
         >
           {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5" />}
         </button>
       </div>
 
-      <div className="flex gap-2 p-1 bg-white rounded-2xl shadow-sm border border-slate-100">
-        {(['day', 'week', 'month', 'all'] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`flex-1 py-2 px-3 rounded-xl text-[10px] font-bold header-font transition-all ${filter === f ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}
-          >
-            {f === 'day' ? 'اليوم' : f === 'week' ? 'الأسبوع' : f === 'month' ? 'الشهر' : 'الكل'}
-          </button>
-        ))}
+      {/* خريطة تكرار الأعمال المحدثة */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-emerald-500" />
+            <h3 className="font-bold text-slate-700 text-xs header-font">خريطة تكرار الأعمال</h3>
+          </div>
+          <div className="flex gap-2">
+            <div className="w-2.5 h-2.5 bg-slate-100 rounded-[2px]"></div>
+            <div className={`w-2.5 h-2.5 rounded-[2px] ${consistencyGrid.find(d => d.isConnected)?.colorClass || 'bg-emerald-500'}`}></div>
+          </div>
+        </div>
+
+        {/* فلاتر العبادات (Grid Filter) */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
+          {activityOptions.map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => setActivityFilter(opt.id)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-bold header-font whitespace-nowrap transition-all border ${
+                activityFilter === opt.id 
+                ? `bg-${opt.color}-50 border-${opt.color}-200 text-${opt.color}-700 shadow-sm` 
+                : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'
+              }`}
+            >
+              {opt.icon}
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-10 gap-2 mb-4">
+          {consistencyGrid.map((day, i) => (
+            <div 
+              key={i}
+              title={`${day.dateStr}`}
+              className={`aspect-square rounded-md transition-all duration-300 hover:scale-110 cursor-help ${day.colorClass} shadow-sm`}
+            ></div>
+          ))}
+        </div>
+        <p className="text-[9px] text-slate-400 font-bold text-center header-font">
+          المربعات الملونة تمثل الأيام التي تم فيها أداء "{activityOptions.find(o => o.id === activityFilter)?.label}"
+        </p>
       </div>
 
+      {/* توازن المحراب */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-8">
-          <TrendingUp className="w-4 h-4 text-emerald-500" />
-          <h3 className="font-bold text-slate-700 text-xs header-font">تكرار الأعمال في هذه الفترة</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-emerald-500" />
+            <h3 className="font-bold text-slate-700 text-xs header-font">توازن المحراب (الأداء النوعي)</h3>
+          </div>
+          <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
+            {(['week', 'month', 'all'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setTimeFilter(f)}
+                className={`px-3 py-1 rounded-md text-[8px] font-black transition-all ${timeFilter === f ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400'}`}
+              >
+                {f === 'week' ? 'أسبوع' : f === 'month' ? 'شهر' : 'سنة'}
+              </button>
+            ))}
+          </div>
         </div>
-        {/* زيادة الارتفاع ليعطي مساحة أكبر للبارات */}
-        <div className="h-72 w-full pr-4">
+        <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={statsData} 
-              layout="vertical"
-              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-              <XAxis type="number" hide />
-              <YAxis 
-                dataKey="name" 
-                type="category" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b', fontFamily: 'Cairo' }}
-                width={85}
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+              <PolarGrid stroke="#f1f5f9" />
+              <PolarAngleAxis 
+                dataKey="subject" 
+                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'Cairo' }} 
               />
-              <Tooltip 
-                cursor={{ fill: '#f8fafc' }}
-                contentStyle={{ 
-                  borderRadius: '16px', 
-                  border: 'none', 
-                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', 
-                  fontFamily: 'Cairo',
-                  fontSize: '12px'
-                }}
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar
+                name="الأداء"
+                dataKey="A"
+                stroke="#10b981"
+                fill="#10b981"
+                fillOpacity={0.4}
               />
-              {/* تعديل barSize ليكون 32 بدلاً من 24 ليكون أكثر "امتلاءً" */}
-              <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={32}>
-                {statsData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
+              <RechartsTooltip 
+                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo', fontSize: '12px' }}
+              />
+            </RadarChart>
           </ResponsiveContainer>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        {statsData.map((s, i) => (
-          <div key={i} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 group hover:border-emerald-200 transition-all">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-slate-50 rounded-xl text-slate-400 group-hover:text-emerald-500 transition-colors">
-                {s.icon}
-              </div>
-              <span className="text-xl font-black font-mono text-slate-800">{s.value}</span>
-            </div>
-            <p className="text-[10px] text-slate-400 font-bold header-font uppercase tracking-tighter">{s.name}</p>
-          </div>
-        ))}
       </div>
 
       <div className="bg-emerald-900 text-white rounded-[2rem] p-6 shadow-lg relative overflow-hidden">
@@ -215,9 +282,9 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
             <CalendarDays className="w-8 h-8 text-emerald-300" />
           </div>
           <div>
-            <h4 className="text-sm font-bold header-font mb-1">استمرارية العمل</h4>
+            <h4 className="text-sm font-bold header-font mb-1">النمط الروحي</h4>
             <p className="text-[10px] text-emerald-100 leading-relaxed font-bold header-font opacity-80">
-              "أحب الأعمال إلى الله أدومها وإن قل". الإحصائيات هي مرآة ثباتك، واصل السير.
+              استخدم فلاتر العبادة لاكتشاف مواطن القوة والضعف في كل ورد على حدة. الاستمرارية هي مفتاح الفتح.
             </p>
           </div>
         </div>
