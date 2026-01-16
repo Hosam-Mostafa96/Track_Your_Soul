@@ -16,7 +16,9 @@ import {
   Check,
   Share,
   PlusSquare,
-  ChevronLeft
+  ChevronLeft,
+  MoreVertical,
+  Download
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
@@ -32,6 +34,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ installPrompt, onComplete }) =>
   const [isSaving, setIsSaving] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  
   const [formData, setFormData] = useState<UserType>({
     name: '',
     email: '',
@@ -41,12 +45,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ installPrompt, onComplete }) =>
   });
 
   useEffect(() => {
-    // التحقق مما إذا كان الجهاز iOS
-    const checkIOS = () => {
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      return /iphone|ipad|ipod/.test(userAgent);
-    };
-    setIsIOS(checkIOS());
+    // التحقق من حالة النظام والمنصة
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    setIsIOS(/iphone|ipad|ipod/.test(userAgent));
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone);
   }, []);
 
   const handleNext = () => setStep(s => s + 1);
@@ -72,8 +74,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ installPrompt, onComplete }) =>
         });
       }
       
-      // ننتقل دائماً لخطوة التثبيت لتشجيع المستخدم
-      setStep(3);
+      // إذا كان التطبيق مثبتاً بالفعل، نتخطى الخطوة 3
+      if (isStandalone) {
+        onComplete(formData);
+      } else {
+        setStep(3);
+      }
     } catch (error) {
       console.error("Registration failed:", error);
       setStep(3);
@@ -88,12 +94,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ installPrompt, onComplete }) =>
     try {
       installPrompt.prompt();
       const { outcome } = await installPrompt.userChoice;
-      console.log(`User response: ${outcome}`);
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+        onComplete(formData);
+      }
     } catch (err) {
       console.error("Install prompt error:", err);
     }
     setIsInstalling(false);
-    onComplete(formData);
   };
 
   const countries = ["مصر", "السعودية", "الجزائر", "المغرب", "تونس", "الأردن", "العراق", "الإمارات", "الكويت", "قطر", "سلطنة عمان", "لبنان", "سوريا", "فلسطين", "أخرى"];
@@ -198,66 +206,69 @@ const Onboarding: React.FC<OnboardingProps> = ({ installPrompt, onComplete }) =>
                   <Zap className="w-3 h-3 text-white fill-white" />
                 </div>
               </div>
-              <h2 className="text-xl font-black text-slate-800 header-font mb-2">ثبّت التطبيق على شاشتك</h2>
-              <p className="text-xs text-slate-500 font-bold leading-relaxed header-font">
-                للحصول على تجربة أسرع والوصول لأورادك حتى بدون إنترنت.
+              <h2 className="text-xl font-black text-slate-800 header-font mb-1">ثبّت التطبيق الآن</h2>
+              <p className="text-[10px] text-slate-500 font-bold leading-relaxed header-font">
+                أورادك ستكون متاحة دائماً من الشاشة الرئيسية، حتى بدون إنترنت.
               </p>
             </div>
 
             {isIOS ? (
-              /* واجهة iOS المخصصة */
-              <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100 space-y-5 animate-pulse">
-                <p className="text-xs font-black text-emerald-800 header-font text-center mb-2">تعليمات لمستخدمي iPhone:</p>
+              /* واجهة iPhone المخصصة */
+              <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 space-y-5">
                 <div className="flex items-center gap-4">
                    <div className="p-2 bg-white rounded-xl shadow-sm"><Share className="w-5 h-5 text-blue-500" /></div>
-                   <span className="text-[11px] font-bold text-slate-700 header-font">اضغط على زر <span className="text-blue-600 font-black">مشاركة</span> في أسفل المتصفح.</span>
+                   <span className="text-[11px] font-bold text-slate-700 header-font">اضغط على زر <span className="text-blue-600 font-black">مشاركة</span> في أسفل Safari.</span>
                 </div>
                 <div className="flex items-center gap-4">
                    <div className="p-2 bg-white rounded-xl shadow-sm"><PlusSquare className="w-5 h-5 text-slate-800" /></div>
                    <span className="text-[11px] font-bold text-slate-700 header-font">اختر <span className="text-slate-900 font-black">"إضافة إلى الشاشة الرئيسية"</span>.</span>
                 </div>
-                <div className="pt-2 border-t border-emerald-200">
-                  <button onClick={() => onComplete(formData)} className="w-full py-2 text-emerald-600 font-black text-[10px] header-font underline">لقد قمت بالإضافة، ابدأ الآن</button>
-                </div>
               </div>
             ) : installPrompt ? (
-              /* واجهة أندرويد/كروم */
+              /* واجهة أندرويد/Chrome التلقائية */
               <div className="flex flex-col gap-3">
                 <button 
                   onClick={handleInstallApp}
                   disabled={isInstalling}
                   className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
-                  {isInstalling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Smartphone className="w-5 h-5" />}
-                  {isInstalling ? 'جاري التثبيت...' : 'تثبيت التطبيق الآن'}
+                  {isInstalling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                  {isInstalling ? 'جاري التثبيت...' : 'تثبيت التطبيق بنقرة واحدة'}
                 </button>
-                <button onClick={() => onComplete(formData)} className="w-full py-3 text-slate-400 font-bold text-xs header-font">الدخول بدون تثبيت</button>
               </div>
             ) : (
-              /* واجهة احتياطية إذا لم يتوفر زر التثبيت تلقائياً */
-              <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 text-center space-y-4">
-                <p className="text-xs font-bold text-slate-600 header-font">يمكنك تثبيت التطبيق يدوياً عبر قائمة إعدادات المتصفح ثم اختيار "تثبيت التطبيق" أو "الإضافة للشاشة الرئيسية".</p>
-                <button 
-                  onClick={() => onComplete(formData)}
-                  className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg"
-                >
-                  فهمت، ابدأ الاستخدام
-                </button>
+              /* واجهة Chrome أندرويد اليدوية (عند عدم ظهور الزر) */
+              <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100 space-y-5">
+                <div className="flex items-center gap-4">
+                   <div className="p-2 bg-white rounded-xl shadow-sm"><MoreVertical className="w-5 h-5 text-slate-600" /></div>
+                   <span className="text-[11px] font-bold text-slate-700 header-font">اضغط على <span className="text-emerald-700 font-black">الثلاث نقاط</span> في أعلى يسار Chrome.</span>
+                </div>
+                <div className="flex items-center gap-4">
+                   <div className="p-2 bg-white rounded-xl shadow-sm"><Download className="w-5 h-5 text-emerald-600" /></div>
+                   <span className="text-[11px] font-bold text-slate-700 header-font">اختر <span className="text-emerald-900 font-black">"تثبيت التطبيق"</span> أو "الإضافة للشاشة".</span>
+                </div>
               </div>
             )}
 
-            <div className="pt-4 border-t border-slate-100 flex justify-center gap-4">
-              <div className="flex items-center gap-1">
-                <Check className="w-3 h-3 text-emerald-500" />
-                <span className="text-[9px] font-bold text-slate-400 header-font">يدعم العمل بدون إنترنت</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Check className="w-3 h-3 text-emerald-500" />
-                <span className="text-[9px] font-bold text-slate-400 header-font">تنبيهات الأذكار</span>
-              </div>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => onComplete(formData)}
+                className="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold header-font shadow-lg hover:bg-slate-900 transition-all flex items-center justify-center gap-2"
+              >
+                الدخول للتطبيق الآن <Check className="w-4 h-4" />
+              </button>
+              <p className="text-[9px] text-center text-slate-400 font-bold header-font italic">
+                * قد يستغرق المتصفح ثوانٍ حتى يتعرف على خيار التثبيت.
+              </p>
             </div>
           </div>
         )}
+
+        <div className="mt-8 flex justify-center gap-2">
+          <div className={`w-2 h-2 rounded-full transition-all ${step === 1 ? 'bg-emerald-600 w-6' : 'bg-slate-200'}`}></div>
+          <div className={`w-2 h-2 rounded-full transition-all ${step === 2 ? 'bg-emerald-600 w-6' : 'bg-slate-200'}`}></div>
+          <div className={`w-2 h-2 rounded-full transition-all ${step === 3 ? 'bg-emerald-600 w-6' : 'bg-slate-200'}`}></div>
+        </div>
       </div>
     </div>
   );
