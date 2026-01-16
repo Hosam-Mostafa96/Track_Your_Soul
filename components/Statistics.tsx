@@ -45,6 +45,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
 
   const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec";
 
+  // خيارات الفلترة
   const activityOptions: { id: ActivityType; label: string; icon: any; color: string }[] = [
     { id: 'all', label: 'الالتزام العام', icon: <Activity className="w-3 h-3" />, color: 'emerald' },
     { id: 'prayers', label: 'الصلوات', icon: <CheckCircle2 className="w-3 h-3" />, color: 'blue' },
@@ -54,6 +55,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
     { id: 'athkar', label: 'الأذكار', icon: <Zap className="w-3 h-3" />, color: 'rose' },
   ];
 
+  // حساب البيانات للمخطط الراداري
   const radarData = useMemo(() => {
     const now = new Date();
     const startDate = timeFilter === 'week' ? subDays(now, 7) : timeFilter === 'month' ? subDays(now, 30) : subDays(now, 365);
@@ -84,6 +86,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
     ];
   }, [logs, timeFilter]);
 
+  // إنشاء شبكة الاستقامة المحدثة (Binary Grid)
   const consistencyGrid = useMemo(() => {
     return Array.from({ length: 30 }).map((_, i) => {
       const date = subDays(new Date(), 29 - i);
@@ -117,6 +120,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
         }
       }
 
+      // اختيار اللون حسب الفلتر المختار
       const activeColor = {
         all: 'bg-emerald-500',
         prayers: 'bg-blue-500',
@@ -163,6 +167,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24">
+      {/* الرأس */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-xl">
@@ -170,7 +175,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-800 header-font">بصمتك الروحية</h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase header-font">أنماط الأداء</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase header-font">أنماط الاتصال والانقطاع</p>
           </div>
         </div>
         <button 
@@ -182,6 +187,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
         </button>
       </div>
 
+      {/* خريطة تكرار الأعمال المحدثة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -194,6 +200,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
           </div>
         </div>
 
+        {/* فلاتر العبادات (Grid Filter) */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
           {activityOptions.map(opt => (
             <button
@@ -219,6 +226,67 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
               className={`aspect-square rounded-md transition-all duration-300 hover:scale-110 cursor-help ${day.colorClass} shadow-sm`}
             ></div>
           ))}
+        </div>
+        <p className="text-[9px] text-slate-400 font-bold text-center header-font">
+          المربعات الملونة تمثل الأيام التي تم فيها أداء "{activityOptions.find(o => o.id === activityFilter)?.label}"
+        </p>
+      </div>
+
+      {/* توازن المحراب */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-emerald-500" />
+            <h3 className="font-bold text-slate-700 text-xs header-font">توازن المحراب (الأداء النوعي)</h3>
+          </div>
+          <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
+            {(['week', 'month', 'all'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setTimeFilter(f)}
+                className={`px-3 py-1 rounded-md text-[8px] font-black transition-all ${timeFilter === f ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400'}`}
+              >
+                {f === 'week' ? 'أسبوع' : f === 'month' ? 'شهر' : 'سنة'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+              <PolarGrid stroke="#f1f5f9" />
+              <PolarAngleAxis 
+                dataKey="subject" 
+                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'Cairo' }} 
+              />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar
+                name="الأداء"
+                dataKey="A"
+                stroke="#10b981"
+                fill="#10b981"
+                fillOpacity={0.4}
+              />
+              <RechartsTooltip 
+                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo', fontSize: '12px' }}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-emerald-900 text-white rounded-[2rem] p-6 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
+        <div className="flex gap-4 items-center relative z-10">
+          <div className="p-3 bg-white/10 rounded-2xl">
+            <CalendarDays className="w-8 h-8 text-emerald-300" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold header-font mb-1">النمط الروحي</h4>
+            <p className="text-[10px] text-emerald-100 leading-relaxed font-bold header-font opacity-80">
+              استخدم فلاتر العبادة لاكتشاف مواطن القوة والضعف في كل ورد على حدة. الاستمرارية هي مفتاح الفتح.
+            </p>
+          </div>
         </div>
       </div>
     </div>

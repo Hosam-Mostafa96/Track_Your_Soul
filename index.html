@@ -1,115 +1,44 @@
 
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" class="dark">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>إدارة العبادات والأوراد</title>
-    
-    <!-- PWA Primary Tags -->
-    <meta name="theme-color" content="#1d2a3e">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="إدارة العبادات">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/10416/10416752.png">
-    <link rel="manifest" href="/manifest.json">
-
-    <!-- Styles & Fonts -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;700;900&family=Manrope:wght@200;400;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#06604b",
-                        "background-dark": "#1d2a3e",
-                        "amber-gold": "#F59E0B",
-                    },
-                    fontFamily: {
-                        "display": ["Manrope", "Cairo", "sans-serif"],
-                        "quran": ["Amiri", "serif"]
-                    }
-                },
-            },
-        }
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الميزان - إدارة العبادات</title>
+    <!-- تحميل التنسيقات والخطوط -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #1d2a3e;
-            color: white;
+            font-family: 'IBM Plex Sans Arabic', sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
             -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-            overscroll-behavior-y: contain;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .khushu-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #F59E0B;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
-            border: 2px solid white;
-        }
-        .khushu-slider {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            outline: none;
-        }
-        .islamic-pattern {
-            background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.03) 1px, transparent 0);
-            background-size: 24px 24px;
         }
         .header-font { font-family: 'Cairo', sans-serif; }
         .quran-font { font-family: 'Amiri', serif; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
-
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@^19.2.3",
-        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-        "react/": "https://esm.sh/react@^19.2.3/",
-        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-        "date-fns": "https://esm.sh/date-fns@^4.1.0",
-        "date-fns/": "https://esm.sh/date-fns@^4.1.0/",
-        "recharts": "https://esm.sh/recharts@^3.6.0",
-        "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-        "vite": "https://esm.sh/vite@^7.3.1",
-        "canvas-confetti": "https://esm.sh/canvas-confetti@^1.9.3",
-        "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
-      }
-    }
-    </script>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0",
+    "date-fns/": "https://esm.sh/date-fns@^4.1.0/",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "canvas-confetti": "https://esm.sh/canvas-confetti@^1.9.3",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+  }
+}
+</script>
 </head>
-<body class="font-display islamic-pattern">
+<body>
     <div id="root"></div>
+    <!-- مدخل التطبيق - Vite سيتكفل بالباقي -->
     <script type="module" src="/index.tsx"></script>
-    
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('SW Registered'))
-            .catch(err => console.log('SW Registration Failed', err));
-        });
-      }
-    </script>
 </body>
 </html>
