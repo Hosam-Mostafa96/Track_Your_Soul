@@ -1,9 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, PenLine, Timer as TimerIcon, 
-  NotebookPen, UserCircle, Medal, Mail, Info, 
-  Sparkles, Loader2, BarChart3, TrendingUp, AlertCircle
+  LayoutDashboard, PenLine, Medal, UserCircle, Sparkles, Loader2, BarChart3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -13,23 +11,16 @@ import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User }
 import { calculateTotalScore } from './utils/scoring';
 import { DEFAULT_WEIGHTS } from './constants';
 import Dashboard from './components/Dashboard';
-import DailyEntry from './DailyEntry';
-import WorshipHistory from './components/WorshipHistory';
-import WorshipGuide from './components/WorshipGuide';
-import WorshipTimer from './components/WorshipTimer';
-import Reflections from './components/Reflections';
+import DailyEntry from './components/DailyEntry';
 import UserProfile from './components/UserProfile';
 import Leaderboard from './components/Leaderboard';
-import ContactUs from './components/ContactUs';
 import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
-import WorshipPatterns from './components/WorshipPatterns';
 
-// إعداد عميل Supabase باستخدام الرابط والمفتاح المقدمين من المستخدم
-const supabaseUrl = 'https://ihtizttdlpkyvuvdbfhi.supabase.co';
-const supabaseAnonKey = 'sb_publishable_aTxQsRADxaWV3pkvuP5QTg_XgQ-9omL_';
+// إعداد عميل Supabase باستخدام القيم المتاحة
+const supabaseUrl = (process.env as any).SUPABASE_URL || 'https://ihtizttdlpkyvuvdbfhi.supabase.co';
+const supabaseAnonKey = (process.env as any).SUPABASE_ANON_KEY || 'sb_publishable_aTxQsRADxaWV3pkvuP5QTg_XgQ-9omL_';
 
-// استخدام any لتجنب مشاكل توافق الأنواع في بيئة المتصفح
 const supabase: any = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
@@ -49,9 +40,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
     checklists: { morning: false, evening: false, sleep: false, travel: false },
     counters: { salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0 }
   },
-  nawafil: {
-    duhaDuration: 0, witrDuration: 0, qiyamDuration: 0, fasting: false, custom: []
-  },
+  nawafil: { duhaDuration: 0, witrDuration: 0, qiyamDuration: 0, fasting: false, custom: [] },
   customSunnahIds: [],
   jihadFactor: JihadFactor.NORMAL,
   hasBurden: false,
@@ -62,7 +51,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'timer' | 'leaderboard' | 'notes' | 'stats' | 'patterns' | 'guide' | 'history' | 'profile' | 'contact';
+  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'stats' | 'profile';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -76,11 +65,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!supabase) {
       const savedLogs = localStorage.getItem('worship_logs');
-      const savedUser = localStorage.getItem('worship_user');
-      const savedWeights = localStorage.getItem('worship_weights');
       if (savedLogs) setLogs(JSON.parse(savedLogs));
-      if (savedUser) setUser(JSON.parse(savedUser));
-      if (savedWeights) setWeights(JSON.parse(savedWeights));
       setIsAppReady(true);
       return;
     }
@@ -94,10 +79,7 @@ const App: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setSession(session);
       if (session) fetchUserProfile(session.user.id);
-      else {
-        setUser(null);
-        setIsAppReady(true);
-      }
+      else { setUser(null); setIsAppReady(true); }
     });
 
     return () => subscription.unsubscribe();
@@ -105,28 +87,19 @@ const App: React.FC = () => {
 
   const fetchUserProfile = async (userId: string) => {
     if (!supabase) return;
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
     if (data) setUser(data);
-    else if (error) console.error("Profile error:", error);
     await fetchUserLogs(userId);
   };
 
   const fetchUserLogs = async (userId: string) => {
     if (!supabase) return;
-    const { data } = await supabase
-      .from('worship_logs')
-      .select('*')
-      .eq('user_id', userId);
-    
+    const { data } = await supabase.from('worship_logs').select('*').eq('user_id', userId);
     if (data) {
       const logsMap: Record<string, DailyLog> = {};
-      data.forEach(item => {
-        logsMap[item.date] = item.data;
+      // تحديد النوع لـ item لمنع خطأ TS7006
+      data.forEach((item: { date: string, data: DailyLog }) => { 
+        logsMap[item.date] = item.data; 
       });
       setLogs(logsMap);
     }
@@ -137,29 +110,16 @@ const App: React.FC = () => {
     const newLogs = { ...logs, [updated.date]: updated };
     setLogs(newLogs);
     localStorage.setItem('worship_logs', JSON.stringify(newLogs));
-    
     if (session && supabase) {
       setIsSyncing(true);
       try {
-        const { error } = await supabase
-          .from('worship_logs')
-          .upsert({ 
-            user_id: session.user.id, 
-            date: updated.date, 
-            data: updated 
-          }, { onConflict: 'user_id,date' });
-        if (error) throw error;
-      } catch (e) {
-        console.error("Sync error:", e);
-      } finally {
-        setIsSyncing(false);
-      }
+        await supabase.from('worship_logs').upsert({ 
+          user_id: session.user.id, 
+          date: updated.date, 
+          data: updated 
+        }, { onConflict: 'user_id,date' });
+      } catch (e) { console.error(e); } finally { setIsSyncing(false); }
     }
-  };
-
-  const handleUpdateWeights = (newWeights: AppWeights) => {
-    setWeights(newWeights);
-    localStorage.setItem('worship_weights', JSON.stringify(newWeights));
   };
 
   if (!isAppReady) {
@@ -171,102 +131,51 @@ const App: React.FC = () => {
     );
   }
 
-  if (!session && supabase) {
-    return <Onboarding supabase={supabase} onComplete={() => {}} />;
-  }
+  if (!session && supabase) return <Onboarding supabase={supabase} onComplete={() => {}} />;
 
-  const isLocalMode = !supabase;
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50">
-      {isLocalMode && (
-        <div className="bg-amber-500 text-white text-[10px] py-1 px-4 text-center font-bold flex items-center justify-center gap-2">
-          <AlertCircle className="w-3 h-3" />
-          وضع العمل المحلي (Supabase غير مكون) - لن يتم حفظ البيانات سحابياً
-        </div>
-      )}
-      
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="w-full flex justify-between items-start mb-4 gap-4">
-            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all">
-              <UserCircle className={`w-7 h-7 ${user ? 'text-yellow-400' : 'text-white/50'}`} />
-            </button>
-            <h1 className="text-xl md:text-2xl font-bold header-font flex items-center gap-2">
-              إدارة العبادات والأوراد
-              {isSyncing && <Loader2 className="w-3 h-3 animate-spin opacity-50" />}
-            </h1>
-            <div className="flex gap-2">
-              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all">
-                <Mail className="w-6 h-6 text-white/70" />
-              </button>
-              <button onClick={() => setActiveTab('leaderboard')} className="p-2 hover:bg-white/10 rounded-full transition-all">
-                <Medal className="w-7 h-7 text-yellow-400" />
-              </button>
-            </div>
+            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all"><UserCircle className="w-7 h-7 text-white" /></button>
+            <h1 className="text-xl md:text-2xl font-bold header-font">إدارة العبادات والأوراد</h1>
+            <button onClick={() => setActiveTab('leaderboard')} className="p-2 hover:bg-white/10 rounded-full transition-all"><Medal className="w-7 h-7 text-yellow-400" /></button>
           </div>
-          <p className="text-emerald-50 quran-font text-xl opacity-95 max-w-sm px-4">
-            {user ? `مرحباً، ${user.name}` : isLocalMode ? 'زائر' : 'جاري التحميل...'}
-          </p>
-          <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md flex items-center justify-between border border-white/20 shadow-2xl relative">
+          <p className="text-emerald-50 quran-font text-xl opacity-95">{user?.name || 'مرحباً بك'}</p>
+          <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md flex items-center justify-between border border-white/20 shadow-2xl">
             <div className="flex items-center gap-4">
-              <div className="bg-yellow-400/20 p-3 rounded-2xl"><Sparkles className="w-8 h-8 text-yellow-400" /></div>
+              <Sparkles className="w-8 h-8 text-yellow-400" />
               <div className="text-right">
-                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">الرصيد الروحي</p>
-                <span className="text-3xl font-bold font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
+                <p className="text-[10px] text-emerald-200 font-bold uppercase header-font">الرصيد الروحي {isSyncing && "..."}</p>
+                <span className="text-3xl font-bold font-mono">{todayScore.toLocaleString()}</span>
               </div>
             </div>
-            <div className="h-10 w-px bg-white/10 mx-2"></div>
-            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
-              <p className="text-[10px] text-emerald-200 uppercase font-bold header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
-              <p className="text-lg font-semibold header-font leading-tight">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
-            </button>
           </div>
         </div>
       </header>
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
         {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={setTargetScore} onOpenSettings={() => setActiveTab('profile')} />}
-        {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={handleUpdateWeights} currentDate={currentDate} onDateChange={setCurrentDate} />}
-        {activeTab === 'timer' && <WorshipTimer isSync={!isLocalMode} seconds={0} isRunning={false} selectedActivity="qiyamDuration" onToggle={()=>{}} onReset={()=>{}} onActivityChange={()=>{}} onApplyTime={()=>{}} />}
-        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={!isLocalMode} />}
-        {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
+        {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />}
+        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={!!supabase} />}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
-        {activeTab === 'patterns' && <WorshipPatterns logs={logs} weights={weights} />}
-        {activeTab === 'guide' && <WorshipGuide />}
-        {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
-        {activeTab === 'contact' && <ContactUs />}
-        {activeTab === 'profile' && (
-          <UserProfile 
-            user={user} 
-            weights={weights} 
-            isGlobalSync={!isLocalMode} 
-            onToggleSync={()=>{}} 
-            onUpdateUser={() => {
-              if (supabase) (supabase as any).auth.signOut();
-              else setUser(null);
-            }} 
-            onUpdateWeights={handleUpdateWeights} 
-          />
-        )}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={!!supabase} onToggleSync={() => {}} onUpdateUser={setUser} onUpdateWeights={setWeights} />}
       </main>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
         {[
           {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
           {id: 'entry', icon: PenLine, label: 'تسجيل'},
-          {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
           {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-          {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
-          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
-          {id: 'notes', icon: NotebookPen, label: 'يوميات'}
+          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'}
         ].map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[4rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400'}`}>
             <tab.icon className="w-5 h-5" />
-            <span className="text-[7px] mt-1 font-bold header-font">{tab.label}</span>
+            <span className="text-[8px] mt-1 font-bold header-font">{tab.label}</span>
           </button>
         ))}
       </nav>
