@@ -1,25 +1,20 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  LayoutDashboard, 
-  PenLine, 
-  History, 
+  Loader2,
+  LayoutDashboard,
+  PenLine,
+  History,
   Trophy,
-  Info,
   Timer as TimerIcon,
+  BarChart3,
+  TrendingUp,
   NotebookPen,
   UserCircle,
-  Medal,
-  Calendar,
-  ChevronDown,
   Mail,
-  CalendarDays,
-  Sparkles,
-  ArrowRight,
-  Globe,
-  Loader2,
-  BarChart3,
-  TrendingUp
+  Info,
+  Medal,
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -77,48 +72,32 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [activeActivity, setActiveActivity] = useState('qiyamDuration');
+  const [timerIsRunning, setTimerIsRunning] = useState(false);
+  const [timerActivity, setTimerActivity] = useState('qiyamDuration');
   const timerIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const savedTimer = localStorage.getItem('mizan_active_timer_v2');
-    if (savedTimer) {
-      const { seconds, isRunning, activity, lastUpdate } = JSON.parse(savedTimer);
-      setActiveActivity(activity);
-      if (isRunning) {
-        const elapsed = Math.floor((Date.now() - lastUpdate) / 1000);
-        setTimerSeconds(seconds + elapsed);
-        setIsTimerRunning(true);
-      } else {
-        setTimerSeconds(seconds);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isTimerRunning) {
+    if (timerIsRunning) {
       timerIntervalRef.current = window.setInterval(() => {
         setTimerSeconds(s => s + 1);
       }, 1000);
     } else {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
     }
     return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
-  }, [isTimerRunning]);
+  }, [timerIsRunning]);
 
   useEffect(() => {
-    localStorage.setItem('mizan_active_timer_v2', JSON.stringify({
-      seconds: timerSeconds,
-      isRunning: isTimerRunning,
-      activity: activeActivity,
-      lastUpdate: Date.now()
-    }));
-  }, [timerSeconds, isTimerRunning, activeActivity]);
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
 
-  useEffect(() => {
     const savedLogs = localStorage.getItem('mizan_logs');
     const savedTarget = localStorage.getItem('mizan_target');
     const savedUser = localStorage.getItem('mizan_user');
@@ -134,8 +113,16 @@ const App: React.FC = () => {
     setIsAppReady(true);
   }, []);
 
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setDeferredPrompt(null);
+  };
+
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
+  const progressPercent = Math.min((todayScore / targetScore) * 100, 100);
 
   const updateLog = (updated: DailyLog) => {
     const newLogs = { ...logs, [updated.date]: updated };
@@ -148,10 +135,32 @@ const App: React.FC = () => {
     localStorage.setItem('mizan_weights', JSON.stringify(newWeights));
   };
 
+  const handleApplyTimer = (field: string, mins: number) => {
+    const logToUpdate = logs[currentDate] || INITIAL_LOG(currentDate);
+    const updatedNawafil = { ...logToUpdate.nawafil };
+    const updatedKnowledge = { ...logToUpdate.knowledge };
+    
+    if (field === 'qiyamDuration' || field === 'duhaDuration' || field === 'witrDuration') {
+      (updatedNawafil as any)[field] += mins;
+    } else if (field === 'shariDuration' || field === 'readingDuration') {
+      (updatedKnowledge as any)[field] += mins;
+    }
+    
+    updateLog({
+      ...logToUpdate,
+      nawafil: updatedNawafil,
+      knowledge: updatedKnowledge
+    });
+    
+    setTimerSeconds(0);
+    setTimerIsRunning(false);
+    setActiveTab('entry');
+  };
+
   if (!isAppReady) {
     return (
-      <div className="min-h-screen bg-emerald-900 flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+      <div className="min-h-screen bg-background-dark flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
       </div>
     );
   }
@@ -166,46 +175,49 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen pb-32 bg-slate-50">
-      <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
-        <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-full flex justify-between items-start mb-4 gap-4">
-            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
-              <UserCircle className={`w-7 h-7 ${user ? 'text-yellow-400' : 'text-white/50'}`} />
-            </button>
-            <h1 className="text-xl md:text-2xl font-bold header-font">إدارة العبادات والأوراد</h1>
-            <div className="flex gap-2">
-              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
-                <Mail className="w-6 h-6 text-white/70" />
-              </button>
-              <button onClick={() => setActiveTab('guide')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
-                <Info className="w-6 h-6 text-white/70" />
-              </button>
-              <button onClick={() => setActiveTab('leaderboard')} className="p-2 hover:bg-white/10 rounded-full transition-all relative flex-shrink-0">
-                <Medal className="w-7 h-7 text-yellow-400" />
-              </button>
-            </div>
+    <div className="min-h-screen pb-32">
+      <nav className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between backdrop-blur-md bg-background-dark/80 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+            <span className="material-symbols-outlined text-primary text-2xl">auto_awesome</span>
           </div>
-          <p className="text-emerald-50 quran-font text-xl opacity-95 max-w-sm px-4">{user ? `مرحباً، ${user.name}` : '"حاسِبوا أنفسَكم قبل أن تُحاسَبوا"'}</p>
-          <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md flex items-center justify-between border border-white/20 shadow-2xl relative">
-            <div className="flex items-center gap-4">
-              <div className="bg-yellow-400/20 p-3 rounded-2xl"><Trophy className="w-8 h-8 text-yellow-400" /></div>
-              <div className="text-right">
-                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">نقاط ميزانك</p>
-                <span className="text-3xl font-bold font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
-              </div>
-            </div>
-            <div className="h-10 w-px bg-white/10 mx-2"></div>
-            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
-              <p className="text-[10px] text-emerald-200 uppercase font-bold header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
-              <p className="text-lg font-semibold header-font leading-tight">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
-            </button>
+          <div className="text-right">
+            <h1 className="text-lg font-bold tracking-tight leading-none header-font">إدارة العبادات والأوراد</h1>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 mt-1 font-bold">Spiritual Progress</p>
           </div>
         </div>
+        <div className="flex items-center gap-4">
+          {deferredPrompt && (
+            <button onClick={handleInstallApp} className="p-2 bg-amber-gold/20 rounded-full animate-bounce">
+              <Download className="w-5 h-5 text-amber-gold" />
+            </button>
+          )}
+          <button onClick={() => setActiveTab('profile')} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-all">
+            <UserCircle className="w-6 h-6 text-slate-400" />
+          </button>
+          <div className="relative size-12">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle className="text-white/10" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" stroke-width="3"></circle>
+              <circle className="text-primary transition-all duration-700" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" 
+                strokeDasharray="125.6" strokeDashoffset={125.6 - (125.6 * progressPercent) / 100} strokeWidth="3" strokeLinecap="round"></circle>
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-[10px] font-bold text-white">{Math.round(progressPercent)}%</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <header className="px-6 py-8 text-center animate-in fade-in slide-in-from-top duration-700">
+        <p className="text-[#9cbab3] text-sm font-bold tracking-wide header-font">
+          {format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM yyyy', { locale: ar })}
+        </p>
+        <h2 className="mt-2 text-2xl font-light text-slate-200 header-font">
+          كيف كان <span className="font-bold text-amber-gold">خشوعك</span> اليوم؟
+        </h2>
       </header>
 
-      <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
+      <main className="px-6 max-w-2xl mx-auto space-y-6">
         {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('mizan_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
         {activeTab === 'entry' && (
           <DailyEntry 
@@ -221,23 +233,12 @@ const App: React.FC = () => {
           <WorshipTimer 
             isSync={isGlobalSyncEnabled} 
             seconds={timerSeconds}
-            isRunning={isTimerRunning}
-            selectedActivity={activeActivity}
-            onToggle={() => setIsTimerRunning(!isTimerRunning)}
-            onReset={() => { setTimerSeconds(0); setIsTimerRunning(false); }}
-            onActivityChange={setActiveActivity}
-            onApplyTime={(field, mins) => {
-              const newLog = { ...currentLog };
-              if (field === 'shariDuration' || field === 'readingDuration') {
-                newLog.knowledge = { ...newLog.knowledge, [field]: newLog.knowledge[field] + mins };
-              } else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
-                newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] as number) + mins };
-              }
-              updateLog(newLog);
-              setTimerSeconds(0);
-              setIsTimerRunning(false);
-              setActiveTab('entry');
-            }} 
+            isRunning={timerIsRunning}
+            selectedActivity={timerActivity}
+            onToggle={() => setTimerIsRunning(!timerIsRunning)}
+            onReset={() => { setTimerSeconds(0); setTimerIsRunning(false); }}
+            onActivityChange={(id) => setTimerActivity(id)}
+            onApplyTime={handleApplyTimer} 
           />
         )}
         {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
@@ -250,25 +251,38 @@ const App: React.FC = () => {
         {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(e) => { setIsGlobalSyncEnabled(e); localStorage.setItem('mizan_global_sync', JSON.stringify(e)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('mizan_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
+      {(activeTab === 'dashboard' || activeTab === 'entry') && (
+        <div className="fixed bottom-24 left-0 right-0 px-6 flex justify-center pointer-events-none z-40">
+          <button 
+            onClick={() => setActiveTab('entry')}
+            className="pointer-events-auto w-full max-w-md bg-gradient-to-r from-primary to-[#044a3a] py-4 rounded-2xl shadow-[0_8px_30px_rgb(6,96,75,0.4)] text-white font-bold text-base tracking-widest uppercase flex items-center justify-center gap-2 transition-transform active:scale-95 header-font"
+          >
+            سجّل عباداتك الآن
+            <span className="material-symbols-outlined text-xl">auto_awesome</span>
+          </button>
+        </div>
+      )}
+
+      <footer className="fixed bottom-0 left-0 right-0 bg-background-dark/95 backdrop-blur-xl border-t border-white/10 px-8 py-4 flex justify-between items-center z-50">
         {[
-          {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
-          {id: 'entry', icon: PenLine, label: 'تسجيل'},
-          {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
-          {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-          {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
-          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
-          {id: 'notes', icon: NotebookPen, label: 'يوميات'}
+          {id: 'dashboard', icon: 'home', label: 'الرئيسية'},
+          {id: 'entry', icon: 'edit_note', label: 'تسجيل'},
+          {id: 'stats', icon: 'analytics', label: 'إحصائيات'},
+          {id: 'leaderboard', icon: 'military_tech', label: 'الأبرار'},
+          {id: 'contact', icon: 'mail', label: 'تواصل'}
         ].map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
-            <div className="relative">
-              <tab.icon className="w-5 h-5" />
-              {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
-            </div>
-            <span className="text-[7px] mt-1 font-bold header-font">{tab.label}</span>
+          <button 
+            key={tab.id} 
+            onClick={() => setActiveTab(tab.id as Tab)} 
+            className={`flex flex-col items-center gap-1 transition-all duration-300 ${activeTab === tab.id ? 'text-primary' : 'text-slate-500 hover:text-slate-400'}`}
+          >
+            <span className={`material-symbols-outlined ${activeTab === tab.id ? 'fill-[1]' : ''}`} style={activeTab === tab.id ? {fontVariationSettings: "'FILL' 1"} : {}}>
+              {tab.icon}
+            </span>
+            <span className="text-[10px] font-bold header-font">{tab.label}</span>
           </button>
         ))}
-      </nav>
+      </footer>
     </div>
   );
 };

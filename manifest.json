@@ -1,0 +1,36 @@
+
+{
+  "name": "إدارة العبادات والأوراد",
+  "short_name": "إدارة العبادات",
+  "description": "تطبيق متطور لمتابعة العبادات والأوراد اليومية والارتقاء الروحي.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1d2a3e",
+  "theme_color": "#1d2a3e",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/10416/10416752.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/10416/10416752.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity", "religion"],
+  "screenshots": [
+    {
+      "src": "https://raw.githubusercontent.com/Al-Mizan/Assets/main/screenshot1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}

@@ -64,7 +64,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <div className="p-4 bg-emerald-100 rounded-3xl mb-4">
                 <Sparkles className="w-10 h-10 text-emerald-600" />
               </div>
-              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">مرحباً بك في الميزان</h1>
+              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">مرحباً بك في تطبيق إدارة العبادات</h1>
               <p className="text-xs text-slate-500 font-bold leading-relaxed header-font">رحلة المحاسبة والارتقاء تبدأ من هنا. نحتاج لبعض البيانات الأساسية لبناء ملفك الروحي.</p>
             </div>
 
@@ -146,7 +146,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
               <div className="p-4 bg-emerald-50 rounded-2xl flex gap-3 border border-emerald-100">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                <p className="text-[10px] text-emerald-800 font-bold header-font">نلتزم بحفظ بياناتك بأمان؛ المزامنة تهدف لتعزيز روح الجماعة في المحراب العالمي فقط.</p>
+                <p className="text-[10px] text-emerald-800 font-bold header-font">نلتزم بحفظ بياناتك بأمان؛ المزامنة تهدف لتعزيز روح الجماعة فقط.</p>
               </div>
 
               <button 
@@ -155,7 +155,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                {isSaving ? 'جاري التسجيل...' : 'ابدأ رحلة الميزان'}
+                {isSaving ? 'جاري التسجيل...' : 'ابدأ رحلة العبادة'}
               </button>
             </div>
           </div>

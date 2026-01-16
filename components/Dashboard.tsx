@@ -26,7 +26,8 @@ import {
   Shield,
   CloudMoon,
   Heart,
-  BarChart3
+  BarChart3,
+  Trophy
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { format, subDays } from 'date-fns';
@@ -52,14 +53,12 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
   const [isEditingTarget, setIsEditingTarget] = useState(false);
   const [tempTarget, setTempTarget] = useState(targetScore.toString());
   
-  // حفظ الحالة السابقة للأوسمة لاكتشاف التغيرات الحقيقية فقط
   const prevBadgesActiveState = useRef<Record<string, boolean>>({});
   const isFirstRender = useRef(true);
 
   const currentTotalScore = calculateTotalScore(log, weights);
   const progressPercent = Math.min((currentTotalScore / targetScore) * 100, 100);
 
-  // حساب نظام الشارات
   const badges = useMemo(() => {
     const rawatibIds = ['fajr_pre', 'dhuhr_pre', 'dhuhr_post', 'maghrib_post', 'isha_post'];
     const allUserSunnahs = (Object.values(log.prayers) as PrayerEntry[]).flatMap(p => p.surroundingSunnahIds || []);
@@ -125,9 +124,7 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
     ];
   }, [log]);
 
-  // مراقبة تفعيل الأوسمة لإطلاق الاحتفال
   useEffect(() => {
-    // في أول رندر، نقوم فقط بتسجيل الحالة الحالية دون إطلاق مفرقعات
     if (isFirstRender.current) {
       badges.forEach(badge => {
         prevBadgesActiveState.current[badge.id] = !!badge.active;
@@ -138,11 +135,9 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
 
     let triggered = false;
     badges.forEach(badge => {
-      // الاحتفال فقط إذا تغيرت الحالة من "غير مفعل" إلى "مفعل"
       if (badge.active && !prevBadgesActiveState.current[badge.id]) {
         triggered = true;
       }
-      // تحديث المرجع للحالة الحالية
       prevBadgesActiveState.current[badge.id] = !!badge.active;
     });
 
@@ -230,7 +225,6 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* المستشار الروحي */}
       <div className="relative group">
         <button 
           onClick={getAiAdvice}
@@ -242,8 +236,8 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
               <BrainCircuit className={`w-5 h-5 ${isAiLoading ? 'animate-pulse' : ''}`} />
             </div>
             <div className="text-right">
-              <h4 className="text-sm font-bold header-font">المستشار الروحي (AI)</h4>
-              <p className="text-[10px] opacity-80 header-font">اضغط للحصول على نصيحة لميزانك</p>
+              <h4 className="text-sm font-bold header-font">المستشار الروحي الذكي</h4>
+              <p className="text-[10px] opacity-80 header-font">اضغط للحصول على نصيحة لعباداتك</p>
             </div>
           </div>
           <Sparkles className={`w-5 h-5 text-yellow-300 ${isAiLoading ? 'animate-spin' : 'animate-bounce'}`} />
@@ -259,7 +253,6 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
         )}
       </div>
 
-      {/* نظام الشارات الروحية */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-4">
           <Award className="w-5 h-5 text-amber-500" />
@@ -292,7 +285,6 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
         </div>
       </div>
 
-      {/* التقدم نحو الهدف وتعديله */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
@@ -339,7 +331,7 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
           <div className={`p-3 rounded-2xl mb-3 ${momentumInfo.percent >= 0 ? 'bg-emerald-50' : 'bg-amber-50'}`}>
             <Activity className={`w-6 h-6 ${momentumInfo.color}`} />
           </div>
-          <p className="text-[10px] text-slate-400 font-bold uppercase header-font mb-1">زخم الارتقاء</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase header-font mb-1">زخم الالتزام</p>
           <div className="flex flex-col">
             <span className={`text-xl font-black font-mono ${momentumInfo.color}`}>
               {momentumInfo.percent > 0 ? '+' : ''}{momentumInfo.percent}%
@@ -362,11 +354,10 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
         </div>
       </div>
 
-      {/* الرسم البياني */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-4">
           <History className="w-4 h-4 text-slate-400" />
-          <h3 className="font-bold text-slate-600 header-font text-xs">نبض الميزان (أخر ٧ أيام)</h3>
+          <h3 className="font-bold text-slate-600 header-font text-xs">نبض الأداء (أخر ٧ أيام)</h3>
         </div>
         <div className="h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
