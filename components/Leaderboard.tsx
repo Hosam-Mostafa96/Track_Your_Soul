@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Hash } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 
@@ -18,12 +18,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     qiyam: 0, duha: 0, knowledge: 0, athkar: 0, totalUsers: 0
   });
   const [globalTop, setGlobalTop] = useState<any[]>([]);
-  const [userRank, setUserRank] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   
   const fetchGlobalData = async (isSilent = false) => {
-    if (!isSync || !user?.email || GOOGLE_STATS_API.includes("FIX_ME")) return;
+    if (!user?.email || GOOGLE_STATS_API.includes("FIX_ME")) return;
     
     if (!isSilent) setIsLoading(true);
     try {
@@ -34,14 +33,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           action: 'getStats',
           email: user.email.toLowerCase().trim(),
           name: user.name || "مصلٍ مجهول",
-          score: currentScore
+          score: currentScore,
+          isSyncEnabled: isSync 
         })
       });
 
       if (res.ok) {
         const data = await res.json();
         if (data && data.leaderboard) {
-          // 1. تصفية التكرارات محلياً فوراً لضمان دقة القائمة
           const uniqueMap = new Map();
           data.leaderboard.forEach((entry: any) => {
             const emailKey = (entry.email || entry.name || "").toLowerCase().trim();
@@ -54,22 +53,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
           const sortedUnique = Array.from(uniqueMap.values())
             .sort((a, b) => b.score - a.score);
-
-          // 2. محاولة إيجاد المستخدم الحالي في القائمة المصفاة
-          const myEmail = user.email.toLowerCase().trim();
-          const myIdx = sortedUnique.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
           
-          setGlobalTop(sortedUnique.slice(0, 50));
-          
-          // 3. تحديث الترتيب: إذا وجدناه في القائمة نأخذ مكانه، وإلا نعتمد على ما أرسله السيرفر
-          if (myIdx !== -1) {
-            setUserRank(myIdx + 1);
-          } else if (data.userRank && data.userRank !== "---") {
-            setUserRank(parseInt(data.userRank));
-          } else {
-            setUserRank(null);
-          }
-          
+          setGlobalTop(sortedUnique);
           if (data.stats) setLiveStats(data.stats);
           setHasError(false);
         }
@@ -84,34 +69,51 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     }
   };
 
+  const calculatedRank = useMemo(() => {
+    if (!user?.email || globalTop.length === 0) return null;
+    
+    const myEmail = user.email.toLowerCase().trim();
+    const myIndex = globalTop.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
+    
+    if (myIndex !== -1) return myIndex + 1;
+
+    const rank = globalTop.filter(p => p.score > currentScore).length + 1;
+    return rank;
+  }, [globalTop, currentScore, user?.email]);
+
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 20000); 
+    // تم التعديل إلى 2500ms لجعل التحديثات فائقة السرعة
+    const interval = setInterval(() => fetchGlobalData(true), 2500); 
     return () => clearInterval(interval);
-  }, [isSync, currentScore, user?.email]);
+  }, [user?.email, isSync]); 
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
-      {/* بطاقة الترتيب المحسنة */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden border border-white/5">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="p-4 bg-white/10 rounded-full mb-4 backdrop-blur-md">
             <Trophy className="w-10 h-10 text-yellow-400 fill-yellow-400" />
           </div>
-          <h2 className="text-2xl font-bold header-font">والسابقون السابقون</h2>
+          <h2 className="text-xl font-bold header-font">والسابقون السابقون</h2>
           
-          <div className="mt-4 bg-white/10 rounded-3xl px-10 py-5 border border-white/20 backdrop-blur-md shadow-inner flex flex-col items-center">
-              <div className="flex items-center gap-1 justify-center dir-ltr">
-                <span className="text-6xl font-black font-mono text-yellow-400 drop-shadow-lg leading-none">
-                  {userRank || "---"}
+          <div className="mt-4 bg-white/10 rounded-3xl px-12 py-6 border border-white/20 backdrop-blur-md shadow-inner">
+              <div className="flex items-center justify-center gap-2" dir="ltr">
+                <span className="text-4xl font-black text-yellow-400/40">#</span>
+                <span className="text-7xl font-black font-mono text-yellow-400 drop-shadow-xl leading-none">
+                  {calculatedRank || (isLoading ? "..." : "---")}
                 </span>
-                <span className="text-3xl font-black text-yellow-400/50 mt-2">#</span>
               </div>
-              <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-[0.3em] opacity-80 mt-2">ترتيبك العالمي حالياً</p>
+              <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-[0.2em] opacity-80 mt-2">
+                {isSync ? "ترتيبك العالمي حالياً" : "ترتيبك التوقعي (المزامنة معطلة)"}
+              </p>
           </div>
-          <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-emerald-200/60 uppercase">
-             <Star className="w-3 h-3 fill-current" /> تنافس في الخيرات <Star className="w-3 h-3 fill-current" />
+          
+          <div className="mt-6 flex items-center gap-4">
+             <div className="flex items-center gap-2 text-[9px] font-bold text-emerald-200/60 uppercase">
+                <Star className="w-3 h-3 fill-current" /> تنافس في الخيرات <Star className="w-3 h-3 fill-current" />
+             </div>
           </div>
         </div>
       </div>
@@ -119,11 +121,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       {hasError && (
         <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600">
           <WifiOff className="w-5 h-5" />
-          <p className="text-xs font-bold header-font">هناك صعوبة في الاتصال.. جاري التحديث.</p>
+          <p className="text-xs font-bold header-font">جاري محاولة تحديث القائمة العامة..</p>
         </div>
       )}
 
-      {/* نبض المحراب */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -154,7 +155,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         </div>
       </div>
 
-      {/* قائمة المتصدرين */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -165,7 +165,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         </div>
 
         <div className="space-y-3">
-          {globalTop.length > 0 ? globalTop.map((player, index) => {
+          {globalTop.length > 0 ? globalTop.slice(0, 50).map((player, index) => {
              const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
              return (
               <div key={player.email || index} className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 ${isMe ? 'bg-emerald-600 text-white shadow-xl scale-[1.02] border-none' : 'bg-slate-50 border-transparent text-slate-600'}`}>
@@ -174,10 +174,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                       {index + 1}
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold header-font">
+                    <span className="text-xs font-bold header-font truncate max-w-[120px]">
                         {player.name} {isMe && "(أنت)"}
                     </span>
-                    {isMe && <span className="text-[8px] opacity-70 header-font">تحديث تلقائي نشط</span>}
+                    {isMe && <span className="text-[8px] opacity-70 header-font">تزامن حيّ ونشط</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -188,7 +188,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           }) : (
             <div className="text-center py-12 flex flex-col items-center">
                 <Loader2 className="w-8 h-8 text-emerald-200 animate-spin mb-3" />
-                <p className="text-[10px] text-slate-300 font-bold header-font animate-pulse">جاري تحديث السجلات من المحراب السحابي..</p>
+                <p className="text-[10px] text-slate-300 font-bold header-font animate-pulse">جاري جلب سجلات المتنافسين من السحاب..</p>
             </div>
           )}
         </div>
