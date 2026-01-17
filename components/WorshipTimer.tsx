@@ -20,7 +20,7 @@ import {
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzFA2kvdLqForyWidmHUYY5xu0ZSLV2DXkWUvi5JAweeqz_vyKnAZlhADBxARx5KFM/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
 
 interface WorshipTimerProps {
   seconds: number;
@@ -79,8 +79,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      // تم التعديل إلى 2500ms (2.5 ثانية)
-      syncRef.current = window.setInterval(sendHeartbeat, 2500);
+      syncRef.current = window.setInterval(sendHeartbeat, 3000);
       sendHeartbeat();
     } else {
       if (syncRef.current) {
