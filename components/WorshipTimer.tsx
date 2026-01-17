@@ -53,7 +53,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      syncRef.current = window.setInterval(sendHeartbeat, 3000);
+      // إرسال نبضات القلب كل ثانيتين كما طلب المستخدم
+      syncRef.current = window.setInterval(sendHeartbeat, 2000);
       sendHeartbeat();
     } else {
       if (syncRef.current) {

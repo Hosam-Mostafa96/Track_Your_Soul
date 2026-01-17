@@ -13,16 +13,23 @@ import {
   LogIn,
   ChevronRight,
   ShieldCheck,
-  Globe
+  Globe,
+  MapPin
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
-// الرابط الخاص بـ Google Apps Script
 const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
+
+const COUNTRIES = [
+  "مصر", "السعودية", "الإمارات", "الكويت", "قطر", "البحرين", "عمان", 
+  "الأردن", "فلسطين", "سوريا", "لبنان", "العراق", "اليمن", 
+  "ليبيا", "تونس", "الجزائر", "المغرب", "السودان", "موريتانيا", "الصومال",
+  "تركيا", "إندونيسيا", "ماليزيا", "أخرى"
+];
 
 interface OnboardingProps {
   installPrompt: any;
-  onComplete: (user: UserType) => void;
+  onComplete: (user: UserType, restoredLogs?: string) => void;
 }
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
@@ -33,33 +40,29 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     name: '',
     email: '',
     age: '',
-    country: '', // المدينة / البلد
-    qualification: '', // التخصص
+    country: '', 
+    qualification: '', 
     method: 'email'
   });
 
   const handleSubmitData = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // التحقق من أن جميع الحقول مكتملة
-    if (!formData.name.trim() || !formData.email.trim() || !formData.age || !formData.country || !formData.qualification) {
+    if (!formData.name.trim() || !formData.email.trim() || !formData.age || !formData.country || !formData.qualification.trim()) {
       alert("يرجى إكمال جميع الحقول المطلوبة لتوثيق عضويتك في سجلات ميزان");
       return;
     }
     
     setIsSaving(true);
-    // توليد معرف فريد مجهول إذا لم يوجد
     const anonId = localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7);
     localStorage.setItem('worship_anon_id', anonId);
 
     try {
-      // إرسال البيانات للسكربت باستخدام الأكشن registerUser المتوافق مع الكود الجديد
-      await fetch(GOOGLE_STATS_API, {
+      const response = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
-        mode: 'no-cors', // لضمان الإرسال دون مشاكل CORS مع Apps Script
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
-          action: 'registerUser', // تم التغيير ليتطابق مع registerOrUpdateUser في السكربت
+          action: 'registerUser', 
           id: anonId,
           name: formData.name,
           email: formData.email,
@@ -68,12 +71,22 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           qualification: formData.qualification
         })
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        // إذا وجدنا بيانات مخزنة مسبقاً لهذا الإيميل، نقوم باستعادتها
+        if (data.existingLogs || data.existingUser) {
+          const confirmed = window.confirm("وجدنا بيانات سابقة مرتبطة بهذا البريد. هل تريد استعادة تقدمك ونقاطك؟");
+          if (confirmed) {
+            onComplete(data.existingUser || formData, data.existingLogs);
+            return;
+          }
+        }
+      }
       
-      // نعتبر العملية ناجحة وننتقل لصفحة الترحيب
       setStep(3);
     } catch (error) {
-      console.error("خطأ في الاتصال بالخادم:", error);
-      // في حالة الخطأ، نسمح بالمرور لضمان استمرارية تجربة المستخدم أوفلاين
+      console.error("Sync error:", error);
       setStep(3);
     } finally {
       setIsSaving(false);
@@ -82,7 +95,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* طبقات خلفية فنية */}
       <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-emerald-500 rounded-full blur-[130px]"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-teal-500 rounded-full blur-[110px]"></div>
@@ -91,7 +103,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       <div className="max-w-md w-full bg-white rounded-[3rem] p-8 shadow-2xl relative overflow-hidden animate-in zoom-in duration-500 z-10">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 rounded-full -translate-y-16 translate-x-16 opacity-40"></div>
         
-        {/* الخطوة 1: شاشة الترحيب */}
         {step === 1 && (
           <div className="space-y-6 animate-in slide-in-from-bottom duration-300">
             <div className="flex flex-col items-center text-center">
@@ -129,7 +140,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           </div>
         )}
 
-        {/* الخطوة 2: نموذج التسجيل بالبريد الإلكتروني */}
         {step === 2 && (
           <div className="space-y-6 animate-in slide-in-from-right duration-300">
             <div className="flex items-center gap-3 mb-2">
@@ -175,33 +185,28 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     />
                   </div>
                   <div className="relative">
-                    <Building className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                    <input 
-                      type="text" required
+                    <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                    <select 
+                      required
                       value={formData.country}
                       onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                      placeholder="المدينة / البلد"
-                      className="w-full pl-4 pr-11 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm"
-                    />
+                      className="w-full pl-4 pr-11 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm appearance-none"
+                    >
+                      <option value="" disabled>اختر الدولة</option>
+                      {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                   </div>
                 </div>
 
                 <div className="relative">
                   <GraduationCap className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <select 
-                    required
+                  <input 
+                    type="text" required
                     value={formData.qualification}
                     onChange={(e) => setFormData(prev => ({ ...prev, qualification: e.target.value }))}
-                    className="w-full pl-4 pr-11 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm appearance-none"
-                  >
-                    <option value="" disabled>التخصص أو المؤهل الدراسي</option>
-                    <option value="طالب">طالب علم / مدرسي</option>
-                    <option value="موظف">موظف / أعمال حرة</option>
-                    <option value="أكاديمي">أكاديمي / باحث</option>
-                    <option value="تقني">تقني / مهندس</option>
-                    <option value="طبي">طبي / صحي</option>
-                    <option value="أخرى">أخرى</option>
-                  </select>
+                    placeholder="المؤهل الدراسي (دكتوراه، بكالوريوس، طالب..)"
+                    className="w-full pl-4 pr-11 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm"
+                  />
                 </div>
               </div>
 
@@ -223,7 +228,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           </div>
         )}
 
-        {/* الخطوة 3: شاشة النجاح */}
         {step === 3 && (
           <div className="space-y-6 animate-in zoom-in duration-300 flex flex-col items-center text-center">
             <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-4 relative">

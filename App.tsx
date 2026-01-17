@@ -33,6 +33,8 @@ import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
 import WorshipPatterns from './components/WorshipPatterns';
 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
+
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
   prayers: {
@@ -61,7 +63,6 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  // الترتيب المطلوب: الرئيسية -> تسجيل -> إنجازاتي -> مؤقت -> إحصائيات -> أنماط -> يوميات
   type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'stats' | 'patterns' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
@@ -78,14 +79,28 @@ const App: React.FC = () => {
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
   const timerIntervalRef = useRef<number | null>(null);
 
+  // رفع السجلات للسحاب دورياً لضمان مزامنة النقاط (تم التحديث ليكون كل ثانيتين)
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
+    if (isGlobalSyncEnabled && user?.email && Object.keys(logs).length > 0) {
+      const timeout = setTimeout(async () => {
+        try {
+          await fetch(GOOGLE_STATS_API, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              action: 'syncLogs',
+              email: user.email,
+              logs: JSON.stringify(logs)
+            })
+          });
+        } catch (e) {
+          console.error("Cloud Sync Error:", e);
+        }
+      }, 2000); // تحديث كل ثانيتين بدلاً من 5 أو 30 ثانية
+      return () => clearTimeout(timeout);
+    }
+  }, [logs, isGlobalSyncEnabled, user?.email]);
 
   useEffect(() => {
     const savedLogs = localStorage.getItem('worship_logs');
@@ -102,22 +117,6 @@ const App: React.FC = () => {
     
     setIsAppReady(true);
   }, []);
-
-  useEffect(() => {
-    if (!isTimerRunning) {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      return;
-    }
-    timerIntervalRef.current = window.setInterval(() => {
-      setTimerSeconds(s => s + 1);
-    }, 1000);
-    return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    };
-  }, [isTimerRunning]);
-
-  const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
-  const todayScore = calculateTotalScore(currentLog, weights);
 
   const updateLog = (updated: DailyLog) => {
     const newLogs = { ...logs, [updated.date]: updated };
@@ -142,15 +141,23 @@ const App: React.FC = () => {
     return (
       <Onboarding 
         installPrompt={deferredPrompt}
-        onComplete={(userData) => {
+        onComplete={(userData, restoredLogs) => {
           setUser(userData);
           localStorage.setItem('worship_user', JSON.stringify(userData));
+          if (restoredLogs) {
+            const parsedLogs = JSON.parse(restoredLogs);
+            setLogs(parsedLogs);
+            localStorage.setItem('worship_logs', restoredLogs);
+          }
           setIsGlobalSyncEnabled(true);
           localStorage.setItem('worship_global_sync', JSON.stringify(true));
         }} 
       />
     );
   }
+
+  const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
+  const todayScore = calculateTotalScore(currentLog, weights);
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50">
@@ -205,7 +212,7 @@ const App: React.FC = () => {
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
         {activeTab === 'contact' && <ContactUs />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(e) => { setIsGlobalSyncEnabled(e); localStorage.setItem('worship_global_sync', JSON.stringify(e)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">

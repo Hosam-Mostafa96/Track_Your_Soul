@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 
-// الرابط الموحد المحدث - تأكد أنه نفس الرابط في جميع الملفات
+// الرابط الموحد المحدث
 const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
 
 interface LeaderboardProps {
@@ -22,7 +22,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [userGlobalRank, setUserGlobalRank] = useState<number | string>("---");
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const anonId = useRef(localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7));
+  const anonId = useRef(localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7));
   
   const fetchGlobalData = async (isSilent = false) => {
     if (!isSync || GOOGLE_STATS_API.includes("FIX_ME")) return;
@@ -61,8 +61,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData(); // أول جلب عند التحميل
-    // تحديث لحظي كل 3 ثوانٍ (3000ms) بناءً على طلب المستخدم
-    const interval = setInterval(() => fetchGlobalData(true), 3000); 
+    // تحديث لحظي كل ثانيتين (2000ms) لضمان مزامنة النقاط والبيانات الحية
+    const interval = setInterval(() => fetchGlobalData(true), 2000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.name]);
 
