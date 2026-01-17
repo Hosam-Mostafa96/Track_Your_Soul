@@ -15,23 +15,25 @@
   "categories": ["lifestyle", "productivity", "utilities"],
   "icons": [
     {
-      "src": "https://drive.google.com/file/d/1FZZ6m-ZmvogwRWa-WLR3NLm-irTiLjnt/view?usp=sharing",
+      "src": "https://drive.google.com/uc?id=1FZZ6m-ZmvogwRWa-WLR3NLm-irTiLjnt",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://drive.google.com/file/d/1FZZ6m-ZmvogwRWa-WLR3NLm-irTiLjnt/view?usp=sharing",
+      "src": "https://drive.google.com/uc?id=1FZZ6m-ZmvogwRWa-WLR3NLm-irTiLjnt",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
-      ],
-      "ms_template": "widget-template.json",
-      "data": "widget-data.json",
-      "type": "application/json"
+  ],
+  "screenshots": [
+    {
+      "src": "https://drive.google.com/uc?id=1FZZ6m-ZmvogwRWa-WLR3NLm-irTiLjnt",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "واجهة تطبيق ميزان"
     }
-  ]
   ]
 }

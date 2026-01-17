@@ -32,13 +32,17 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
 
   const resetWeights = () => {
     if (window.confirm('هل تريد استعادة الأوزان الافتراضية للنظام؟')) {
-      setLocalWeights(DEFAULT_WEIGHTS);
+      const resetW = { ...DEFAULT_WEIGHTS };
+      setLocalWeights(resetW);
+      onUpdateWeights(resetW);
     }
   };
 
   const handleLogout = () => {
     if (window.confirm('هل تريد مسح بيانات الحساب بالكامل من هذا الجهاز؟ سيؤدي ذلك لإعادة ضبط إعداداتك واسمك.')) {
       onUpdateUser(null);
+      localStorage.clear();
+      window.location.reload();
     }
   };
 
@@ -59,39 +63,38 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
 
   return (
     <div className="space-y-6 animate-in slide-in-from-top duration-300 pb-12">
-      {/* رأس الملف الشخصي - تم تبسيطه وإخفاء البيانات غير الضرورية */}
+      {/* رأس الملف الشخصي - تم تبسيطه جذرياً */}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
         <div className="flex flex-col items-center">
-          <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg relative">
-            <User className="w-12 h-12 text-emerald-600" />
-            <div className="absolute bottom-0 right-0 bg-emerald-500 p-1.5 rounded-full border-2 border-white shadow-sm">
+          <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg relative">
+            <User className="w-10 h-10 text-emerald-600" />
+            <div className="absolute bottom-0 right-0 bg-emerald-500 p-1.5 rounded-full border-2 border-white">
               <ShieldCheck className="w-3 h-3 text-white" />
             </div>
           </div>
           <h2 className="text-2xl font-bold text-slate-800 header-font">{user?.name}</h2>
-          <p className="text-[10px] text-emerald-600 font-black header-font uppercase tracking-widest mt-1">هوية معتمدة في المحراب</p>
+          <p className="text-[10px] text-emerald-600 font-black header-font uppercase tracking-widest mt-1">هوية رقمية معتمدة</p>
           
           <div className="mt-8 w-full">
             <button 
               onClick={handleLogout}
-              className="w-full py-3 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-2xl font-bold text-xs header-font transition-all flex items-center justify-center gap-2 border border-dashed border-slate-200 hover:border-rose-200"
+              className="w-full py-3 bg-rose-50 text-rose-500 rounded-2xl font-bold text-xs header-font transition-all flex items-center justify-center gap-2 border border-dashed border-rose-200"
             >
-              <LogOut className="w-4 h-4" /> تسجيل خروج وإعادة تعيين الحساب
+              <LogOut className="w-4 h-4" /> إعادة تعيين الحساب بالكامل
             </button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
-        <div className={`absolute top-0 right-0 w-1 h-full transition-all ${isGlobalSync ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 group">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className={`p-3 rounded-2xl transition-all ${isGlobalSync ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
               <Globe className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-800 header-font">الارتباط بالمحراب العالمي</h3>
-              <p className="text-[10px] text-slate-400 font-bold header-font">مشاركة الإحصائيات مع الأمة الآن</p>
+              <h3 className="font-bold text-slate-800 header-font">المزامنة مع المحراب العالمي</h3>
+              <p className="text-[10px] text-slate-400 font-bold header-font">مشاركة التنافس مع أمة الإسلام</p>
             </div>
           </div>
           <button 
@@ -105,7 +108,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </div>
       </div>
 
-      {/* إعدادات أوزان النظام الشاملة */}
+      {/* إعدادات أوزان النظام الشاملة - مسترجعة ومطورة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <button 
           onClick={() => setShowWeights(!showWeights)}
@@ -117,7 +120,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
             </div>
             <div className="text-right">
               <h3 className="font-bold text-slate-800 header-font">تخصيص أوزان النظام</h3>
-              <p className="text-[10px] text-slate-400 font-bold header-font">تعديل قيمة كل عمل تعبدي بدقة</p>
+              <p className="text-[10px] text-slate-400 font-bold header-font">تحكم في قيمة كل عبادة بدقة</p>
             </div>
           </div>
           {showWeights ? <ChevronUp className="w-5 h-5 text-slate-300" /> : <ChevronDown className="w-5 h-5 text-slate-300" />}
@@ -172,7 +175,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
             <div className="flex gap-4 pt-4">
               <button 
                 onClick={resetWeights}
-                className="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-bold header-font text-xs flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-bold header-font text-xs flex items-center justify-center gap-2 border border-slate-200"
               >
                 <RotateCcw className="w-4 h-4" /> استعادة الافتراضي
               </button>
@@ -191,7 +194,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
       <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-4 shadow-sm">
         <LockKeyhole className="w-6 h-6 text-emerald-600 shrink-0" />
         <p className="text-[11px] text-emerald-800 font-bold leading-relaxed header-font">
-          تطبيق إدارة العبادات يحترم خصوصيتك؛ لا نحتاج لبياناتك الشخصية الحساسة، وكل ما تقوم بتعديله يُحفظ محلياً على جهازك فقط.
+          تطبيق "ميزان" يحترم خصوصيتك؛ لا نقوم بتخزين أو طلب أي بيانات شخصية (إيميل، موقع، إلخ). كل شيء يبقى على جهازك.
         </p>
       </div>
     </div>
