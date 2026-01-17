@@ -61,6 +61,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
+  // الترتيب المطلوب: الرئيسية -> تسجيل -> إنجازاتي -> مؤقت -> إحصائيات -> أنماط -> يوميات
   type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'stats' | 'patterns' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
@@ -191,16 +192,16 @@ const App: React.FC = () => {
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
         {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('worship_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
         {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={handleUpdateWeights} currentDate={currentDate} onDateChange={setCurrentDate} />}
+        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
         {activeTab === 'timer' && <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => { setTimerSeconds(0); setIsTimerRunning(false); }} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => {
             const newLog = { ...currentLog };
             if (field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = { ...newLog.knowledge, [field]: newLog.knowledge[field] + mins }; } 
             else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] as number) + mins }; }
             updateLog(newLog); setTimerSeconds(0); setIsTimerRunning(false); setActiveTab('entry');
         }} />}
-        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
-        {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
         {activeTab === 'patterns' && <WorshipPatterns logs={logs} weights={weights} />}
+        {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
         {activeTab === 'contact' && <ContactUs />}
