@@ -19,8 +19,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
-
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
+import { GOOGLE_STATS_API } from '../constants';
 
 interface WorshipTimerProps {
   seconds: number;
@@ -49,7 +48,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const syncRef = useRef<number | null>(null);
 
   const sendHeartbeat = async () => {
-    if (!isSync || !isRunning || !userEmail || GOOGLE_STATS_API.includes("FIX_ME")) return;
+    if (!isSync || !isRunning || !userEmail) return;
     setSyncStatus('sending');
     try {
         await fetch(GOOGLE_STATS_API, { 
@@ -67,7 +66,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   };
 
   const sendStopSignal = async () => {
-    if (!isSync || !userEmail || GOOGLE_STATS_API.includes("FIX_ME")) return;
+    if (!isSync || !userEmail) return;
     try {
         await fetch(GOOGLE_STATS_API, { 
             method: 'POST', 
@@ -79,7 +78,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      // تم التعديل إلى 2.5 ثانية (2500ms) بناءً على طلب المستخدم لسرعة التحديث
       syncRef.current = window.setInterval(sendHeartbeat, 2500);
       sendHeartbeat();
     } else {
@@ -136,7 +134,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const getLabel = (id: string) => activities.find(a => a.id === id)?.label || "";
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-24">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-24 text-right" dir="rtl">
       <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-slate-50">
           <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: isRunning ? `${(seconds % 60) * 1.66}%` : '0%' }} />
@@ -145,7 +143,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
         {isRunning && (
           <div className="absolute top-6 right-6 flex items-center gap-2 bg-rose-50 px-3 py-1 rounded-full border border-rose-100 animate-pulse">
             <Radio className="w-3 h-3 text-rose-500" />
-            <span className="text-[10px] font-black text-rose-600 header-font tracking-tighter">Live Pulse</span>
+            <span className="text-[10px] font-black text-rose-600 header-font tracking-tighter uppercase">Live Pulse</span>
           </div>
         )}
 
@@ -156,14 +154,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
           </div>
         </div>
 
-        {sessions.length > 0 && (
-          <div className="absolute top-16 right-1/2 translate-x-1/2 flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-100">
-            <CheckCircle2 className="w-3 h-3" />
-            <span className="text-[10px] font-black header-font">{sessions.length} جلسات منجزة</span>
-          </div>
-        )}
-
-        <div className="text-8xl font-black font-mono text-emerald-900 mb-4 mt-12 tabular-nums tracking-tighter transition-all duration-300 transform">
+        <div className="text-8xl font-black font-mono text-emerald-900 mb-4 mt-12 tabular-nums tracking-tighter">
           {formatTime(seconds)}
         </div>
         
@@ -222,12 +213,9 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <span className="text-sm font-black text-emerald-700 font-mono">+{session.duration}</span>
-                    <span className="text-[9px] text-slate-400 font-bold block header-font">دقيقة</span>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="text-right">
+                  <span className="text-sm font-black text-emerald-700 font-mono">+{session.duration}</span>
+                  <span className="text-[9px] text-slate-400 font-bold block header-font">دقيقة</span>
                 </div>
               </div>
             ))}
@@ -235,7 +223,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
         ) : (
           <div className="text-center py-10 px-4 border-2 border-dashed border-slate-100 rounded-3xl">
             <p className="text-xs text-slate-300 font-bold header-font">لم تسجل أي جلسة بعد في هذه الزيارة</p>
-            <p className="text-[10px] text-slate-200 mt-1 header-font uppercase tracking-widest">ابدأ المؤقت وسجل مجهودك</p>
           </div>
         )}
       </div>

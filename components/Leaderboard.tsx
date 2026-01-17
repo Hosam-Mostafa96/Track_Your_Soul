@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Hash } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
-
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
+import { GOOGLE_STATS_API } from '../constants';
 
 interface LeaderboardProps {
   user: User | null;
@@ -23,7 +22,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [hasError, setHasError] = useState(false);
   
   const fetchGlobalData = async (isSilent = false) => {
-    if (!isSync || !user?.email || GOOGLE_STATS_API.includes("FIX_ME")) return;
+    if (!isSync || !user?.email) return;
     
     if (!isSilent) setIsLoading(true);
     try {
@@ -41,7 +40,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       if (res.ok) {
         const data = await res.json();
         if (data && data.leaderboard) {
-          // 1. تصفية التكرارات محلياً فوراً لضمان دقة القائمة
           const uniqueMap = new Map();
           data.leaderboard.forEach((entry: any) => {
             const emailKey = (entry.email || entry.name || "").toLowerCase().trim();
@@ -55,13 +53,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           const sortedUnique = Array.from(uniqueMap.values())
             .sort((a, b) => b.score - a.score);
 
-          // 2. محاولة إيجاد المستخدم الحالي في القائمة المصفاة
           const myEmail = user.email.toLowerCase().trim();
           const myIdx = sortedUnique.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
           
           setGlobalTop(sortedUnique.slice(0, 50));
           
-          // 3. تحديث الترتيب: إذا وجدناه في القائمة نأخذ مكانه، وإلا نعتمد على ما أرسله السيرفر
           if (myIdx !== -1) {
             setUserRank(myIdx + 1);
           } else if (data.userRank && data.userRank !== "---") {
@@ -86,17 +82,15 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    // تم التعديل إلى 2.5 ثانية (2500ms) بناءً على طلب المستخدم
     const interval = setInterval(() => fetchGlobalData(true), 2500); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
-      {/* بطاقة الترتيب المحسنة */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden text-center">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
-        <div className="relative z-10 flex flex-col items-center text-center">
+        <div className="relative z-10 flex flex-col items-center">
           <div className="p-4 bg-white/10 rounded-full mb-4 backdrop-blur-md">
             <Trophy className="w-10 h-10 text-yellow-400 fill-yellow-400" />
           </div>
@@ -111,9 +105,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               </div>
               <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-[0.3em] opacity-80 mt-2">ترتيبك العالمي حالياً</p>
           </div>
-          <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-emerald-200/60 uppercase">
-             <Star className="w-3 h-3 fill-current" /> تنافس في الخيرات <Star className="w-3 h-3 fill-current" />
-          </div>
         </div>
       </div>
 
@@ -124,7 +115,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         </div>
       )}
 
-      {/* نبض المحراب */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -155,7 +145,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         </div>
       </div>
 
-      {/* قائمة المتصدرين */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -175,10 +164,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                       {index + 1}
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold header-font">
+                    <span className="text-xs font-bold header-font truncate max-w-[120px]">
                         {player.name} {isMe && "(أنت)"}
                     </span>
-                    {isMe && <span className="text-[8px] opacity-70 header-font">تحديث تلقائي نشط</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -189,7 +177,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           }) : (
             <div className="text-center py-12 flex flex-col items-center">
                 <Loader2 className="w-8 h-8 text-emerald-200 animate-spin mb-3" />
-                <p className="text-[10px] text-slate-300 font-bold header-font animate-pulse">جاري تحديث السجلات من المحراب السحابي..</p>
+                <p className="text-[10px] text-slate-300 font-bold header-font animate-pulse">جاري تحديث السجلات..</p>
             </div>
           )}
         </div>

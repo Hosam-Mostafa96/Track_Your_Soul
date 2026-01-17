@@ -21,7 +21,7 @@ import { ar } from 'date-fns/locale';
 
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User } from './types';
 import { calculateTotalScore } from './utils/scoring';
-import { DEFAULT_WEIGHTS } from './constants';
+import { DEFAULT_WEIGHTS, GOOGLE_STATS_API } from './constants';
 import Dashboard from './components/Dashboard';
 import DailyEntry from './DailyEntry';
 import WorshipHistory from './components/WorshipHistory';
@@ -34,8 +34,6 @@ import ContactUs from './components/ContactUs';
 import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
 import WorshipPatterns from './components/WorshipPatterns';
-
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -95,7 +93,7 @@ const App: React.FC = () => {
     return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
   }, [isTimerRunning]);
 
-  // مزامنة سريعة (كل 2.5 ثانية) لضمان حفظ البيانات فورياً
+  // مزامنة سريعة (كل 2.5 ثانية)
   useEffect(() => {
     if (isGlobalSyncEnabled && user?.email && Object.keys(logs).length > 0) {
       const timeout = setTimeout(async () => {
@@ -187,7 +185,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen pb-32 bg-slate-50">
+    <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">

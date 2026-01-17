@@ -26,6 +26,7 @@ import {
 import { DailyLog, AppWeights, User, PrayerEntry } from '../types';
 import { isWithinInterval, endOfDay, format, addDays } from 'date-fns';
 import { calculateTotalScore } from '../utils/scoring';
+import { GOOGLE_STATS_API } from '../constants';
 
 interface StatisticsProps {
   user: User | null;
@@ -40,8 +41,6 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
   const [activityFilter, setActivityFilter] = useState<ActivityType>('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzFA2kvdLqForyWidmHUYY5xu0ZSLV2DXkWUvi5JAweeqz_vyKnAZlhADBxARx5KFM/exec";
-
   const activityOptions: { id: ActivityType; label: string; icon: any; color: string }[] = [
     { id: 'all', label: 'الالتزام العام', icon: <Activity className="w-3 h-3" />, color: 'emerald' },
     { id: 'prayers', label: 'الصلوات', icon: <CheckCircle2 className="w-3 h-3" />, color: 'blue' },
@@ -53,7 +52,6 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
 
   const radarData = useMemo(() => {
     const now = new Date();
-    // Fix: Use addDays with negative value instead of subDays
     const startDate = timeFilter === 'week' ? addDays(now, -7) : timeFilter === 'month' ? addDays(now, -30) : addDays(now, -365);
     const periodLogs = (Object.values(logs) as DailyLog[]).filter(log => {
       const logDate = new Date(log.date.replace(/-/g, '/'));
@@ -79,7 +77,6 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
 
   const consistencyGrid = useMemo(() => {
     return Array.from({ length: 30 }).map((_, i) => {
-      // Fix: Use addDays with negative offset instead of subDays
       const date = addDays(new Date(), -(29 - i));
       const dateStr = format(date, 'yyyy-MM-dd');
       const log = logs[dateStr];
@@ -100,7 +97,6 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
   }, [logs, weights, activityFilter]);
 
   const handleExport = async () => {
-    if (GOOGLE_STATS_API.includes("FIX_ME")) { alert("تصدير البيانات معطل"); return; }
     setIsExporting(true);
     try {
       const anonId = localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7);
@@ -110,14 +106,22 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-24">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-24 text-right" dir="rtl">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-3"><div className="p-2 bg-emerald-100 rounded-xl"><BarChart3 className="w-6 h-6 text-emerald-600" /></div><div><h2 className="text-xl font-bold text-slate-800 header-font">بصمتك الروحية</h2><p className="text-[10px] text-slate-400 font-bold uppercase header-font">أنماط الاتصال والانقطاع</p></div></div>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-100 rounded-xl"><BarChart3 className="w-6 h-6 text-emerald-600" /></div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 header-font">بصمتك الروحية</h2>
+            <p className="text-[10px] text-slate-400 font-bold uppercase header-font">أنماط الاتصال والانقطاع</p>
+          </div>
+        </div>
         <button onClick={handleExport} disabled={isExporting} className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all">{isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5" />}</button>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Layers className="w-4 h-4 text-emerald-500" /><h3 className="font-bold text-slate-700 text-xs header-font">خريطة تكرار الأعمال</h3></div><div className="flex gap-2"><div className="w-2.5 h-2.5 bg-slate-100 rounded-[2px]"></div><div className={`w-2.5 h-2.5 rounded-[2px] ${consistencyGrid.find(d => d.isConnected)?.colorClass || 'bg-emerald-500'}`}></div></div></div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2"><Layers className="w-4 h-4 text-emerald-500" /><h3 className="font-bold text-slate-700 text-xs header-font">خريطة تكرار الأعمال</h3></div>
+        </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
           {activityOptions.map(opt => (
             <button key={opt.id} onClick={() => setActivityFilter(opt.id)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-bold header-font whitespace-nowrap transition-all border ${activityFilter === opt.id ? `bg-${opt.color}-50 border-${opt.color}-200 text-${opt.color}-700 shadow-sm` : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'}`}>{opt.icon}{opt.label}</button>
@@ -126,25 +130,18 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
         <div className="grid grid-cols-10 gap-2 mb-4">
           {consistencyGrid.map((day, i) => (<div key={i} title={`${day.dateStr}`} className={`aspect-square rounded-md transition-all duration-300 hover:scale-110 cursor-help ${day.colorClass} shadow-sm`}></div>))}
         </div>
-        <p className="text-[9px] text-slate-400 font-bold text-center header-font">المربعات الملونة تمثل الأيام التي تم فيها أداء "{activityOptions.find(o => o.id === activityFilter)?.label}"</p>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Target className="w-4 h-4 text-emerald-500" /><h3 className="font-bold text-slate-700 text-xs header-font">توازن المحراب</h3></div><div className="flex gap-1 p-1 bg-slate-50 rounded-lg">{(['week', 'month', 'all'] as const).map(f => (<button key={f} onClick={() => setTimeFilter(f)} className={`px-3 py-1 rounded-md text-[8px] font-black transition-all ${timeFilter === f ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400'}`}>{f === 'week' ? 'أسبوع' : f === 'month' ? 'شهر' : 'سنة'}</button>))}</div></div>
+        <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><Target className="w-4 h-4 text-emerald-500" /><h3 className="font-bold text-slate-700 text-xs header-font">توازن المحراب</h3></div></div>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
               <PolarGrid stroke="#f1f5f9" /><PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'Cairo' }} /><PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
               <Radar name="الأداء" dataKey="A" stroke="#10b981" fill="#10b981" fillOpacity={0.4} />
-              <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo', fontSize: '12px' }} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
-      </div>
-
-      <div className="bg-emerald-900 text-white rounded-[2rem] p-6 shadow-lg relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
-        <div className="flex gap-4 items-center relative z-10"><div className="p-3 bg-white/10 rounded-2xl"><CalendarDays className="w-8 h-8 text-emerald-300" /></div><div><h4 className="text-sm font-bold header-font mb-1">النمط الروحي</h4><p className="text-[10px] text-emerald-100 leading-relaxed font-bold header-font opacity-80">استخدم فلاتر العبادة لاكتشاف مواطن القوة والضعف في كل ورد على حدة.</p></div></div>
       </div>
     </div>
   );
