@@ -85,6 +85,23 @@ const App: React.FC = () => {
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
   const timerIntervalRef = useRef<number | null>(null);
 
+  // تحديث الودجت عند تغير النقاط
+  useEffect(() => {
+    if (!isAppReady) return;
+    const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
+    const score = calculateTotalScore(currentLog, weights);
+    
+    localStorage.setItem('today_score_cache', score.toString());
+    
+    // إرسال الرصيد للـ Service Worker لتحديث الودجت
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'UPDATE_WIDGET_SCORE',
+        score: score
+      });
+    }
+  }, [logs, weights, currentDate, isAppReady]);
+
   useEffect(() => {
     // الاستماع لحدث طلب التثبيت (PWA)
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -145,12 +162,6 @@ const App: React.FC = () => {
     
     setIsAppReady(true);
   }, []);
-
-  useEffect(() => {
-    const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
-    const score = calculateTotalScore(currentLog, weights);
-    localStorage.setItem('today_score_cache', score.toString());
-  }, [logs, weights, currentDate]);
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);

@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'mizan-worship-v1';
+const CACHE_NAME = 'mizan-worship-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -31,29 +31,35 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// التعامل مع تحديثات البيانات من التطبيق الرئيسي
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'UPDATE_WIDGET_SCORE') {
+    // تخزين الرصيد في التخزين المخصص للـ SW ليتمكن الودجت من قراءته
+    const score = event.data.score;
+    // إذا كان المتصفح يدعم Widgets API
+    if (self.widgets && self.widgets.updateByTag) {
+      self.widgets.updateByTag('mizan-score', { score });
+    }
+  }
+});
+
 // التعامل مع أحداث الودجت (PWA Widgets API)
 self.addEventListener('widgetinstall', (event) => {
-  console.log('Widget installed:', event.widget);
   event.waitUntil(updateWidget(event.widget));
 });
 
 self.addEventListener('widgetresume', (event) => {
-  console.log('Widget resumed:', event.widget);
   event.waitUntil(updateWidget(event.widget));
 });
 
 self.addEventListener('widgetclick', (event) => {
-  if (event.action === 'log-prayer') {
-    event.waitUntil(clients.openWindow('/?tab=entry'));
-  } else {
-    event.waitUntil(clients.openWindow('/'));
-  }
+  // فتح التطبيق عند الضغط على الودجت
+  event.waitUntil(clients.openWindow('/'));
 });
 
 async function updateWidget(widget) {
-  // هنا يمكن جلب البيانات من IndexedDB أو Cache لتحديث شكل الودجت
-  // ملاحظة: دعم الودجت يختلف حسب النظام، بعض الأنظمة تستخدم Adaptive Cards
-  console.log('Updating widget logic here...');
+  // منطق تحديث شكل الودجت
+  console.log('Widget logic update triggered');
 }
 
 self.addEventListener('fetch', (event) => {
