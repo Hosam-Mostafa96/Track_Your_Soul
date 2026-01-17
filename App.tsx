@@ -12,8 +12,7 @@ import {
   Info,
   Loader2,
   BarChart3,
-  TrendingUp,
-  History
+  TrendingUp
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -102,6 +101,19 @@ const App: React.FC = () => {
     
     setIsAppReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!isTimerRunning) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = window.setInterval(() => {
+      setTimerSeconds(s => s + 1);
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [isTimerRunning]);
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);

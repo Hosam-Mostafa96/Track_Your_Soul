@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'mizan-worship-v2';
+const CACHE_NAME = 'mizan-worship-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

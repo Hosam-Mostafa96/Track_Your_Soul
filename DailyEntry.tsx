@@ -8,10 +8,7 @@ import {
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
-// Use subpath imports for date-fns to avoid named export resolution issues
-import { format } from 'date-fns/format';
-import { subDays } from 'date-fns/subDays';
-import { addDays } from 'date-fns/addDays';
+import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 interface DailyEntryProps {
@@ -53,7 +50,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
     const newSunnahs = currentSunnahs.includes(sunnahId)
       ? currentSunnahs.filter(id => id !== sunnahId)
       : [...currentSunnahs, sunnahId];
-    updatePrayer(prayerName, { surroundingSunnahIds: newSunnahs });
+    updatePrayer(prayerName as PrayerName, { surroundingSunnahIds: newSunnahs });
   };
 
   const toggleCustomSunnah = (sunnahId: string) => {
@@ -138,7 +135,8 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-4">
-        <button onClick={() => onDateChange(format(subDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><ChevronRight className="w-5 h-5" /></button>
+        {/* Fix: Use addDays with -1 instead of subDays */}
+        <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), -1), 'yyyy-MM-dd'))} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><ChevronRight className="w-5 h-5" /></button>
         <div className="flex-1 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-1"><CalendarDays className="w-4 h-4 text-emerald-500" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">تاريخ التسجيل</span></div>
           <div className="relative w-full text-center">
@@ -266,7 +264,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         <div className="flex items-center gap-2 mb-6"><GraduationCap className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">طلب العلم والقراءة</h3></div>
         <div className="space-y-4">{(['shariDuration', 'readingDuration'] as const).map(field => {
             const labels: Record<string, string> = { shariDuration: 'علم شرعي (دقيقة)', readingDuration: 'قراءة عامة (دقيقة)' };
-            return (<div key={field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl"><span className="text-xs font-bold text-slate-700 header-font">{labels[field]}</span><div className="flex items-center gap-3"><button onClick={() => updateSection('knowledge', { [field]: Math.max(0, log.knowledge[field] - 5) })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm"><Minus className="w-4 h-4 text-slate-400" /></button><div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center"><span className="text-base font-black text-slate-800 header-font tabular-nums">{log.knowledge[field]}</span></div><button onClick={() => updateSection('knowledge', { [field]: log.knowledge[field] + 5 })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm"><Plus className="w-4 h-4 text-slate-400" /></button></div></div>);
+            return (<div key={field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl"><span className="text-xs font-bold text-slate-700 header-font">{labels[field]}</span><div className="flex items-center gap-3"><button onClick={() => updateSection('knowledge', { [field]: Math.max(0, log.knowledge[field] - 5) })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm"><Minus className="w-4 h-4 text-slate-400" /></button><div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.5rem] flex items-center justify-center"><span className="text-base font-black text-slate-800 header-font tabular-nums">{log.knowledge[field]}</span></div><button onClick={() => updateSection('knowledge', { [field]: log.knowledge[field] + 5 })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm"><Plus className="w-4 h-4 text-slate-400" /></button></div></div>);
           })}</div>
       </div>
     </div>

@@ -8,11 +8,11 @@ import {
   Flame, 
   FileSpreadsheet,
   Loader2,
-  CalendarDays,
-  Target,
   Layers,
   Zap,
-  Activity
+  Activity,
+  Target,
+  CalendarDays
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -24,11 +24,7 @@ import {
   Tooltip as RechartsTooltip
 } from 'recharts';
 import { DailyLog, AppWeights, User, PrayerEntry } from '../types';
-// Use subpath imports for date-fns to avoid named export resolution issues
-import { subDays } from 'date-fns/subDays';
-import { isWithinInterval } from 'date-fns/isWithinInterval';
-import { endOfDay } from 'date-fns/endOfDay';
-import { format } from 'date-fns/format';
+import { isWithinInterval, endOfDay, format, addDays } from 'date-fns';
 import { calculateTotalScore } from '../utils/scoring';
 
 interface StatisticsProps {
@@ -57,7 +53,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
 
   const radarData = useMemo(() => {
     const now = new Date();
-    const startDate = timeFilter === 'week' ? subDays(now, 7) : timeFilter === 'month' ? subDays(now, 30) : subDays(now, 365);
+    // Fix: Use addDays with negative value instead of subDays
+    const startDate = timeFilter === 'week' ? addDays(now, -7) : timeFilter === 'month' ? addDays(now, -30) : addDays(now, -365);
     const periodLogs = (Object.values(logs) as DailyLog[]).filter(log => {
       const logDate = new Date(log.date.replace(/-/g, '/'));
       return isWithinInterval(logDate, { start: startDate, end: endOfDay(now) });
@@ -82,7 +79,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
 
   const consistencyGrid = useMemo(() => {
     return Array.from({ length: 30 }).map((_, i) => {
-      const date = subDays(new Date(), 29 - i);
+      // Fix: Use addDays with negative offset instead of subDays
+      const date = addDays(new Date(), -(29 - i));
       const dateStr = format(date, 'yyyy-MM-dd');
       const log = logs[dateStr];
       let isConnected = false;

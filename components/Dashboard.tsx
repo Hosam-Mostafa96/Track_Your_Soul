@@ -12,7 +12,6 @@ import {
   History, 
   Award, 
   Sun, 
-  Moon, 
   Lock, 
   Home, 
   Key, 
@@ -22,9 +21,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-// Use subpath imports for date-fns to avoid named export resolution issues
-import { format } from 'date-fns/format';
-import { subDays } from 'date-fns/subDays';
+import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { DailyLog, AppWeights, PrayerName, PrayerEntry } from '../types';
 import { calculateTotalScore } from '../utils/scoring';
@@ -87,7 +84,8 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
 
   const momentumInfo = useMemo(() => {
     const scores = Array.from({ length: 7 }).map((_, i) => {
-      const d = format(subDays(new Date(), i + 1), 'yyyy-MM-dd');
+      // Fix: Use addDays with negative value as subDays is missing in this environment's date-fns exports
+      const d = format(addDays(new Date(), -(i + 1)), 'yyyy-MM-dd');
       const l = logs[d];
       return l ? calculateTotalScore(l, weights) : 0;
     });
@@ -103,7 +101,11 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
       const dateStr = format(checkDate, 'yyyy-MM-dd');
       const dayLog = logs[dateStr];
       if (!dayLog) break;
-      if (calculateTotalScore(dayLog, weights) >= targetScore * 0.5) { count++; checkDate = subDays(checkDate, 1); } 
+      if (calculateTotalScore(dayLog, weights) >= targetScore * 0.5) { 
+        count++; 
+        // Fix: Use addDays with -1 instead of subDays(..., 1)
+        checkDate = addDays(checkDate, -1); 
+      } 
       else break;
     }
     return count;
@@ -130,7 +132,8 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
 
   const last7Days = useMemo(() => {
     return Array.from({ length: 7 }).map((_, i) => {
-      const dateObj = subDays(new Date(), i);
+      // Fix: Use addDays with negative value instead of subDays
+      const dateObj = addDays(new Date(), -i);
       const d = format(dateObj, 'yyyy-MM-dd');
       const l = logs[d];
       return { date: format(dateObj, 'EEE', { locale: ar }), score: l ? calculateTotalScore(l, weights) : 0 };

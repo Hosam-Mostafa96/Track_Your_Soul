@@ -2,15 +2,10 @@
 import React, { useMemo } from 'react';
 import { 
   Combine, 
-  TrendingUp, 
-  Zap, 
-  Clock, 
   Target, 
-  Sparkles,
-  Flame,
+  Zap,
   Activity,
-  ArrowUpRight,
-  ShieldAlert
+  Sparkles
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -23,14 +18,11 @@ import {
   Cell,
   BarChart,
   Bar,
-  CartesianGrid,
-  Legend
+  CartesianGrid
 } from 'recharts';
 import { DailyLog, AppWeights } from '../types';
 import { calculateTotalScore } from '../utils/scoring';
-// Removed unused subDays import that was causing errors
-import { format } from 'date-fns/format';
-import { ar } from 'date-fns/locale';
+import { format } from 'date-fns';
 
 interface WorshipPatternsProps {
   logs: Record<string, DailyLog>;
@@ -184,7 +176,7 @@ const WorshipPatterns: React.FC<WorshipPatternsProps> = ({ logs, weights }) => {
         
         <div className="h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={jImpactData}>
+            <BarChart data={jihadImpactData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700, fontFamily: 'Cairo' }} />
               <YAxis hide />
@@ -192,7 +184,7 @@ const WorshipPatterns: React.FC<WorshipPatternsProps> = ({ logs, weights }) => {
                 contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo' }}
               />
               <Bar dataKey="score" radius={[8, 8, 0, 0]}>
-                {jImpactData.map((entry, index) => (
+                {jihadImpactData.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
               </Bar>
@@ -200,7 +192,7 @@ const WorshipPatterns: React.FC<WorshipPatternsProps> = ({ logs, weights }) => {
           </ResponsiveContainer>
         </div>
         <div className="grid grid-cols-3 gap-2 mt-4">
-          {jImpactData.map((d, i) => (
+          {jihadImpactData.map((d: any, i: number) => (
             <div key={i} className="text-center">
               <span className="text-[10px] font-black text-slate-400 header-font">{d.name}</span>
               <p className="text-xs font-bold text-slate-800">{d.count} يوم</p>
