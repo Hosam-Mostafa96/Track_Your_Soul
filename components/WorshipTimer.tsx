@@ -20,7 +20,7 @@ import {
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzFA2kvdLqForyWidmHUYY5xu0ZSLV2DXkWUvi5JAweeqz_vyKnAZlhADBxARx5KFM/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
 
 interface WorshipTimerProps {
   seconds: number;
@@ -31,6 +31,7 @@ interface WorshipTimerProps {
   onActivityChange: (id: string) => void;
   onApplyTime: (field: string, mins: number) => void;
   isSync: boolean;
+  userEmail?: string;
 }
 
 interface SessionRecord {
@@ -41,15 +42,14 @@ interface SessionRecord {
 }
 
 const WorshipTimer: React.FC<WorshipTimerProps> = ({ 
-  seconds, isRunning, selectedActivity, onToggle, onReset, onActivityChange, onApplyTime, isSync 
+  seconds, isRunning, selectedActivity, onToggle, onReset, onActivityChange, onApplyTime, isSync, userEmail 
 }) => {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const syncRef = useRef<number | null>(null);
-  const anonId = useRef(localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7));
 
   const sendHeartbeat = async () => {
-    if (!isSync || !isRunning || GOOGLE_STATS_API.includes("FIX_ME")) return;
+    if (!isSync || !isRunning || !userEmail || GOOGLE_STATS_API.includes("FIX_ME")) return;
     setSyncStatus('sending');
     try {
         await fetch(GOOGLE_STATS_API, { 
@@ -58,7 +58,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
             body: JSON.stringify({ 
               action: 'heartbeat', 
               activity: selectedActivity, 
-              id: anonId.current 
+              email: userEmail 
             }) 
         });
         setSyncStatus('success');
@@ -67,19 +67,19 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   };
 
   const sendStopSignal = async () => {
-    if (!isSync || GOOGLE_STATS_API.includes("FIX_ME")) return;
+    if (!isSync || !userEmail || GOOGLE_STATS_API.includes("FIX_ME")) return;
     try {
         await fetch(GOOGLE_STATS_API, { 
             method: 'POST', 
             headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ action: 'stop', id: anonId.current }) 
+            body: JSON.stringify({ action: 'stop', email: userEmail }) 
         });
     } catch (e) { console.error("Failed to send stop signal"); }
   };
 
   useEffect(() => {
     if (isRunning && isSync) {
-      syncRef.current = window.setInterval(sendHeartbeat, 2000);
+      syncRef.current = window.setInterval(sendHeartbeat, 3000);
       sendHeartbeat();
     } else {
       if (syncRef.current) {
@@ -88,7 +88,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
       }
     }
     return () => { if (syncRef.current) clearInterval(syncRef.current); };
-  }, [isRunning, isSync, selectedActivity]);
+  }, [isRunning, isSync, selectedActivity, userEmail]);
 
   const handleToggle = () => {
     if (isRunning) sendStopSignal();
@@ -107,7 +107,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
       return;
     }
     
-    // تسجيل الجلسة محلياً في القائمة المعروضة
     const newSession: SessionRecord = {
       id: Math.random().toString(36).substring(7),
       activity: selectedActivity,
@@ -198,7 +197,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
         </div>
       </div>
 
-      {/* سجل الجلسات الحديثة */}
       <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

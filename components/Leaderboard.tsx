@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 
-// الرابط الموحد المحدث
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzFA2kvdLqForyWidmHUYY5xu0ZSLV2DXkWUvi5JAweeqz_vyKnAZlhADBxARx5KFM/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
 
 interface LeaderboardProps {
   user: User | null;
@@ -22,10 +21,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [userGlobalRank, setUserGlobalRank] = useState<number | string>("---");
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const anonId = useRef(localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7));
   
   const fetchGlobalData = async (isSilent = false) => {
-    if (!isSync || GOOGLE_STATS_API.includes("FIX_ME")) return;
+    if (!isSync || !user?.email || GOOGLE_STATS_API.includes("FIX_ME")) return;
     
     if (!isSilent) setIsLoading(true);
     try {
@@ -34,8 +32,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         headers: { 'Content-Type': 'text/plain' }, 
         body: JSON.stringify({
           action: 'getStats',
-          id: anonId.current,
-          name: user?.name || "مصلٍ مجهول",
+          email: user.email, // الاعتماد على الإيميل كمفتاح أساسي
+          name: user.name || "مصلٍ مجهول",
           score: currentScore
         })
       });
@@ -60,11 +58,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   };
 
   useEffect(() => {
-    fetchGlobalData(); // أول جلب عند التحميل
-    // تحديث لحظي كل ثانيتين (2000ms) لضمان مزامنة النقاط والبيانات الحية
-    const interval = setInterval(() => fetchGlobalData(true), 2000); 
+    fetchGlobalData();
+    const interval = setInterval(() => fetchGlobalData(true), 3000); 
     return () => clearInterval(interval);
-  }, [isSync, currentScore, user?.name]);
+  }, [isSync, currentScore, user?.email]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -137,13 +134,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
         <div className="space-y-3">
           {globalTop.length > 0 ? globalTop.map((player, index) => (
-            <div key={player.id} className={`flex items-center justify-between p-3 rounded-2xl transition-all duration-300 ${player.id === anonId.current ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border-transparent'}`}>
+            <div key={player.email || player.id || index} className={`flex items-center justify-between p-3 rounded-2xl transition-all duration-300 ${player.email === user?.email ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border-transparent'}`}>
               <div className="flex items-center gap-3">
                 <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${index === 0 ? 'bg-yellow-400 text-white' : index === 1 ? 'bg-slate-300 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'text-slate-400'}`}>
                     {index + 1}
                 </span>
-                <span className={`text-xs font-bold header-font ${player.id === anonId.current ? 'text-emerald-700' : 'text-slate-600'}`}>
-                    {player.name} {player.id === anonId.current && "(أنت)"}
+                <span className={`text-xs font-bold header-font ${player.email === user?.email ? 'text-emerald-700' : 'text-slate-600'}`}>
+                    {player.name} {player.email === user?.email && "(أنت)"}
                 </span>
               </div>
               <span className="text-sm font-black text-slate-800 font-mono">{player.score.toLocaleString()}</span>
