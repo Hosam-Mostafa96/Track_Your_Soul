@@ -93,6 +93,7 @@ const App: React.FC = () => {
     return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
   }, [isTimerRunning]);
 
+  // مزامنة أبطأ (كل 30 ثانية أو عند تغيير البيانات بشكل ملحوظ) لضمان عدم تكرار البيانات في الشيت
   useEffect(() => {
     if (isGlobalSyncEnabled && user?.email && Object.keys(logs).length > 0) {
       const timeout = setTimeout(async () => {
@@ -103,14 +104,14 @@ const App: React.FC = () => {
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
               action: 'syncLogs',
-              email: user.email,
+              email: user.email.toLowerCase().trim(),
               logs: JSON.stringify(logs)
             })
           });
         } catch (e) {
           console.error("Cloud Sync Error:", e);
         }
-      }, 2000);
+      }, 30000); 
       return () => clearTimeout(timeout);
     }
   }, [logs, isGlobalSyncEnabled, user?.email]);
