@@ -24,6 +24,11 @@ export enum JihadFactor {
 
 export interface User {
   name: string;
+  email: string;
+  age: string;
+  country: string;
+  qualification: string;
+  method: 'google' | 'email';
 }
 
 export interface CustomSunnah {

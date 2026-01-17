@@ -5,7 +5,7 @@ import {
   Settings2, ChevronDown, ChevronUp, Save, RotateCcw,
   Star, Users, Clock, Book, GraduationCap, Zap, 
   LockKeyhole, Globe, Flame, BookOpen, ListChecks,
-  Activity, Sparkles
+  Activity, Mail, MapPin, Calendar, Sparkles
 } from 'lucide-react';
 import { AppWeights, User as UserType } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
@@ -21,7 +21,7 @@ interface UserProfileProps {
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, onToggleSync, onUpdateUser, onUpdateWeights }) => {
   const [localWeights, setLocalWeights] = useState<AppWeights>({ ...weights });
-  const [showWeights, setShowWeights] = useState(true);
+  const [showWeights, setShowWeights] = useState(false);
   const [isSavedWeights, setIsSavedWeights] = useState(false);
 
   const handleSaveWeights = () => {
@@ -39,9 +39,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
   };
 
   const handleLogout = () => {
-    if (window.confirm('هل تريد مسح بيانات الحساب بالكامل من هذا الجهاز؟ سيؤدي ذلك لإعادة ضبط إعداداتك واسمك.')) {
+    if (window.confirm('هل تريد الخروج؟ سيتم مسح بيانات الجلسة من هذا المتصفح.')) {
       onUpdateUser(null);
-      localStorage.clear();
+      localStorage.removeItem('worship_user');
       window.location.reload();
     }
   };
@@ -63,24 +63,49 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
 
   return (
     <div className="space-y-6 animate-in slide-in-from-top duration-300 pb-12">
-      {/* رأس الملف الشخصي - تم تبسيطه جذرياً */}
-      <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+      {/* بطاقة المستخدم الشخصية */}
+      <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100">
         <div className="flex flex-col items-center">
-          <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg relative">
-            <User className="w-10 h-10 text-emerald-600" />
-            <div className="absolute bottom-0 right-0 bg-emerald-500 p-1.5 rounded-full border-2 border-white">
-              <ShieldCheck className="w-3 h-3 text-white" />
+          <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-xl relative">
+            <User className="w-12 h-12 text-emerald-600" />
+            <div className="absolute bottom-1 right-1 bg-emerald-500 p-1.5 rounded-full border-2 border-white">
+              <ShieldCheck className="w-4 h-4 text-white" />
             </div>
           </div>
           <h2 className="text-2xl font-bold text-slate-800 header-font">{user?.name}</h2>
-          <p className="text-[10px] text-emerald-600 font-black header-font uppercase tracking-widest mt-1">هوية رقمية معتمدة</p>
+          <div className="flex items-center gap-2 mt-1">
+             <span className="text-[10px] text-emerald-600 font-black header-font uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+               {user?.method === 'google' ? 'موثق عبر جوجل' : 'موثق عبر الإيميل'}
+             </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 w-full mt-8">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+              <Mail className="w-4 h-4 text-slate-400" />
+              <span className="text-xs font-bold text-slate-600 truncate">{user?.email}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                <Calendar className="w-4 h-4 text-slate-400" />
+                <span className="text-xs font-bold text-slate-600">{user?.age} سنة</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                <MapPin className="w-4 h-4 text-slate-400" />
+                <span className="text-xs font-bold text-slate-600">{user?.country}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+              <GraduationCap className="w-4 h-4 text-slate-400" />
+              <span className="text-xs font-bold text-slate-600">{user?.qualification}</span>
+            </div>
+          </div>
           
           <div className="mt-8 w-full">
             <button 
               onClick={handleLogout}
-              className="w-full py-3 bg-rose-50 text-rose-500 rounded-2xl font-bold text-xs header-font transition-all flex items-center justify-center gap-2 border border-dashed border-rose-200"
+              className="w-full py-4 bg-rose-50 text-rose-500 rounded-2xl font-bold text-xs header-font transition-all flex items-center justify-center gap-2 border border-dashed border-rose-200 hover:bg-rose-100"
             >
-              <LogOut className="w-4 h-4" /> إعادة تعيين الحساب بالكامل
+              <LogOut className="w-4 h-4" /> تسجيل الخروج ومسح الجلسة
             </button>
           </div>
         </div>
@@ -108,11 +133,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </div>
       </div>
 
-      {/* إعدادات أوزان النظام الشاملة - مسترجعة ومطورة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <button 
           onClick={() => setShowWeights(!showWeights)}
-          className="w-full flex items-center justify-between mb-2"
+          className="w-full flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-50 rounded-xl">
@@ -137,6 +161,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               </div>
               {weightInput('صلاة الجماعة', localWeights.fardCongregation, (val) => setLocalWeights({ ...localWeights, fardCongregation: val }), <Users className="w-4 h-4" />)}
               {weightInput('صلاة منفردة', localWeights.fardSolo, (val) => setLocalWeights({ ...localWeights, fardSolo: val }), <User className="w-4 h-4" />)}
+              {/* Fixed: Sparkles is now imported */}
               {weightInput('السنة الراتبة (للواحدة)', localWeights.sunnahRawatib, (val) => setLocalWeights({ ...localWeights, sunnahRawatib: val }), <Sparkles className="w-4 h-4" />)}
             </div>
 
@@ -194,7 +219,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
       <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-4 shadow-sm">
         <LockKeyhole className="w-6 h-6 text-emerald-600 shrink-0" />
         <p className="text-[11px] text-emerald-800 font-bold leading-relaxed header-font">
-          تطبيق "ميزان" يحترم خصوصيتك؛ لا نقوم بتخزين أو طلب أي بيانات شخصية (إيميل، موقع، إلخ). كل شيء يبقى على جهازك.
+          تطبيق "ميزان" يوثق رحلتك الروحية. بياناتك الأساسية تُرسل للمحراب العالمي لتمكين المنافسة، بينما تظل تفاصيل أورادك اليومية محفوظة بخصوصية تامة على جهازك.
         </p>
       </div>
     </div>

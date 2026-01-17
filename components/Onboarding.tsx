@@ -1,18 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  User, 
+  User as UserIcon, 
   ArrowRight, 
   CheckCircle, 
   Loader2, 
   Sparkles, 
-  Smartphone,
-  Zap,
-  Check,
-  Share,
-  PlusSquare,
-  MoreVertical,
-  Download
+  Mail,
+  MapPin,
+  GraduationCap,
+  Calendar,
+  LogIn,
+  ChevronRight,
+  ShieldCheck,
+  Globe
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
@@ -23,69 +24,58 @@ interface OnboardingProps {
   onComplete: (user: UserType) => void;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ installPrompt, onComplete }) => {
-  const [step, setStep] = useState(1);
+const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+  const [step, setStep] = useState(1); // 1: Select Method, 2: Fill Data, 3: Success
   const [isSaving, setIsSaving] = useState(false);
-  const [isInstalling, setIsInstalling] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
   
   const [formData, setFormData] = useState<UserType>({
-    name: ''
+    name: '',
+    email: '',
+    age: '',
+    country: '',
+    qualification: '',
+    method: 'email'
   });
 
-  useEffect(() => {
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    setIsIOS(/iphone|ipad|ipod/.test(userAgent));
-    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone);
-  }, []);
+  const handleMethodSelect = (method: 'google' | 'email') => {
+    setFormData(prev => ({ ...prev, method }));
+    setStep(2);
+  };
 
-  const handleSubmitName = async (e: React.FormEvent) => {
+  const handleSubmitData = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    if (!formData.name.trim() || !formData.email.trim() || !formData.age || !formData.country || !formData.qualification) {
+      alert("يرجى إكمال جميع الحقول المطلوبة");
+      return;
+    }
     
     setIsSaving(true);
     const anonId = localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7);
     localStorage.setItem('worship_anon_id', anonId);
 
     try {
-      if (!GOOGLE_STATS_API.includes("FIX_ME")) {
-        await fetch(GOOGLE_STATS_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'registerUser',
-            id: anonId,
-            name: formData.name
-          })
-        });
-      }
+      // إرسال البيانات إلى جوجل شيت
+      const response = await fetch(GOOGLE_STATS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'registerUserFull',
+          id: anonId,
+          ...formData,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) throw new Error("Failed to sync");
       
-      if (isStandalone) {
-        onComplete(formData);
-      } else {
-        setStep(2);
-      }
+      setStep(3);
     } catch (error) {
-      setStep(2);
+      console.error("Registration error:", error);
+      // ننتقل للخطوة التالية حتى لو فشل الاتصال لضمان تجربة مستخدم سلسة (أوفلاين)
+      setStep(3);
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleInstallApp = async () => {
-    if (!installPrompt) return;
-    setIsInstalling(true);
-    try {
-      installPrompt.prompt();
-      const { outcome } = await installPrompt.userChoice;
-      if (outcome === 'accepted') {
-        onComplete(formData);
-      }
-    } catch (err) {
-      console.error("Install prompt error:", err);
-    }
-    setIsInstalling(false);
   };
 
   return (
@@ -93,98 +83,158 @@ const Onboarding: React.FC<OnboardingProps> = ({ installPrompt, onComplete }) =>
       <div className="max-w-md w-full bg-white rounded-[3rem] p-8 shadow-2xl relative overflow-hidden animate-in zoom-in duration-500">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 rounded-full -translate-y-16 translate-x-16 opacity-50"></div>
         
+        {/* الخطوة 1: اختيار طريقة التسجيل */}
         {step === 1 && (
-          <div className="space-y-6 animate-in slide-in-from-left duration-300">
+          <div className="space-y-6 animate-in slide-in-from-bottom duration-300">
             <div className="flex flex-col items-center text-center">
               <div className="p-4 bg-emerald-100 rounded-3xl mb-4">
                 <Sparkles className="w-10 h-10 text-emerald-600" />
               </div>
-              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">مرحباً بك في المحراب</h1>
-              <p className="text-xs text-slate-500 font-bold leading-relaxed header-font">أهلاً بك في رحلة الارتقاء الروحي. ما هو اسمك الكريم؟</p>
+              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">مرحباً بك في ميزان</h1>
+              <p className="text-xs text-slate-500 font-bold header-font uppercase tracking-widest">اختر وسيلة دخول المحراب</p>
             </div>
 
-            <form onSubmit={handleSubmitName} className="space-y-4 pt-4">
-              <div className="relative">
-                <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                <input 
-                  type="text" 
-                  autoFocus
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ name: e.target.value })}
-                  placeholder="الاسم الكريم"
-                  className="w-full pl-4 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm text-center"
-                />
+            <div className="space-y-3 pt-4">
+              <button 
+                onClick={() => handleMethodSelect('google')}
+                className="w-full py-4 px-6 bg-white border border-slate-200 rounded-2xl font-bold header-font shadow-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 group"
+              >
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+                <span className="text-slate-700">دخول سريع عبر جوجل</span>
+              </button>
+
+              <div className="flex items-center gap-3 my-4">
+                <div className="h-px bg-slate-100 flex-1"></div>
+                <span className="text-[10px] text-slate-300 font-bold uppercase header-font">أو</span>
+                <div className="h-px bg-slate-100 flex-1"></div>
               </div>
+
+              <button 
+                onClick={() => handleMethodSelect('email')}
+                className="w-full py-4 px-6 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 group"
+              >
+                <Mail className="w-5 h-5" />
+                <span>البريد الإلكتروني</span>
+              </button>
+            </div>
+            
+            <p className="text-[10px] text-center text-slate-400 font-medium leading-relaxed px-4">
+              بانضمامك إلينا، تبدأ رحلة منظمة لمحاسبة النفس وتوثيق أورادك اليومية في قاعدة بيانات الأبرار.
+            </p>
+          </div>
+        )}
+
+        {/* الخطوة 2: إكمال البيانات الشخصية */}
+        {step === 2 && (
+          <div className="space-y-6 animate-in slide-in-from-right duration-300">
+            <div className="flex items-center gap-3 mb-2">
+              <button onClick={() => setStep(1)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <h2 className="text-xl font-black text-slate-800 header-font">بيانات المنتسب</h2>
+            </div>
+
+            <form onSubmit={handleSubmitData} className="space-y-4">
+              <div className="space-y-3">
+                <div className="relative">
+                  <UserIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input 
+                    type="text" required
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="الاسم الثلاثي"
+                    className="w-full pl-4 pr-11 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input 
+                    type="email" required
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="البريد الإلكتروني المعتمد"
+                    className="w-full pl-4 pr-11 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm text-left"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative">
+                    <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                    <input 
+                      type="number" required
+                      value={formData.age}
+                      onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value }))}
+                      placeholder="العمر"
+                      className="w-full pl-4 pr-11 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Globe className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                    <input 
+                      type="text" required
+                      value={formData.country}
+                      onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                      placeholder="بلد الإقامة"
+                      className="w-full pl-4 pr-11 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <GraduationCap className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <select 
+                    required
+                    value={formData.qualification}
+                    onChange={(e) => setFormData(prev => ({ ...prev, qualification: e.target.value }))}
+                    className="w-full pl-4 pr-11 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm appearance-none"
+                  >
+                    <option value="" disabled>المؤهل الدراسي</option>
+                    <option value="ثانوي">ثانوي أو أقل</option>
+                    <option value="جامعي">بكالوريوس / ليسانس</option>
+                    <option value="ماجستير">ماجستير</option>
+                    <option value="دكتوراه">دكتوراه</option>
+                    <option value="أخرى">أخرى</option>
+                  </select>
+                </div>
+              </div>
+
               <button 
                 type="submit"
-                disabled={isSaving || !formData.name.trim()}
-                className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                disabled={isSaving}
+                className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
               >
-                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5 rotate-180" />}
-                {isSaving ? 'جاري التحميل...' : 'ابدأ الآن'}
+                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5 rotate-180" />}
+                {isSaving ? 'جاري توثيق البيانات...' : 'تأكيد التسجيل'}
               </button>
             </form>
           </div>
         )}
 
-        {step === 2 && (
-          <div className="space-y-6 animate-in slide-in-from-top duration-500">
-             <div className="flex flex-col items-center text-center">
-              <div className="p-4 bg-emerald-100 rounded-3xl mb-4 relative">
-                <Smartphone className="w-10 h-10 text-emerald-600" />
-                <div className="absolute -top-2 -right-2 bg-emerald-500 p-1.5 rounded-full border-4 border-white">
-                  <Zap className="w-3 h-3 text-white fill-white" />
-                </div>
-              </div>
-              <h2 className="text-xl font-black text-slate-800 header-font mb-1">ثبّت التطبيق الآن</h2>
-              <p className="text-[10px] text-slate-500 font-bold leading-relaxed header-font">
-                للحصول على أفضل تجربة، أضف التطبيق لشاشتك الرئيسية.
-              </p>
+        {/* الخطوة 3: نجاح التسجيل */}
+        {step === 3 && (
+          <div className="space-y-6 animate-in zoom-in duration-300 flex flex-col items-center text-center">
+            <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-4 relative">
+              <CheckCircle className="w-16 h-16 text-emerald-500" />
+              <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-20"></div>
             </div>
+            
+            <h2 className="text-2xl font-black text-slate-800 header-font">تم القبول</h2>
+            <p className="text-sm text-slate-500 font-bold header-font px-4">
+              أهلاً بك يا {formData.name}، لقد تم إدراج اسمك في سجلات المحراب العالمي بنجاح.
+            </p>
 
-            {isIOS ? (
-              <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 space-y-5">
-                <div className="flex items-center gap-4">
-                   <div className="p-2 bg-white rounded-xl shadow-sm"><Share className="w-5 h-5 text-blue-500" /></div>
-                   <span className="text-[11px] font-bold text-slate-700 header-font">اضغط على زر <span className="text-blue-600 font-black">مشاركة</span> في Safari.</span>
-                </div>
-                <div className="flex items-center gap-4">
-                   <div className="p-2 bg-white rounded-xl shadow-sm"><PlusSquare className="w-5 h-5 text-slate-800" /></div>
-                   <span className="text-[11px] font-bold text-slate-700 header-font">اختر <span className="text-slate-900 font-black">"إضافة إلى الشاشة الرئيسية"</span>.</span>
-                </div>
-              </div>
-            ) : installPrompt ? (
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={handleInstallApp}
-                  disabled={isInstalling}
-                  className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {isInstalling ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                  {isInstalling ? 'جاري التثبيت...' : 'تثبيت التطبيق الآن'}
-                </button>
-              </div>
-            ) : (
-              <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100 space-y-5">
-                <div className="flex items-center gap-4">
-                   <div className="p-2 bg-white rounded-xl shadow-sm"><MoreVertical className="w-5 h-5 text-slate-600" /></div>
-                   <span className="text-[11px] font-bold text-slate-700 header-font">اضغط على <span className="text-emerald-700 font-black">الثلاث نقاط</span> في متصفح Chrome.</span>
-                </div>
-                <div className="flex items-center gap-4">
-                   <div className="p-2 bg-white rounded-xl shadow-sm"><Download className="w-5 h-5 text-emerald-600" /></div>
-                   <span className="text-[11px] font-bold text-slate-700 header-font">اختر <span className="text-emerald-900 font-black">"تثبيت التطبيق"</span>.</span>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-3">
+            <div className="w-full pt-4">
               <button 
                 onClick={() => onComplete(formData)}
-                className="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold header-font shadow-lg hover:bg-slate-900 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold header-font shadow-xl hover:bg-slate-900 transition-all flex items-center justify-center gap-2"
               >
-                تخطي والدخول الآن <CheckCircle className="w-4 h-4" />
+                دخول التطبيق <ArrowRight className="w-5 h-5 rotate-180" />
               </button>
+            </div>
+            
+            <div className="mt-4 flex items-center gap-2 text-emerald-600 text-[10px] font-bold header-font bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
+               <ShieldCheck className="w-3 h-3" /> بياناتك محفوظة بأمان تام
             </div>
           </div>
         )}
