@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff } from 'lucide-react';
+import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, User as UserIcon } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 
 const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
@@ -32,7 +32,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         headers: { 'Content-Type': 'text/plain' }, 
         body: JSON.stringify({
           action: 'getStats',
-          email: user.email, // الاعتماد على الإيميل كمفتاح أساسي
+          email: user.email.toLowerCase().trim(), // توحيد حالة الحروف
           name: user.name || "مصلٍ مجهول",
           score: currentScore
         })
@@ -40,10 +40,31 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
       if (res.ok) {
         const data = await res.json();
-        if (data) {
+        if (data && data.leaderboard) {
+          // --- منطق منع التكرار في الواجهة (Client-side Deduplication) ---
+          // نستخدم Map لضمان وجود إيميل واحد فقط، ونأخذ النتيجة الأعلى
+          const uniqueUsersMap = new Map();
+          
+          data.leaderboard.forEach((entry: any) => {
+            const emailKey = (entry.email || entry.id || entry.name).toLowerCase().trim();
+            if (!uniqueUsersMap.has(emailKey) || uniqueUsersMap.get(emailKey).score < entry.score) {
+              uniqueUsersMap.set(emailKey, entry);
+            }
+          });
+
+          // تحويل الخريطة إلى مصفوفة وترتيبها تنازلياً حسب النقاط
+          const sortedUniqueList = Array.from(uniqueUsersMap.values())
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 50); // عرض أفضل 50 فقط
+
+          setGlobalTop(sortedUniqueList);
+          
           if (data.stats) setLiveStats(data.stats);
-          if (data.leaderboard) setGlobalTop(data.leaderboard);
-          if (data.userRank) setUserGlobalRank(data.userRank);
+          
+          // تحديث ترتيب المستخدم الحالي من القائمة المصفاة
+          const myRank = sortedUniqueList.findIndex(p => p.email?.toLowerCase().trim() === user.email.toLowerCase().trim());
+          setUserGlobalRank(myRank !== -1 ? myRank + 1 : (data.userRank || "---"));
+          
           setHasError(false);
         }
       } else {
@@ -59,7 +80,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 3000); 
+    const interval = setInterval(() => fetchGlobalData(true), 10000); // زيادة المدة لـ 10 ثوانٍ لتقليل الضغط
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
@@ -71,13 +92,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           <div className="p-4 bg-white/10 rounded-full mb-4 backdrop-blur-md">
             <Trophy className="w-10 h-10 text-yellow-400 fill-yellow-400" />
           </div>
-          <h2 className="text-2xl font-bold header-font">والسابقون السابقون أولئك المقربون </h2>
+          <h2 className="text-2xl font-bold header-font">والسابقون السابقون أولئك المقربون</h2>
           {isSync ? (
             <div className="mt-2 flex flex-col items-center">
                 <span className="text-4xl font-black font-mono text-yellow-400">
                   {userGlobalRank === "---" ? "..." : `#${userGlobalRank}`}
                 </span>
-                <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-widest mt-1 opacity-80">ترتيبك بين جميع المتعبدين</p>
+                <p className="text-[10px] text-emerald-100 font-bold uppercase tracking-widest mt-1 opacity-80">ترتيبك بين الأبرار</p>
             </div>
           ) : (
             <p className="text-emerald-100 text-[11px] font-bold header-font opacity-80 mt-1 uppercase tracking-widest">المزامنة معطلة</p>
@@ -88,7 +109,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       {hasError && (
         <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600">
           <WifiOff className="w-5 h-5" />
-          <p className="text-xs font-bold header-font">تعذر الاتصال بالمحراب العالمي. جاري المحاولة...</p>
+          <p className="text-xs font-bold header-font">حدث تعطل مؤقت في الاتصال بالسحاب..</p>
         </div>
       )}
 
@@ -100,7 +121,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           </div>
           {isSync && (
             <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> بث مباشر
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> مباشر
             </div>
           )}
         </div>
@@ -120,34 +141,43 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             </div>
           ))}
         </div>
-        <p className="mt-4 text-[9px] text-center text-slate-400 font-bold header-font italic">إجمالي المتصلين بالمحراب حالياً: {liveStats.totalUsers} متعبد</p>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Crown className="w-5 h-5 text-yellow-500" />
-            <h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">المتصدرون عالمياً</h3>
+            <h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">قائمة السابقين</h3>
           </div>
           {isLoading && <Loader2 className="w-3 h-3 text-slate-300 animate-spin" />}
         </div>
 
         <div className="space-y-3">
-          {globalTop.length > 0 ? globalTop.map((player, index) => (
-            <div key={player.email || player.id || index} className={`flex items-center justify-between p-3 rounded-2xl transition-all duration-300 ${player.email === user?.email ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border-transparent'}`}>
-              <div className="flex items-center gap-3">
-                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${index === 0 ? 'bg-yellow-400 text-white' : index === 1 ? 'bg-slate-300 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'text-slate-400'}`}>
-                    {index + 1}
-                </span>
-                <span className={`text-xs font-bold header-font ${player.email === user?.email ? 'text-emerald-700' : 'text-slate-600'}`}>
-                    {player.name} {player.email === user?.email && "(أنت)"}
-                </span>
+          {globalTop.length > 0 ? globalTop.map((player, index) => {
+             const isMe = player.email?.toLowerCase().trim() === user?.email?.toLowerCase().trim();
+             return (
+              <div key={player.email || index} className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 ${isMe ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-100 scale-[1.02]' : 'bg-slate-50 border-transparent text-slate-600'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black ${index === 0 ? 'bg-yellow-400 text-white shadow-sm' : index === 1 ? 'bg-slate-300 text-slate-600' : index === 2 ? 'bg-amber-600 text-white' : 'bg-white/20'}`}>
+                      {index + 1}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold header-font">
+                        {player.name} {isMe && "(أنت)"}
+                    </span>
+                    {isMe && <span className="text-[8px] opacity-70 header-font">مزامنة نشطة</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm font-black font-mono ${isMe ? 'text-white' : 'text-slate-800'}`}>{player.score.toLocaleString()}</span>
+                  {isMe && <Activity className="w-3 h-3 text-emerald-200" />}
+                </div>
               </div>
-              <span className="text-sm font-black text-slate-800 font-mono">{player.score.toLocaleString()}</span>
-            </div>
-          )) : (
-            <div className="text-center py-8">
-                <p className="text-[10px] text-slate-400 font-bold header-font animate-pulse italic">جاري جلب قائمة الأبرار...</p>
+             )
+          }) : (
+            <div className="text-center py-12 flex flex-col items-center">
+                <Loader2 className="w-8 h-8 text-emerald-200 animate-spin mb-3" />
+                <p className="text-[10px] text-slate-300 font-bold header-font animate-pulse">جاري تحديث سجلات الأبرار..</p>
             </div>
           )}
         </div>
