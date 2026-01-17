@@ -35,18 +35,5 @@
       "form_factor": "narrow",
       "label": "واجهة تطبيق ميزان"
     }
-  ],
-  "widgets": [
-    {
-      "name": "ميزان العبادات",
-      "description": "رصيدك الروحي اليومي",
-      "tag": "mizan-score",
-      "template": "mizan-score-template",
-      "ms_ac_template": "widget-template.json",
-      "data": "widget-data.json",
-      "type": "text/html",
-      "src": "widget.html",
-      "sizes": "150x150"
-    }
   ]
 }
