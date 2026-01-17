@@ -12,7 +12,9 @@ import {
   Info,
   Loader2,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Menu,
+  X as CloseIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -72,7 +74,7 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -93,7 +95,7 @@ const App: React.FC = () => {
     return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
   }, [isTimerRunning]);
 
-  // مزامنة أبطأ (كل 30 ثانية أو عند تغيير البيانات بشكل ملحوظ) لضمان عدم تكرار البيانات في الشيت
+  // مزامنة سريعة (كل 2.5 ثانية) لضمان حفظ البيانات فورياً
   useEffect(() => {
     if (isGlobalSyncEnabled && user?.email && Object.keys(logs).length > 0) {
       const timeout = setTimeout(async () => {
@@ -111,7 +113,7 @@ const App: React.FC = () => {
         } catch (e) {
           console.error("Cloud Sync Error:", e);
         }
-      }, 30000); 
+      }, 2500); 
       return () => clearTimeout(timeout);
     }
   }, [logs, isGlobalSyncEnabled, user?.email]);
@@ -154,7 +156,7 @@ const App: React.FC = () => {
   if (!user) {
     return (
       <Onboarding 
-        installPrompt={deferredPrompt}
+        installPrompt={null}
         onComplete={(userData, restoredLogs) => {
           setUser(userData);
           localStorage.setItem('worship_user', JSON.stringify(userData));
@@ -173,6 +175,17 @@ const App: React.FC = () => {
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
 
+  const navItems = [
+    {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
+    {id: 'entry', icon: PenLine, label: 'تسجيل'},
+    {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
+    {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
+    {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
+    {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
+    {id: 'notes', icon: NotebookPen, label: 'يوميات'},
+    {id: 'contact', icon: Mail, label: 'تواصل', hasNotification: true}
+  ];
+
   return (
     <div className="min-h-screen pb-32 bg-slate-50">
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
@@ -184,8 +197,9 @@ const App: React.FC = () => {
             </button>
             <h1 className="text-xl md:text-2xl font-bold header-font">إدارة العبادات والأوراد</h1>
             <div className="flex gap-2">
-              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
+              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative">
                 <Mail className="w-6 h-6 text-white/70" />
+                <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-emerald-800"></div>
               </button>
               <button onClick={() => setActiveTab('guide')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
                 <Info className="w-6 h-6 text-white/70" />
@@ -193,7 +207,7 @@ const App: React.FC = () => {
             </div>
           </div>
           <p className="text-emerald-50 quran-font text-xl opacity-95 max-w-sm px-4">{user ? `مرحباً، ${user.name}` : '"حاسِبوا أنفسَكم قبل أن تُحاسَبوا"'}</p>
-          <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-w-md flex items-center justify-between border border-white/20 shadow-2xl relative">
+          <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-md:max-w-md flex items-center justify-between border border-white/20 shadow-2xl relative">
             <div className="flex items-center gap-4">
               <div className="bg-yellow-400/20 p-3 rounded-2xl"><Sparkles className="w-8 h-8 text-yellow-400" /></div>
               <div className="text-right">
@@ -230,15 +244,7 @@ const App: React.FC = () => {
       </main>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
-        {[
-          {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
-          {id: 'entry', icon: PenLine, label: 'تسجيل'},
-          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
-          {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
-          {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-          {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
-          {id: 'notes', icon: NotebookPen, label: 'يوميات'}
-        ].map((tab) => (
+        {navItems.slice(0, 7).map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
             <div className="relative">
               <tab.icon className="w-5 h-5" />
@@ -247,6 +253,13 @@ const App: React.FC = () => {
             <span className="text-[7px] mt-1 font-bold header-font">{tab.label}</span>
           </button>
         ))}
+        <button onClick={() => setActiveTab('contact')} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 relative ${activeTab === 'contact' ? 'text-emerald-600' : 'text-slate-400'}`}>
+          <div className="relative">
+            <Mail className="w-5 h-5" />
+            <div className="absolute -top-1 -right-1 bg-rose-500 text-white text-[7px] font-black w-3 h-3 rounded-full flex items-center justify-center border border-white">1</div>
+          </div>
+          <span className="text-[7px] mt-1 font-bold header-font">تواصل</span>
+        </button>
       </nav>
     </div>
   );

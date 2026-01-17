@@ -86,7 +86,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 20000); 
+    // تم التعديل إلى 2.5 ثانية (2500ms) بناءً على طلب المستخدم
+    const interval = setInterval(() => fetchGlobalData(true), 2500); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 

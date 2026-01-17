@@ -79,7 +79,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      syncRef.current = window.setInterval(sendHeartbeat, 3000);
+      // تم التعديل إلى 2.5 ثانية (2500ms) بناءً على طلب المستخدم لسرعة التحديث
+      syncRef.current = window.setInterval(sendHeartbeat, 2500);
       sendHeartbeat();
     } else {
       if (syncRef.current) {
