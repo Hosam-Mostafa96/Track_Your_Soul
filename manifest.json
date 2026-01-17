@@ -26,59 +26,12 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "shortcuts": [
-    {
-      "name": "تسجيل عبادة",
-      "url": "/?tab=entry",
-      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2972/2972531.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "الرصيد الروحي",
-      "url": "/?tab=dashboard",
-      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2972/2972531.png", "sizes": "192x192" }]
-    }
-  ],
-  "widgets": [
-    {
-      "tag": "spiritual-score",
-      "name": "رصيد المحراب",
-      "short_name": "الميزان",
-      "description": "يعرض رصيدك الروحي الحالي لليوم.",
-      "icons": [
-        {
-          "src": "https://cdn-icons-png.flaticon.com/512/2972/2972531.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ],
-      "screenshots": [
-        {
-          "src": "https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&q=80&w=640&h=1136",
-          "sizes": "640x1136",
-          "type": "image/png",
-          "label": "معاينة الودجت"
-        }
+  ]
       ],
       "ms_template": "widget-template.json",
       "data": "widget-data.json",
       "type": "application/json"
     }
-  ],
-  "screenshots": [
-    {
-      "src": "https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&q=80&w=640&h=1136",
-      "sizes": "640x1136",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "الشاشة الرئيسية للتطبيق"
-    },
-    {
-      "src": "https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&q=80&w=1280&h=720",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "عرض الإحصائيات الشاملة"
-    }
+  ]
   ]
 }
