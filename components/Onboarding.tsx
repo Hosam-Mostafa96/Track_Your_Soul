@@ -14,11 +14,13 @@ import {
   ChevronRight,
   ShieldCheck,
   Globe,
-  MapPin
+  MapPin,
+  Map as MapIcon,
+  AlertCircle
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzFA2kvdLqForyWidmHUYY5xu0ZSLV2DXkWUvi5JAweeqz_vyKnAZlhADBxARx5KFM/exec"; 
 
 const COUNTRIES = [
   "مصر", "السعودية", "الإمارات", "الكويت", "قطر", "البحرين", "عمان", 
@@ -35,20 +37,43 @@ interface OnboardingProps {
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [step, setStep] = useState(1); 
   const [isSaving, setIsSaving] = useState(false);
+  const [emailError, setEmailError] = useState(false);
   
   const [formData, setFormData] = useState<UserType>({
     name: '',
     email: '',
     age: '',
     country: '', 
+    city: '',
     qualification: '', 
     method: 'email'
   });
 
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email.toLowerCase());
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, email: value }));
+    if (value && !validateEmail(value)) {
+      setEmailError(true);
+    } else {
+      setEmailError(false);
+    }
+  };
+
   const handleSubmitData = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.email.trim() || !formData.age || !formData.country || !formData.qualification.trim()) {
+    if (!validateEmail(formData.email)) {
+      setEmailError(true);
+      alert("يرجى إدخال بريد إلكتروني صحيح للمتابعة.");
+      return;
+    }
+
+    if (!formData.name.trim() || !formData.email.trim() || !formData.age || !formData.country || !formData.city.trim() || !formData.qualification.trim()) {
       alert("يرجى إكمال جميع الحقول المطلوبة لتوثيق عضويتك في سجلات ميزان");
       return;
     }
@@ -68,17 +93,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           email: formData.email,
           age: formData.age,
           country: formData.country,
+          city: formData.city,
           qualification: formData.qualification
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        // إذا وجدنا بيانات مخزنة مسبقاً لهذا الإيميل، نقوم باستعادتها
-        if (data.existingLogs || data.existingUser) {
+        if (data.userSync && (data.userSync.existingLogs || data.userSync.existingUser)) {
           const confirmed = window.confirm("وجدنا بيانات سابقة مرتبطة بهذا البريد. هل تريد استعادة تقدمك ونقاطك؟");
           if (confirmed) {
-            onComplete(data.existingUser || formData, data.existingLogs);
+            onComplete(data.userSync.existingUser || formData, data.userSync.existingLogs);
             return;
           }
         }
@@ -87,6 +112,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       setStep(3);
     } catch (error) {
       console.error("Sync error:", error);
+      // في حالة وجود إيميل صحيح، نسمح بالدخول حتى لو فشل السيرفر لضمان الأوفلاين
       setStep(3);
     } finally {
       setIsSaving(false);
@@ -95,6 +121,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* عناصر خلفية جمالية */}
       <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-emerald-500 rounded-full blur-[130px]"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-teal-500 rounded-full blur-[110px]"></div>
@@ -104,8 +131,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 rounded-full -translate-y-16 translate-x-16 opacity-40"></div>
         
         {step === 1 && (
-          <div className="space-y-6 animate-in slide-in-from-bottom duration-300">
-            <div className="flex flex-col items-center text-center">
+          <div className="space-y-6 animate-in slide-in-from-bottom duration-300 text-center">
+            <div className="flex flex-col items-center">
               <div className="p-5 bg-emerald-50 rounded-[2rem] mb-4">
                 <Sparkles className="w-12 h-12 text-emerald-600" />
               </div>
@@ -113,7 +140,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <p className="text-xs text-slate-500 font-bold header-font uppercase tracking-widest leading-relaxed">بوابتك للارتقاء الروحي ومحاسبة النفس</p>
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-3xl border border-dashed border-slate-200">
+            <div className="bg-slate-50 p-6 rounded-3xl border border-dashed border-slate-200 text-right">
                <ul className="space-y-4">
                   <li className="flex gap-3 text-xs font-bold text-slate-600 header-font items-start">
                     <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -121,7 +148,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                   </li>
                   <li className="flex gap-3 text-xs font-bold text-slate-600 header-font items-start">
                     <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>مزامنة مباشرة مع لوحة الأبرار العالمية</span>
+                    <span>مزامنة سحابية عبر البريد الإلكتروني</span>
                   </li>
                   <li className="flex gap-3 text-xs font-bold text-slate-600 header-font items-start">
                     <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -143,7 +170,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         {step === 2 && (
           <div className="space-y-6 animate-in slide-in-from-right duration-300">
             <div className="flex items-center gap-3 mb-2">
-              <button onClick={() => setStep(1)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
+              <button onClick={() => setStep(1)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
                 <ChevronRight className="w-6 h-6" />
               </button>
               <h2 className="text-2xl font-black text-slate-800 header-font">بيانات المنتسب</h2>
@@ -163,14 +190,20 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 </div>
 
                 <div className="relative">
-                  <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Mail className={`absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 ${emailError ? 'text-rose-500' : 'text-slate-300'}`} />
                   <input 
                     type="email" required
                     value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    onChange={handleEmailChange}
                     placeholder="البريد الإلكتروني المعتمد"
-                    className="w-full pl-4 pr-11 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm text-left"
+                    className={`w-full pl-4 pr-11 py-4 bg-slate-50 border ${emailError ? 'border-rose-300 focus:ring-rose-100' : 'border-slate-100 focus:ring-emerald-100'} rounded-2xl outline-none font-bold header-font text-sm text-left`}
                   />
+                  {emailError && (
+                    <div className="flex items-center gap-1 mt-1 mr-1 text-rose-500 text-[10px] font-bold animate-in fade-in">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>يرجى إدخال بريد إلكتروني صحيح</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -185,17 +218,28 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     />
                   </div>
                   <div className="relative">
-                    <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                    <Globe className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                     <select 
                       required
                       value={formData.country}
                       onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
                       className="w-full pl-4 pr-11 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm appearance-none"
                     >
-                      <option value="" disabled>اختر الدولة</option>
+                      <option value="" disabled>الدولة</option>
                       {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
+                </div>
+
+                <div className="relative">
+                  <MapIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input 
+                    type="text" required
+                    value={formData.city}
+                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    placeholder="اسم المدينة"
+                    className="w-full pl-4 pr-11 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm"
+                  />
                 </div>
 
                 <div className="relative">
@@ -204,7 +248,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     type="text" required
                     value={formData.qualification}
                     onChange={(e) => setFormData(prev => ({ ...prev, qualification: e.target.value }))}
-                    placeholder="المؤهل الدراسي (دكتوراه، بكالوريوس، طالب..)"
+                    placeholder="المؤهل الدراسي أو التخصص"
                     className="w-full pl-4 pr-11 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-100 outline-none font-bold header-font text-sm"
                   />
                 </div>
@@ -212,8 +256,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
               <button 
                 type="submit"
-                disabled={isSaving}
-                className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black header-font shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                disabled={isSaving || emailError || !formData.email}
+                className={`w-full py-5 rounded-2xl font-black header-font shadow-xl transition-all flex items-center justify-center gap-2 ${
+                  isSaving || emailError || !formData.email 
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
+                  : 'bg-emerald-600 text-white shadow-emerald-100 hover:bg-emerald-700'
+                }`}
               >
                 {isSaving ? (
                   <Loader2 className="w-6 h-6 animate-spin" />

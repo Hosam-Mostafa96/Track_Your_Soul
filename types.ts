@@ -27,6 +27,7 @@ export interface User {
   email: string;
   age: string;
   country: string;
+  city: string;
   qualification: string;
   method: 'google' | 'email';
 }
