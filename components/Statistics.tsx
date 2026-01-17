@@ -27,7 +27,9 @@ import {
   Tooltip as RechartsTooltip
 } from 'recharts';
 import { DailyLog, AppWeights, User, PrayerName, PrayerEntry } from '../types';
-import { subDays, isWithinInterval, startOfDay, endOfDay, format } from 'date-fns';
+// Fix: Use individual import for subDays and remove unused startOfDay to resolve 'no exported member' error
+import { isWithinInterval, endOfDay, format } from 'date-fns';
+import subDays from 'date-fns/subDays';
 import { calculateTotalScore } from '../utils/scoring';
 
 interface StatisticsProps {

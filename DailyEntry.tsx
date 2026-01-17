@@ -8,7 +8,10 @@ import {
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
-import { format, subDays, addDays } from 'date-fns';
+// Fix: Use individual imports for subDays and addDays to resolve 'no exported member' error
+import { format } from 'date-fns';
+import subDays from 'date-fns/subDays';
+import addDays from 'date-fns/addDays';
 import { ar } from 'date-fns/locale';
 
 interface DailyEntryProps {
@@ -382,7 +385,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
           })}
         </div>
         <div className="space-y-3">
-          {/* Fixed typo in field name 'baقiyat' to 'baqiyat' */}
           {counterItem('الصلاة على النبي', 'salawat', <Zap className="w-4 h-4" />)}
           {counterItem('الحوقلة', 'hawqalah', <Zap className="w-4 h-4" />)}
           {counterItem('لا إله إلا الله', 'tahlil', <Zap className="w-4 h-4" />)}

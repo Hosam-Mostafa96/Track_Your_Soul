@@ -28,8 +28,7 @@ import {
 } from 'recharts';
 import { DailyLog, AppWeights } from '../types';
 import { calculateTotalScore } from '../utils/scoring';
-import { subDays, format } from 'date-fns';
-import { ar } from 'date-fns/locale';
+// Fix: Remove unused subDays and format imports to resolve 'no exported member' error
 
 interface WorshipPatternsProps {
   logs: Record<string, DailyLog>;

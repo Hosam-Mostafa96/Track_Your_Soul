@@ -26,10 +26,14 @@ import {
   Shield,
   CloudMoon,
   Heart,
-  BarChart3
+  BarChart3,
+  BellRing,
+  Info
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { format, subDays } from 'date-fns';
+// Fix: Use individual import for subDays to resolve 'no exported member' error
+import { format } from 'date-fns';
+import subDays from 'date-fns/subDays';
 import { ar } from 'date-fns/locale';
 import { DailyLog, AppWeights, PrayerName, PrayerEntry } from '../types';
 import { calculateTotalScore } from '../utils/scoring';
@@ -44,9 +48,10 @@ interface DashboardProps {
   targetScore: number;
   onTargetChange: (score: number) => void;
   onOpenSettings: () => void;
+  adminMessages?: any[];
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange, targetScore, onTargetChange, onOpenSettings }) => {
+const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange, targetScore, onTargetChange, onOpenSettings, adminMessages = [] }) => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiAdvice, setAiAdvice] = useState<string | null>(null);
   const [isEditingTarget, setIsEditingTarget] = useState(false);
@@ -64,90 +69,29 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
     const fullRawatibDone = rawatibIds.every(id => allUserSunnahs.includes(id));
     
     return [
-      {
-        id: 'fajr',
-        title: 'بشرى الرؤية',
-        desc: 'تستحق رؤية الله في الآخرة',
-        icon: <Sun className="w-5 h-5" />,
-        active: log.prayers[PrayerName.FAJR]?.performed,
-        color: 'from-amber-400 to-orange-500'
-      },
-      {
-        id: 'rawatib',
-        title: 'بيت في الجنة',
-        desc: 'من صلى ثنتي عشرة ركعة..',
-        icon: <Home className="w-5 h-5" />,
-        active: fullRawatibDone,
-        color: 'from-emerald-400 to-teal-600'
-      },
-      {
-        id: 'fasting',
-        title: 'بعيد عن النار',
-        desc: 'باعد الله وجهه عن النار ٧٠ خريفاً',
-        icon: <Flame className="w-5 h-5" />,
-        active: log.nawafil.fasting,
-        color: 'from-orange-400 to-rose-600'
-      },
-      {
-        id: 'istighfar',
-        title: 'مفتاح الرزق',
-        desc: 'فقلت استغفروا ربكم.. يرسل السماء',
-        icon: <Coins className="w-5 h-5" />,
-        active: log.athkar.counters.istighfar > 0,
-        color: 'from-blue-400 to-cyan-600'
-      },
-      {
-        id: 'hawqalah',
-        title: 'مفتاح النجاح',
-        desc: 'لا حول ولا قوة إلا بالله كنز الجنة',
-        icon: <Key className="w-5 h-5" />,
-        active: log.athkar.counters.hawqalah > 0,
-        color: 'from-indigo-400 to-blue-700'
-      },
-      {
-        id: 'salawat',
-        title: 'مفتاح القرب',
-        desc: 'أقربكم مني مجلساً أكثركم صلاة علي',
-        icon: <Heart className="w-5 h-5" />,
-        active: log.athkar.counters.salawat > 0,
-        color: 'from-rose-400 to-pink-600'
-      },
-      {
-        id: 'witr',
-        title: 'محبوب الرحمن',
-        desc: 'إن الله وتر يحب الوتر فأوتروا',
-        icon: <CloudMoon className="w-5 h-5" />,
-        active: log.nawafil.witrDuration > 0,
-        color: 'from-slate-700 to-indigo-900'
-      }
+      { id: 'fajr', title: 'بشرى الرؤية', desc: 'تستحق رؤية الله في الآخرة', icon: <Sun className="w-5 h-5" />, active: log.prayers[PrayerName.FAJR]?.performed, color: 'from-amber-400 to-orange-500' },
+      { id: 'rawatib', title: 'بيت في الجنة', desc: 'من صلى ثنتي عشرة ركعة..', icon: <Home className="w-5 h-5" />, active: fullRawatibDone, color: 'from-emerald-400 to-teal-600' },
+      { id: 'fasting', title: 'بعيد عن النار', desc: 'باعد الله وجهه عن النار ٧٠ خريفاً', icon: <Flame className="w-5 h-5" />, active: log.nawafil.fasting, color: 'from-orange-400 to-rose-600' },
+      { id: 'istighfar', title: 'مفتاح الرزق', desc: 'فقلت استغفروا ربكم.. يرسل السماء', icon: <Coins className="w-5 h-5" />, active: log.athkar.counters.istighfar > 0, color: 'from-blue-400 to-cyan-600' },
+      { id: 'hawqalah', title: 'مفتاح النجاح', desc: 'لا حول ولا قوة إلا بالله كنز الجنة', icon: <Key className="w-5 h-5" />, active: log.athkar.counters.hawqalah > 0, color: 'from-indigo-400 to-blue-700' },
+      { id: 'salawat', title: 'مفتاح القرب', desc: 'أقربكم مني مجلساً أكثركم صلاة علي', icon: <Heart className="w-5 h-5" />, active: log.athkar.counters.salawat > 0, color: 'from-rose-400 to-pink-600' },
+      { id: 'witr', title: 'محبوب الرحمن', desc: 'إن الله وتر يحب الوتر فأوتروا', icon: <CloudMoon className="w-5 h-5" />, active: log.nawafil.witrDuration > 0, color: 'from-slate-700 to-indigo-900' }
     ];
   }, [log]);
 
   useEffect(() => {
     if (isFirstRender.current) {
-      badges.forEach(badge => {
-        prevBadgesActiveState.current[badge.id] = !!badge.active;
-      });
+      badges.forEach(badge => { prevBadgesActiveState.current[badge.id] = !!badge.active; });
       isFirstRender.current = false;
       return;
     }
-
     let triggered = false;
     badges.forEach(badge => {
-      if (badge.active && !prevBadgesActiveState.current[badge.id]) {
-        triggered = true;
-      }
+      if (badge.active && !prevBadgesActiveState.current[badge.id]) triggered = true;
       prevBadgesActiveState.current[badge.id] = !!badge.active;
     });
-
     if (triggered) {
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#10b981', '#fbbf24', '#3b82f6', '#f43f5e', '#a855f7'],
-        zIndex: 9999
-      });
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#10b981', '#fbbf24', '#3b82f6', '#f43f5e', '#a855f7'], zIndex: 9999 });
     }
   }, [badges]);
 
@@ -159,12 +103,7 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
     });
     const avg = scores.reduce((a, b) => a + b, 0) / 7;
     const diff = avg === 0 ? 100 : Math.round(((currentTotalScore - avg) / avg) * 100);
-    
-    return {
-      percent: diff,
-      status: diff >= 0 ? 'ارتقاء' : 'مجاهدة',
-      color: diff >= 0 ? 'text-emerald-500' : 'text-amber-500'
-    };
+    return { percent: diff, status: diff >= 0 ? 'ارتقاء' : 'مجاهدة', color: diff >= 0 ? 'text-emerald-500' : 'text-amber-500' };
   }, [logs, currentTotalScore, weights]);
 
   const streakCount = useMemo(() => {
@@ -174,11 +113,8 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
       const dateStr = format(checkDate, 'yyyy-MM-dd');
       const dayLog = logs[dateStr];
       if (!dayLog) break;
-      const dayScore = calculateTotalScore(dayLog, weights);
-      if (dayScore >= targetScore * 0.5) {
-        count++;
-        checkDate = subDays(checkDate, 1);
-      } else { break; }
+      if (calculateTotalScore(dayLog, weights) >= targetScore * 0.5) { count++; checkDate = subDays(checkDate, 1); } 
+      else break;
     }
     return count;
   }, [logs, weights, targetScore]);
@@ -190,23 +126,16 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `أنا مستخدم لتطبيق إدارة عبادات وأوراد. مجموع نقاطي اليوم هو ${currentTotalScore} من هدف يومي قدره ${targetScore}. مستوى أدائي حالياً مقارنة بالأسبوع الماضي هو ${momentumInfo.percent}%. 
-        أعطني نصيحة روحية قصيرة جداً (سطرين كحد أقصى) باللغة العربية بأسلوب مشجع بناءً على هذه الأرقام، وحفزني على الالتزام بالأوراد.`,
+        contents: `أنا مستخدم لتطبيق إدارة عبادات. نقاطي ${currentTotalScore} من ${targetScore}. زخمي ${momentumInfo.percent}%. نصيحة قصيرة بأسلوب مشجع.`,
       });
-      setAiAdvice(response.text || "استمر في مجاهدة نفسك، فكل خطوة تقربك من الله هي ربح عظيم.");
-    } catch (e) {
-      setAiAdvice("النية الصالحة هي روح العمل، واصل مسيرك بارك الله فيك ونفع بك.");
-    } finally {
-      setIsAiLoading(false);
-    }
+      setAiAdvice(response.text || "استمر في المجاهدة.");
+    } catch (e) { setAiAdvice("النية الصالحة هي روح العمل."); } 
+    finally { setIsAiLoading(false); }
   };
 
   const handleSaveTarget = () => {
     const newTarget = parseInt(tempTarget);
-    if (!isNaN(newTarget) && newTarget > 0) {
-      onTargetChange(newTarget);
-      setIsEditingTarget(false);
-    }
+    if (!isNaN(newTarget) && newTarget > 0) { onTargetChange(newTarget); setIsEditingTarget(false); }
   };
 
   const last7Days = useMemo(() => {
@@ -214,26 +143,31 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
       const dateObj = subDays(new Date(), i);
       const d = format(dateObj, 'yyyy-MM-dd');
       const l = logs[d];
-      return {
-        date: format(dateObj, 'EEE', { locale: ar }),
-        score: l ? calculateTotalScore(l, weights) : 0,
-        fullDate: d
-      };
+      return { date: format(dateObj, 'EEE', { locale: ar }), score: l ? calculateTotalScore(l, weights) : 0 };
     }).reverse();
   }, [logs, weights]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="relative group">
-        <button 
-          onClick={getAiAdvice}
-          disabled={isAiLoading}
-          className="w-full bg-gradient-to-r from-emerald-600 to-teal-700 p-4 rounded-3xl shadow-lg flex items-center justify-between group-active:scale-95 transition-all text-white border border-white/10"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-xl">
-              <BrainCircuit className={`w-5 h-5 ${isAiLoading ? 'animate-pulse' : ''}`} />
+      {/* عرض رسائل الإدارة */}
+      {adminMessages.length > 0 && (
+        <div className="space-y-3">
+          {adminMessages.map((msg, idx) => (
+            <div key={idx} className="bg-amber-50 border border-amber-200 p-4 rounded-3xl shadow-sm animate-in slide-in-from-right duration-500">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-1.5 bg-amber-200 rounded-lg"><BellRing className="w-4 h-4 text-amber-700" /></div>
+                <h4 className="text-xs font-black text-amber-900 header-font">رسالة من الإدارة</h4>
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed font-bold header-font">{msg.text}</p>
             </div>
+          ))}
+        </div>
+      )}
+
+      <div className="relative group">
+        <button onClick={getAiAdvice} disabled={isAiLoading} className="w-full bg-gradient-to-r from-emerald-600 to-teal-700 p-4 rounded-3xl shadow-lg flex items-center justify-between group-active:scale-95 transition-all text-white border border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-xl"><BrainCircuit className={`w-5 h-5 ${isAiLoading ? 'animate-pulse' : ''}`} /></div>
             <div className="text-right">
               <h4 className="text-sm font-bold header-font">المستشار الروحي (AI)</h4>
               <p className="text-[10px] opacity-80 header-font">اضغط للحصول على نصيحة لأورادك</p>
@@ -241,44 +175,22 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
           </div>
           <Sparkles className={`w-5 h-5 text-yellow-300 ${isAiLoading ? 'animate-spin' : 'animate-bounce'}`} />
         </button>
-
         {aiAdvice && (
           <div className="mt-4 bg-emerald-50 border border-emerald-100 p-4 rounded-2xl relative animate-in slide-in-from-top duration-300">
-            <button onClick={() => setAiAdvice(null)} className="absolute top-2 left-2 text-emerald-800 p-1 hover:bg-emerald-100 rounded-full">
-              <X className="w-3 h-3" />
-            </button>
+            <button onClick={() => setAiAdvice(null)} className="absolute top-2 left-2 text-emerald-800 p-1 hover:bg-emerald-100 rounded-full"><X className="w-3 h-3" /></button>
             <p className="text-sm text-emerald-900 quran-font text-center leading-relaxed px-4">"{aiAdvice}"</p>
           </div>
         )}
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-4">
-          <Award className="w-5 h-5 text-amber-500" />
-          <h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">أوسمة الأبرار اليوم</h3>
-        </div>
+        <div className="flex items-center gap-2 mb-4"><Award className="w-5 h-5 text-amber-500" /><h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">أوسمة الأبرار اليوم</h3></div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {badges.map(badge => (
-            <div 
-              key={badge.id}
-              className={`relative flex flex-col items-center p-3 rounded-2xl border transition-all duration-500 overflow-hidden min-h-[110px] ${
-                badge.active 
-                ? `bg-gradient-to-br ${badge.color} text-white border-transparent shadow-lg shadow-emerald-100` 
-                : 'bg-slate-50 text-slate-400 border-slate-100 grayscale opacity-60'
-              }`}
-            >
-              <div className={`p-2 rounded-xl mb-2 ${badge.active ? 'bg-white/20' : 'bg-slate-200'}`}>
-                {badge.active ? badge.icon : <Lock className="w-5 h-5" />}
-              </div>
+            <div key={badge.id} className={`relative flex flex-col items-center p-3 rounded-2xl border transition-all duration-500 overflow-hidden min-h-[110px] ${badge.active ? `bg-gradient-to-br ${badge.color} text-white border-transparent shadow-lg shadow-emerald-100` : 'bg-slate-50 text-slate-400 border-slate-100 grayscale opacity-60'}`}>
+              <div className={`p-2 rounded-xl mb-2 ${badge.active ? 'bg-white/20' : 'bg-slate-200'}`}>{badge.active ? badge.icon : <Lock className="w-5 h-5" />}</div>
               <span className="text-[10px] font-black header-font text-center leading-tight mb-1">{badge.title}</span>
-              <p className={`text-[8px] text-center leading-tight font-bold px-1 ${badge.active ? 'text-white/80' : 'text-slate-400'}`}>
-                {badge.desc}
-              </p>
-              {badge.active && (
-                <div className="absolute top-1 left-1 bg-white/30 rounded-full p-0.5">
-                   <CheckCircle2 className="w-2.5 h-2.5 text-white" />
-                </div>
-              )}
+              <p className={`text-[8px] text-center leading-tight font-bold px-1 ${badge.active ? 'text-white/80' : 'text-slate-400'}`}>{badge.desc}</p>
             </div>
           ))}
         </div>
@@ -286,93 +198,44 @@ const Dashboard: React.FC<DashboardProps> = ({ log, logs, weights, onDateChange,
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-emerald-500" />
-            <h3 className="font-bold text-slate-800 header-font text-sm">الهدف اليومي</h3>
-          </div>
+          <div className="flex items-center gap-2"><Target className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-sm">الهدف اليومي</h3></div>
           <div className="flex items-center gap-2">
             {isEditingTarget ? (
               <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200 animate-in zoom-in duration-200">
-                <input 
-                  type="number"
-                  value={tempTarget}
-                  onChange={(e) => setTempTarget(e.target.value)}
-                  className="w-16 bg-transparent border-none outline-none text-xs font-bold text-emerald-700 text-center"
-                  autoFocus
-                />
-                <button onClick={handleSaveTarget} className="p-1 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
-                  <Check className="w-3 h-3" />
-                </button>
+                <input type="number" value={tempTarget} onChange={(e) => setTempTarget(e.target.value)} className="w-16 bg-transparent border-none outline-none text-xs font-bold text-emerald-700 text-center" autoFocus />
+                <button onClick={handleSaveTarget} className="p-1 bg-emerald-500 text-white rounded-lg"><Check className="w-3 h-3" /></button>
               </div>
             ) : (
-              <button 
-                onClick={() => { setTempTarget(targetScore.toString()); setIsEditingTarget(true); }} 
-                className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl transition-all border border-transparent hover:border-slate-200"
-              >
-                <span className="text-xs font-bold header-font">{targetScore.toLocaleString()}</span>
-                <Edit2 className="w-3 h-3" />
-              </button>
+              <button onClick={() => { setTempTarget(targetScore.toString()); setIsEditingTarget(true); }} className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl transition-all border border-transparent hover:border-slate-200"><span className="text-xs font-bold header-font">{targetScore.toLocaleString()}</span><Edit2 className="w-3 h-3" /></button>
             )}
           </div>
         </div>
-        
-        <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden mb-2 relative">
-          <div className="bg-emerald-500 h-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%` }} />
-        </div>
-        <div className="flex justify-between text-[10px] font-bold text-slate-400 px-1 header-font uppercase tracking-wider">
-          <span>{Math.round(progressPercent)}% تم إنجازه</span>
-          <span>المتبقي: {Math.max(0, targetScore - currentTotalScore).toLocaleString()}</span>
-        </div>
+        <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden mb-2 relative"><div className="bg-emerald-500 h-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%` }} /></div>
+        <div className="flex justify-between text-[10px] font-bold text-slate-400 px-1 header-font uppercase tracking-wider"><span>{Math.round(progressPercent)}% تم إنجازه</span><span>المتبقي: {Math.max(0, targetScore - currentTotalScore).toLocaleString()}</span></div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
-          <div className={`p-3 rounded-2xl mb-3 ${momentumInfo.percent >= 0 ? 'bg-emerald-50' : 'bg-amber-50'}`}>
-            <Activity className={`w-6 h-6 ${momentumInfo.color}`} />
-          </div>
+          <div className={`p-3 rounded-2xl mb-3 ${momentumInfo.percent >= 0 ? 'bg-emerald-50' : 'bg-amber-50'}`}><Activity className={`w-6 h-6 ${momentumInfo.color}`} /></div>
           <p className="text-[10px] text-slate-400 font-bold uppercase header-font mb-1">زخم الارتقاء</p>
-          <div className="flex flex-col">
-            <span className={`text-xl font-black font-mono ${momentumInfo.color}`}>
-              {momentumInfo.percent > 0 ? '+' : ''}{momentumInfo.percent}%
-            </span>
-            <span className={`text-[9px] font-bold header-font opacity-70`}>حالة {momentumInfo.status}</span>
-          </div>
+          <span className={`text-xl font-black font-mono ${momentumInfo.color}`}>{momentumInfo.percent > 0 ? '+' : ''}{momentumInfo.percent}%</span>
         </div>
-        
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
-          <div className={`p-3 rounded-2xl mb-3 ${streakCount > 0 ? 'bg-orange-50' : 'bg-slate-50'}`}>
-            <Flame className={`w-6 h-6 ${streakCount > 0 ? 'text-orange-500 fill-orange-500' : 'text-slate-300'}`} />
-          </div>
+          <div className={`p-3 rounded-2xl mb-3 ${streakCount > 0 ? 'bg-orange-50' : 'bg-slate-50'}`}><Flame className={`w-6 h-6 ${streakCount > 0 ? 'text-orange-500 fill-orange-500' : 'text-slate-300'}`} /></div>
           <p className="text-[10px] text-slate-400 font-bold uppercase header-font mb-1">سلسلة النور</p>
-          <div className="flex flex-col">
-            <span className={`text-xl font-black font-mono ${streakCount > 0 ? 'text-orange-600' : 'text-slate-400'}`}>
-              {streakCount} يوم
-            </span>
-            <span className="text-[9px] font-bold header-font opacity-70">استقامة متصلة</span>
-          </div>
+          <span className={`text-xl font-black font-mono ${streakCount > 0 ? 'text-orange-600' : 'text-slate-400'}`}>{streakCount} يوم</span>
         </div>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-4">
-          <History className="w-4 h-4 text-slate-400" />
-          <h3 className="font-bold text-slate-600 header-font text-xs">نبض الأداء (أخر ٧ أيام)</h3>
-        </div>
+        <div className="flex items-center gap-2 mb-4"><History className="w-4 h-4 text-slate-400" /><h3 className="font-bold text-slate-600 header-font text-xs">نبض الأداء (أخر ٧ أيام)</h3></div>
         <div className="h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={last7Days}>
-              <defs>
-                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
+              <defs><linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient></defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
-              <Tooltip 
-                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                labelStyle={{ fontFamily: 'Cairo', fontWeight: 'bold' }}
-              />
+              <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
               <Area type="monotone" dataKey="score" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
             </AreaChart>
           </ResponsiveContainer>

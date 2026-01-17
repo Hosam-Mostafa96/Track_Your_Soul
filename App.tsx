@@ -3,24 +3,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   PenLine, 
-  History, 
-  Trophy,
-  Info,
   Timer as TimerIcon,
   NotebookPen,
   UserCircle,
   Medal,
-  Calendar,
-  ChevronDown,
-  Mail,
-  CalendarDays,
   Sparkles,
-  ArrowRight,
-  Globe,
+  Mail,
+  Info,
   Loader2,
   BarChart3,
   TrendingUp,
-  Activity
+  Bell
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -69,7 +62,8 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'timer' | 'leaderboard' | 'notes' | 'stats' | 'patterns' | 'guide' | 'history' | 'profile' | 'contact';
+  // الترتيب المطلوب: الرئيسية -> تسجيل -> إنجازاتي -> مؤقت -> إحصائيات -> أنماط -> يوميات
+  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'stats' | 'patterns' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -79,73 +73,44 @@ const App: React.FC = () => {
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [adminMessages, setAdminMessages] = useState<any[]>([]);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
   const timerIntervalRef = useRef<number | null>(null);
 
-  // تحديث الودجت عند تغير النقاط
+  const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec";
+
+  // جلب رسائل الإدارة
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (GOOGLE_STATS_API.includes("FIX_ME")) return;
+      try {
+        const res = await fetch(GOOGLE_STATS_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'getMessages' })
+        });
+        const data = await res.json();
+        if (data && data.messages) setAdminMessages(data.messages);
+      } catch (e) {
+        console.error("Failed to fetch admin messages");
+      }
+    };
+    if (isAppReady) fetchMessages();
+  }, [isAppReady]);
+
+  // تحديث الودجت
   useEffect(() => {
     if (!isAppReady) return;
     const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
     const score = calculateTotalScore(currentLog, weights);
-    
     localStorage.setItem('today_score_cache', score.toString());
-    
-    // إرسال الرصيد للـ Service Worker لتحديث الودجت
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'UPDATE_WIDGET_SCORE',
-        score: score
-      });
+      navigator.serviceWorker.controller.postMessage({ type: 'UPDATE_WIDGET_SCORE', score: score });
     }
   }, [logs, weights, currentDate, isAppReady]);
-
-  useEffect(() => {
-    // الاستماع لحدث طلب التثبيت (PWA)
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
-
-  useEffect(() => {
-    const savedTimer = localStorage.getItem('worship_active_timer_v1');
-    if (savedTimer) {
-      const { seconds, isRunning, activity, lastUpdate } = JSON.parse(savedTimer);
-      setActiveActivity(activity);
-      if (isRunning) {
-        const elapsed = Math.floor((Date.now() - lastUpdate) / 1000);
-        setTimerSeconds(seconds + elapsed);
-        setIsTimerRunning(true);
-      } else {
-        setTimerSeconds(seconds);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isTimerRunning) {
-      timerIntervalRef.current = window.setInterval(() => {
-        setTimerSeconds(s => s + 1);
-      }, 1000);
-    } else {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    }
-    return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
-  }, [isTimerRunning]);
-
-  useEffect(() => {
-    localStorage.setItem('worship_active_timer_v1', JSON.stringify({
-      seconds: timerSeconds,
-      isRunning: isTimerRunning,
-      activity: activeActivity,
-      lastUpdate: Date.now()
-    }));
-  }, [timerSeconds, isTimerRunning, activeActivity]);
 
   useEffect(() => {
     const savedLogs = localStorage.getItem('worship_logs');
@@ -216,8 +181,9 @@ const App: React.FC = () => {
               <button onClick={() => setActiveTab('guide')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
                 <Info className="w-6 h-6 text-white/70" />
               </button>
-              <button onClick={() => setActiveTab('leaderboard')} className="p-2 hover:bg-white/10 rounded-full transition-all relative flex-shrink-0">
-                <Medal className="w-7 h-7 text-yellow-400" />
+              <button onClick={() => setActiveTab('dashboard')} className="p-2 hover:bg-white/10 rounded-full transition-all relative flex-shrink-0">
+                <Bell className={`w-6 h-6 ${adminMessages.length > 0 ? 'text-yellow-400 animate-bounce' : 'text-white/70'}`} />
+                {adminMessages.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>}
               </button>
             </div>
           </div>
@@ -240,44 +206,18 @@ const App: React.FC = () => {
       </header>
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
-        {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('worship_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
-        {activeTab === 'entry' && (
-          <DailyEntry 
-            log={currentLog} 
-            onUpdate={updateLog} 
-            weights={weights}
-            onUpdateWeights={handleUpdateWeights}
-            currentDate={currentDate} 
-            onDateChange={setCurrentDate} 
-          />
-        )}
-        {activeTab === 'timer' && (
-          <WorshipTimer 
-            isSync={isGlobalSyncEnabled} 
-            seconds={timerSeconds}
-            isRunning={isTimerRunning}
-            selectedActivity={activeActivity}
-            onToggle={() => setIsTimerRunning(!isTimerRunning)}
-            onReset={() => { setTimerSeconds(0); setIsTimerRunning(false); }}
-            onActivityChange={setActiveActivity}
-            onApplyTime={(field, mins) => {
-              const newLog = { ...currentLog };
-              if (field === 'shariDuration' || field === 'readingDuration') {
-                newLog.knowledge = { ...newLog.knowledge, [field]: newLog.knowledge[field] + mins };
-              } else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
-                newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] as number) + mins };
-              }
-              updateLog(newLog);
-              setTimerSeconds(0);
-              setIsTimerRunning(false);
-              setActiveTab('entry');
-            }} 
-          />
-        )}
+        {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('worship_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} adminMessages={adminMessages} />}
+        {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={handleUpdateWeights} currentDate={currentDate} onDateChange={setCurrentDate} />}
         {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
-        {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
+        {activeTab === 'timer' && <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => { setTimerSeconds(0); setIsTimerRunning(false); }} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => {
+            const newLog = { ...currentLog };
+            if (field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = { ...newLog.knowledge, [field]: newLog.knowledge[field] + mins }; } 
+            else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] as number) + mins }; }
+            updateLog(newLog); setTimerSeconds(0); setIsTimerRunning(false); setActiveTab('entry');
+        }} />}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
         {activeTab === 'patterns' && <WorshipPatterns logs={logs} weights={weights} />}
+        {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
         {activeTab === 'contact' && <ContactUs />}
@@ -288,10 +228,10 @@ const App: React.FC = () => {
         {[
           {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
           {id: 'entry', icon: PenLine, label: 'تسجيل'},
+          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
           {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
           {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
           {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
-          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
           {id: 'notes', icon: NotebookPen, label: 'يوميات'}
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
