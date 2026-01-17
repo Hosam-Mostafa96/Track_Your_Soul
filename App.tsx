@@ -79,7 +79,20 @@ const App: React.FC = () => {
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
   const timerIntervalRef = useRef<number | null>(null);
 
-  // رفع السجلات للسحاب دورياً لضمان مزامنة النقاط (تم التحديث ليكون كل ثانيتين)
+  useEffect(() => {
+    if (isTimerRunning) {
+      timerIntervalRef.current = window.setInterval(() => {
+        setTimerSeconds(s => s + 1);
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+    return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
+  }, [isTimerRunning]);
+
   useEffect(() => {
     if (isGlobalSyncEnabled && user?.email && Object.keys(logs).length > 0) {
       const timeout = setTimeout(async () => {
@@ -97,7 +110,7 @@ const App: React.FC = () => {
         } catch (e) {
           console.error("Cloud Sync Error:", e);
         }
-      }, 2000); // تحديث كل ثانيتين بدلاً من 5 أو 30 ثانية
+      }, 2000);
       return () => clearTimeout(timeout);
     }
   }, [logs, isGlobalSyncEnabled, user?.email]);
@@ -202,9 +215,9 @@ const App: React.FC = () => {
         {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
         {activeTab === 'timer' && <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => { setTimerSeconds(0); setIsTimerRunning(false); }} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => {
             const newLog = { ...currentLog };
-            if (field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = { ...newLog.knowledge, [field]: newLog.knowledge[field] + mins }; } 
-            else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] as number) + mins }; }
-            updateLog(newLog); setTimerSeconds(0); setIsTimerRunning(false); setActiveTab('entry');
+            if (field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = { ...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins }; } 
+            else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] || 0) + mins }; }
+            updateLog(newLog); setTimerSeconds(0); setIsTimerRunning(false); 
         }} />}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
         {activeTab === 'patterns' && <WorshipPatterns logs={logs} weights={weights} />}

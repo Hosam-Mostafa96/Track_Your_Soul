@@ -1,8 +1,26 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, RotateCcw, CheckCircle2, BookOpen, GraduationCap, Moon, Sun, Radio, Globe, Wifi, WifiOff } from 'lucide-react';
+import { 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  CheckCircle2, 
+  BookOpen, 
+  GraduationCap, 
+  Moon, 
+  Sun, 
+  Radio, 
+  Globe, 
+  Wifi, 
+  WifiOff,
+  History,
+  Clock,
+  ArrowRight
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
-const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzbkn4MVK27wrmAhkDvKjZdq01vOQWG7-SFDOltC4e616Grjp-uMsON4cVcr3OOVKqg/exec"; 
+const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzFA2kvdLqForyWidmHUYY5xu0ZSLV2DXkWUvi5JAweeqz_vyKnAZlhADBxARx5KFM/exec"; 
 
 interface WorshipTimerProps {
   seconds: number;
@@ -15,10 +33,18 @@ interface WorshipTimerProps {
   isSync: boolean;
 }
 
+interface SessionRecord {
+  id: string;
+  activity: string;
+  duration: number;
+  timestamp: number;
+}
+
 const WorshipTimer: React.FC<WorshipTimerProps> = ({ 
   seconds, isRunning, selectedActivity, onToggle, onReset, onActivityChange, onApplyTime, isSync 
 }) => {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const syncRef = useRef<number | null>(null);
   const anonId = useRef(localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7));
 
@@ -53,7 +79,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      // إرسال نبضات القلب كل ثانيتين كما طلب المستخدم
       syncRef.current = window.setInterval(sendHeartbeat, 2000);
       sendHeartbeat();
     } else {
@@ -76,8 +101,23 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   };
 
   const handleApply = () => {
+    const mins = Math.floor(seconds / 60);
+    if (mins < 1) {
+      alert("يرجى قضاء دقيقة واحدة على الأقل قبل تسجيل الجلسة.");
+      return;
+    }
+    
+    // تسجيل الجلسة محلياً في القائمة المعروضة
+    const newSession: SessionRecord = {
+      id: Math.random().toString(36).substring(7),
+      activity: selectedActivity,
+      duration: mins,
+      timestamp: Date.now()
+    };
+    setSessions(prev => [newSession, ...prev]);
+
     sendStopSignal();
-    onApplyTime(selectedActivity, Math.floor(seconds / 60));
+    onApplyTime(selectedActivity, mins);
   };
 
   const formatTime = (totalSeconds: number) => {
@@ -93,38 +133,112 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     { id: 'readingDuration', label: 'قراءة عامة', icon: <BookOpen className="w-4 h-4" /> },
   ];
 
+  const getLabel = (id: string) => activities.find(a => a.id === id)?.label || "";
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-24">
       <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-slate-50">
           <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: isRunning ? `${(seconds % 60) * 1.66}%` : '0%' }} />
         </div>
+        
         {isRunning && (
-          <div className="absolute top-6 right-6 flex items-center gap-2 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
-            <Radio className="w-3 h-3 text-rose-500 animate-pulse" />
+          <div className="absolute top-6 right-6 flex items-center gap-2 bg-rose-50 px-3 py-1 rounded-full border border-rose-100 animate-pulse">
+            <Radio className="w-3 h-3 text-rose-500" />
             <span className="text-[10px] font-black text-rose-600 header-font tracking-tighter">Live Pulse</span>
           </div>
         )}
+
         <div className="absolute top-6 left-6">
           <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold ${!isSync ? 'text-slate-400 bg-slate-50' : syncStatus === 'error' ? 'text-rose-500 bg-rose-50' : 'text-emerald-600 bg-emerald-50'}`}>
             {isSync ? (syncStatus === 'sending' ? <Globe className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />) : <WifiOff className="w-3 h-3" />}
             {!isSync ? 'مزامنة معطلة' : syncStatus === 'sending' ? 'جاري الإرسال..' : 'متصل بالمحراب'}
           </div>
         </div>
-        <div className="text-8xl font-black font-mono text-emerald-900 mb-4 mt-8 tabular-nums tracking-tighter">{formatTime(seconds)}</div>
-        <p className="text-[11px] font-bold text-slate-400 header-font mb-10 uppercase tracking-widest">{isRunning ? 'العداد يسجل وردك الآن' : 'المؤقت متوقف'}</p>
+
+        {sessions.length > 0 && (
+          <div className="absolute top-16 right-1/2 translate-x-1/2 flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-100">
+            <CheckCircle2 className="w-3 h-3" />
+            <span className="text-[10px] font-black header-font">{sessions.length} جلسات منجزة</span>
+          </div>
+        )}
+
+        <div className="text-8xl font-black font-mono text-emerald-900 mb-4 mt-12 tabular-nums tracking-tighter transition-all duration-300 transform">
+          {formatTime(seconds)}
+        </div>
+        
+        <p className="text-[11px] font-bold text-slate-400 header-font mb-10 uppercase tracking-widest">
+          {isRunning ? 'العداد يسجل وردك الآن' : 'المؤقت متوقف'}
+        </p>
+
         <div className="grid grid-cols-2 gap-2 w-full mb-10">
           {activities.map(a => (
-            <button key={a.id} onClick={() => !isRunning && onActivityChange(a.id)} className={`flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all text-xs font-bold header-font ${selectedActivity === a.id ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg' : 'bg-slate-50 border-transparent text-slate-400'}`}>
+            <button 
+              key={a.id} 
+              disabled={isRunning}
+              onClick={() => onActivityChange(a.id)} 
+              className={`flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all text-xs font-bold header-font ${selectedActivity === a.id ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}
+            >
               {a.icon} <span className="truncate">{a.label}</span>
             </button>
           ))}
         </div>
+
         <div className="flex items-center gap-8">
-          <button onClick={handleReset} className="p-4 bg-slate-100 text-slate-400 rounded-2xl transition-all"><RotateCcw className="w-5 h-5" /></button>
-          <button onClick={handleToggle} className={`p-8 rounded-full shadow-2xl transition-all ${isRunning ? 'bg-amber-500 shadow-amber-200' : 'bg-emerald-600 shadow-emerald-200'}`}>{isRunning ? <Pause className="w-8 h-8 text-white fill-white" /> : <Play className="w-8 h-8 text-white fill-white ml-1" />}</button>
-          <button onClick={handleApply} className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl transition-all"><CheckCircle2 className="w-5 h-5" /></button>
+          <button onClick={handleReset} className="p-4 bg-slate-100 text-slate-400 rounded-2xl transition-all hover:bg-slate-200"><RotateCcw className="w-5 h-5" /></button>
+          <button onClick={handleToggle} className={`p-8 rounded-full shadow-2xl transition-all ${isRunning ? 'bg-amber-500 shadow-amber-200' : 'bg-emerald-600 shadow-emerald-200'} active:scale-95`}>
+            {isRunning ? <Pause className="w-8 h-8 text-white fill-white" /> : <Play className="w-8 h-8 text-white fill-white ml-1" />}
+          </button>
+          <button 
+            onClick={handleApply} 
+            className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl transition-all hover:bg-emerald-200 disabled:opacity-50"
+          >
+            <CheckCircle2 className="w-5 h-5" />
+          </button>
         </div>
+      </div>
+
+      {/* سجل الجلسات الحديثة */}
+      <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <History className="w-5 h-5 text-slate-400" />
+            <h3 className="text-sm font-black text-slate-800 header-font">جلساتك في هذا المحراب</h3>
+          </div>
+          <span className="text-[10px] text-slate-400 font-bold uppercase header-font">اليوم</span>
+        </div>
+
+        {sessions.length > 0 ? (
+          <div className="space-y-3">
+            {sessions.map((session) => (
+              <div key={session.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-emerald-100 transition-all group animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 rounded-xl">
+                    <Clock className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-700 header-font">{getLabel(session.activity)}</h4>
+                    <p className="text-[10px] text-slate-400 font-bold">
+                      {format(session.timestamp, 'hh:mm a', { locale: ar })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-sm font-black text-emerald-700 font-mono">+{session.duration}</span>
+                    <span className="text-[9px] text-slate-400 font-bold block header-font">دقيقة</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 px-4 border-2 border-dashed border-slate-100 rounded-3xl">
+            <p className="text-xs text-slate-300 font-bold header-font">لم تسجل أي جلسة بعد في هذه الزيارة</p>
+            <p className="text-[10px] text-slate-200 mt-1 header-font uppercase tracking-widest">ابدأ المؤقت وسجل مجهودك</p>
+          </div>
+        )}
       </div>
     </div>
   );

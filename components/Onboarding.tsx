@@ -79,8 +79,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     }
     
     setIsSaving(true);
-    const anonId = localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7);
-    localStorage.setItem('worship_anon_id', anonId);
+    // توليد ID مؤقت في حال كان مستخدماً جديداً كلياً
+    const tempId = localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7);
 
     try {
       const response = await fetch(GOOGLE_STATS_API, {
@@ -88,7 +88,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           action: 'registerUser', 
-          id: anonId,
+          id: tempId,
           name: formData.name,
           email: formData.email,
           age: formData.age,
@@ -100,19 +100,26 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.userSync && (data.userSync.existingLogs || data.userSync.existingUser)) {
+        if (data.userSync && data.userSync.existingUser) {
+          // هُنا السر: إذا وجدنا مستخدماً مسجلاً بالإيميل، نأخذ الـ ID القديم الخاص به
+          const globalId = data.userSync.existingUser.id || data.userSync.existingUser.ID || tempId;
+          localStorage.setItem('worship_anon_id', globalId);
+          
           const confirmed = window.confirm("وجدنا بيانات سابقة مرتبطة بهذا البريد. هل تريد استعادة تقدمك ونقاطك؟");
           if (confirmed) {
-            onComplete(data.userSync.existingUser || formData, data.userSync.existingLogs);
+            onComplete(data.userSync.existingUser, data.userSync.existingLogs);
             return;
           }
+        } else {
+          // مستخدم جديد، نعتمد الـ ID المؤقت كـ ID دائم
+          localStorage.setItem('worship_anon_id', tempId);
         }
       }
       
       setStep(3);
     } catch (error) {
       console.error("Sync error:", error);
-      // في حالة وجود إيميل صحيح، نسمح بالدخول حتى لو فشل السيرفر لضمان الأوفلاين
+      localStorage.setItem('worship_anon_id', tempId);
       setStep(3);
     } finally {
       setIsSaving(false);
@@ -121,7 +128,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* عناصر خلفية جمالية */}
       <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-emerald-500 rounded-full blur-[130px]"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-teal-500 rounded-full blur-[110px]"></div>
