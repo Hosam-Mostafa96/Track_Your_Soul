@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User as UserIcon, 
   ArrowRight, 
@@ -13,7 +13,9 @@ import {
   LogIn,
   ChevronRight,
   ShieldCheck,
-  Globe
+  Globe,
+  X,
+  Search
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
@@ -25,8 +27,10 @@ interface OnboardingProps {
 }
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
-  const [step, setStep] = useState(1); // 1: Select Method, 2: Fill Data, 3: Success
+  const [step, setStep] = useState(1); 
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   
   const [formData, setFormData] = useState<UserType>({
     name: '',
@@ -37,9 +41,24 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     method: 'email'
   });
 
-  const handleMethodSelect = (method: 'google' | 'email') => {
-    setFormData(prev => ({ ...prev, method }));
-    setStep(2);
+  const handleGoogleMethod = () => {
+    setIsAuthenticating(true);
+    // محاكاة تأخير فتح النافذة
+    setTimeout(() => {
+      setIsAuthenticating(false);
+      setShowGoogleModal(true);
+    }, 800);
+  };
+
+  const selectGoogleAccount = (email: string, name: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      email, 
+      name, 
+      method: 'google' 
+    }));
+    setShowGoogleModal(false);
+    setStep(2); // انتقل لإكمال البيانات الإضافية
   };
 
   const handleSubmitData = async (e: React.FormEvent) => {
@@ -54,24 +73,28 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     localStorage.setItem('worship_anon_id', anonId);
 
     try {
-      // إرسال البيانات إلى جوجل شيت
-      const response = await fetch(GOOGLE_STATS_API, {
+      // إرسال البيانات باستخدام ترويسة text/plain لتجنب مشاكل CORS مع Apps Script
+      await fetch(GOOGLE_STATS_API, {
         method: 'POST',
+        mode: 'no-cors', // مهم جداً عند التعامل مع Apps Script
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           action: 'registerUserFull',
           id: anonId,
-          ...formData,
+          name: formData.name,
+          email: formData.email,
+          age: formData.age,
+          country: formData.country,
+          qualification: formData.qualification,
+          method: formData.method,
           timestamp: new Date().toISOString()
         })
       });
-
-      if (!response.ok) throw new Error("Failed to sync");
       
+      // ننتقل للنجاح مباشرة لأن mode: no-cors لا يعيد استجابة مقروءة
       setStep(3);
     } catch (error) {
       console.error("Registration error:", error);
-      // ننتقل للخطوة التالية حتى لو فشل الاتصال لضمان تجربة مستخدم سلسة (أوفلاين)
       setStep(3);
     } finally {
       setIsSaving(false);
@@ -79,8 +102,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-[3rem] p-8 shadow-2xl relative overflow-hidden animate-in zoom-in duration-500">
+    <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* خلفية فنية */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-500 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-teal-500 rounded-full blur-[100px]"></div>
+      </div>
+
+      <div className="max-w-md w-full bg-white rounded-[3rem] p-8 shadow-2xl relative overflow-hidden animate-in zoom-in duration-500 z-10">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 rounded-full -translate-y-16 translate-x-16 opacity-50"></div>
         
         {/* الخطوة 1: اختيار طريقة التسجيل */}
@@ -96,11 +125,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
             <div className="space-y-3 pt-4">
               <button 
-                onClick={() => handleMethodSelect('google')}
-                className="w-full py-4 px-6 bg-white border border-slate-200 rounded-2xl font-bold header-font shadow-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 group"
+                onClick={handleGoogleMethod}
+                disabled={isAuthenticating}
+                className="w-full py-4 px-6 bg-white border border-slate-200 rounded-2xl font-bold header-font shadow-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 group relative overflow-hidden"
               >
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
-                <span className="text-slate-700">دخول سريع عبر جوجل</span>
+                {isAuthenticating ? (
+                  <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+                ) : (
+                  <>
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+                    <span className="text-slate-700">دخول سريع عبر جوجل</span>
+                  </>
+                )}
               </button>
 
               <div className="flex items-center gap-3 my-4">
@@ -110,7 +146,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               </div>
 
               <button 
-                onClick={() => handleMethodSelect('email')}
+                onClick={() => setStep(2)}
                 className="w-full py-4 px-6 bg-emerald-600 text-white rounded-2xl font-bold header-font shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 group"
               >
                 <Mail className="w-5 h-5" />
@@ -216,7 +252,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           <div className="space-y-6 animate-in zoom-in duration-300 flex flex-col items-center text-center">
             <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-4 relative">
               <CheckCircle className="w-16 h-16 text-emerald-500" />
-              <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-20"></div>
+              <div className="absolute inset-0 bg-emerald-400 rounded-full animate-pulse opacity-20"></div>
             </div>
             
             <h2 className="text-2xl font-black text-slate-800 header-font">تم القبول</h2>
@@ -239,6 +275,56 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           </div>
         )}
       </div>
+
+      {/* نافذة جوجل المنبثقة المحاكاة */}
+      {showGoogleModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl w-full max-w-[360px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <img src="https://www.gstatic.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" className="h-5" alt="Google" />
+                <span className="text-xs font-bold text-slate-500 header-font pt-1">تسجيل الدخول</span>
+              </div>
+              <button onClick={() => setShowGoogleModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-bold text-slate-800 header-font">اختيار حساب</h3>
+                <p className="text-xs text-slate-500 header-font">للمتابعة إلى تطبيق ميزان</p>
+              </div>
+
+              <div className="space-y-2">
+                <button 
+                  onClick={() => selectGoogleAccount('user@gmail.com', 'مستخدم جوجل')}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 text-right"
+                >
+                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center font-bold text-emerald-700">م</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-slate-800">مستخدم جوجل المفتوح</p>
+                    <p className="text-[10px] text-slate-500">user@gmail.com</p>
+                  </div>
+                </button>
+
+                <div className="h-px bg-slate-100 my-2"></div>
+
+                <button className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 text-right">
+                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+                    <UserIcon className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <div className="flex-1 text-sm font-bold text-slate-600">استخدام حساب آخر</div>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 text-[10px] text-slate-400 font-medium leading-relaxed px-6 text-center">
+              سيقوم Google بمشاركة اسمك وعنوان بريدك الإلكتروني وصورتك المفضلة مع تطبيق ميزان. قبل استخدام هذا التطبيق، يمكنك مراجعة سياسة الخصوصية.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

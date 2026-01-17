@@ -4,7 +4,9 @@ import {
   Star, Heart, Book, GraduationCap, Zap, 
   Target, Info, ArrowUpRight, ShieldAlert,
   Users, Sparkles, Clock, Sun, Flame,
-  Award, Home, Coins, Key, CloudMoon, MapPin
+  Award, Home, Coins, Key, CloudMoon, MapPin,
+  ListChecks, Activity, ScrollText, Tags,
+  BookOpen
 } from 'lucide-react';
 import { DEFAULT_WEIGHTS } from '../constants';
 
@@ -17,167 +19,178 @@ const WorshipGuide: React.FC = () => {
           <div className="p-2 bg-emerald-100 rounded-xl">
             <Target className="w-6 h-6 text-emerald-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 header-font">دليل إدارة العبادات والأوراد</h2>
+          <h2 className="text-xl font-bold text-slate-800 header-font">الدليل الشامل لنظام الميزان</h2>
         </div>
         <p className="text-sm text-slate-500 leading-relaxed header-font">
-          هذا النظام هو أسلوب لمحاسبة النفس يربط الأجر والمواظبة بالمشقة والزمن، مصمم ليشجعك على "حبس النفس" في طاعة الله والارتقاء بالأداء الروحي.
+          نظام الميزان هو أداة رقمية لمحاسبة النفس، تعتمد على تحويل الطاعات إلى "رصيد روحي" يعكس الجهد المبذول والوقت المستثمر في التقرب إلى الله.
         </p>
       </div>
 
-      {/* قسم أوسمة الأبرار */}
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-6">
-          <Award className="w-5 h-5 text-amber-500" />
-          <h3 className="font-bold text-slate-800 header-font text-lg">أوسمة الأبرار وشروطها</h3>
-        </div>
-        <div className="grid grid-cols-1 gap-4">
-          {[
-            {
-              title: 'بشرى الرؤية',
-              condition: 'صلاة الفجر في وقتها (جماعة أو منفرداً).',
-              icon: <Sun className="w-5 h-5 text-amber-500" />,
-              color: 'bg-amber-50 border-amber-100'
-            },
-            {
-              title: 'بيت في الجنة',
-              condition: 'أداء الـ ١٢ ركعة الراتبة (٢ قبل الفجر، ٤ قبل الظهر، ٢ بعده، ٢ بعد المغرب، ٢ بعد العشاء).',
-              icon: <Home className="w-5 h-5 text-emerald-600" />,
-              color: 'bg-emerald-50 border-emerald-100'
-            },
-            {
-              title: 'بعيد عن النار',
-              condition: 'تسجيل صيام يوم نافلة أو قضاء.',
-              icon: <Flame className="w-5 h-5 text-orange-500" />,
-              color: 'bg-orange-50 border-orange-100'
-            },
-            {
-              title: 'مفتاح الرزق',
-              condition: 'البدء بورد الاستغفار في عداد الأذكار.',
-              icon: <Coins className="w-5 h-5 text-blue-500" />,
-              color: 'bg-blue-50 border-blue-100'
-            },
-            {
-              title: 'مفتاح النجاح',
-              condition: 'ذكر "لا حول ولا قوة إلا بالله" في قسم الأذكار.',
-              icon: <Key className="w-5 h-5 text-indigo-500" />,
-              color: 'bg-indigo-50 border-indigo-100'
-            },
-            {
-              title: 'مفتاح القرب',
-              condition: 'الصلاة على النبي ﷺ في قسم الأذكار.',
-              icon: <Heart className="w-5 h-5 text-rose-500" />,
-              color: 'bg-rose-50 border-rose-100'
-            },
-            {
-              title: 'محبوب الرحمن',
-              condition: 'أداء صلاة الوتر (تسجيل دقيقة واحدة على الأقل).',
-              icon: <CloudMoon className="w-5 h-5 text-slate-600" />,
-              color: 'bg-slate-50 border-slate-200'
-            }
-          ].map((badge, idx) => (
-            <div key={idx} className={`flex gap-4 p-4 rounded-2xl border ${badge.color} transition-all`}>
-              <div className="bg-white p-3 rounded-xl shadow-sm self-start">
-                {badge.icon}
-              </div>
-              <div>
-                <h4 className="font-black text-slate-800 text-sm header-font mb-1">{badge.title}</h4>
-                <p className="text-[11px] text-slate-600 leading-relaxed font-bold header-font">{badge.condition}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* قاعدة الوقت */}
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-6">
-          <Clock className="w-5 h-5 text-emerald-500" />
-          <h3 className="font-bold text-slate-800 header-font text-lg">قاعدة الوقت (النوافل والأوراد)</h3>
-        </div>
-        <div className="space-y-4">
-          <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-bold text-emerald-900 header-font">قيام الليل، الضحى، الوتر</span>
-              <span className="text-lg font-black text-emerald-600 header-font">{DEFAULT_WEIGHTS.nawafilPerMin} نقطة/دقيقة</span>
-            </div>
-            <p className="text-[11px] text-emerald-700 font-bold header-font">
-              هذا هو "المحرك الأساسي" للنظام. كلما طال وقت وردك ووقوفك بين يدي الله، زاد رصيدك الروحي بشكل مطرد. 
-            </p>
-          </div>
-
-          <div className="bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-300">
-            <h4 className="text-[10px] font-black text-slate-500 mb-2 flex items-center gap-1">
-              <Flame className="w-3 h-3 text-orange-500" /> سر المضاعفة
-            </h4>
-            <p className="text-[11px] text-slate-600 leading-relaxed font-bold header-font">
-              عندما تؤدي وردك بالقرآن، فأنت تجمع بين نقاط الوقت ونقاط الورد. 
-              <br/>مثال: صلاة 20 دقيقة بـ ربعين = 100 (وقت) + 30 (قرآن) = <span className="text-emerald-600 text-sm">130 نقطة</span>.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* الفرائض والخشوع */}
+      {/* قسم الصلوات والخشوع */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6">
           <Star className="w-5 h-5 text-emerald-500" />
-          <h3 className="font-bold text-slate-800 header-font text-lg">الفرائض (الأساس المتين)</h3>
+          <h3 className="font-bold text-slate-800 header-font text-lg">الصلوات والخشوع</h3>
         </div>
-        
         <div className="space-y-4">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-bold text-slate-700 header-font">صلاة الجماعة (في المسجد)</span>
+              <span className="text-lg font-black text-emerald-600 font-mono">+{DEFAULT_WEIGHTS.fardCongregation}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-bold text-slate-700 header-font">صلاة المنفرد (أو بغير جماعة)</span>
+              <span className="text-lg font-black text-slate-400 font-mono">+{DEFAULT_WEIGHTS.fardSolo}</span>
+            </div>
+          </div>
+          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+            <h4 className="text-[10px] font-black text-amber-800 uppercase mb-2 header-font tracking-widest flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> مضاعف الخشوع (التأثير الأكبر)
+            </h4>
+            <p className="text-[11px] text-amber-700 leading-relaxed font-bold header-font">
+              الخشوع ليس رقماً ثابتاً بل نسبة تضاعف الأجر الأساسي للصلاة:
+              <br/>• حضور أدنى: <span className="text-emerald-600">0%</span> مضاعفة.
+              <br/>• خاشع جداً: <span className="text-emerald-600">+10%</span> زيادة.
+              <br/>• إحسان (كأنك تراه): <span className="text-emerald-600">+20%</span> زيادة على إجمالي الصلاة.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ورد القرآن الكريم */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-2 mb-6">
+          <Book className="w-5 h-5 text-emerald-500" />
+          <h3 className="font-bold text-slate-800 header-font text-lg">ورد القرآن الكريم</h3>
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5 text-emerald-600" />
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 header-font">الحفظ الجديد</h4>
+                <p className="text-[10px] text-emerald-600 font-bold">لكل ربع حزب</p>
+              </div>
+            </div>
+            <span className="text-xl font-black text-emerald-600 font-mono">+{DEFAULT_WEIGHTS.quranHifz}</span>
+          </div>
           <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
             <div className="flex items-center gap-3">
-              <Users className="w-5 h-5 text-emerald-600" />
-              <span className="text-sm font-bold text-slate-700 header-font">صلاة الجماعة</span>
+              <Activity className="w-5 h-5 text-slate-400" />
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 header-font">المراجعة والورد</h4>
+                <p className="text-[10px] text-slate-400 font-bold">لكل ربع حزب</p>
+              </div>
             </div>
-            <span className="text-lg font-black text-emerald-600 header-font">{DEFAULT_WEIGHTS.fardCongregation}</span>
+            <span className="text-xl font-black text-slate-600 font-mono">+{DEFAULT_WEIGHTS.quranRevision}</span>
           </div>
-
-          <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-amber-500" />
-              <span className="text-sm font-bold text-slate-700 header-font">السنن الرواتب (للركعة)</span>
-            </div>
-            <span className="text-lg font-black text-emerald-600 header-font">+{DEFAULT_WEIGHTS.sunnahRawatib}</span>
-          </div>
-        </div>
-
-        <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-100">
-          <h4 className="text-[10px] font-black text-amber-800 uppercase mb-2 header-font tracking-widest flex items-center gap-1">
-            <Info className="w-3 h-3" /> مضاعف الخشوع
-          </h4>
-          <p className="text-[11px] text-amber-700 leading-relaxed font-bold header-font">
-            الخشوع ليس إضافة بسيطة، بل هو "مضاعف" لإجمالي نقاط العبادة. الصلاة الخاشعة جداً تزيد قيمتها بنسبة تصل لـ <span className="text-amber-900">20%</span>.
-          </p>
         </div>
       </div>
 
-      {/* المجاهدة والعبء */}
-      <div className="bg-emerald-900 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-800 rounded-full -translate-y-16 translate-x-16 opacity-50"></div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-6">
-            <Zap className="w-5 h-5 text-yellow-400" />
-            <h3 className="font-bold header-font">عوامل البيئة النفسية</h3>
+      {/* الأذكار والتحصين */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-2 mb-6">
+          <ScrollText className="w-5 h-5 text-emerald-500" />
+          <h3 className="font-bold text-slate-800 header-font text-lg">الأذكار والتحصين</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="flex justify-between items-center mb-1">
+              <div className="flex items-center gap-2">
+                <ListChecks className="w-4 h-4 text-emerald-500" />
+                <span className="text-sm font-bold text-slate-700 header-font">قوائم الأذكار الكاملة</span>
+              </div>
+              <span className="text-lg font-black text-emerald-600 font-mono">+{DEFAULT_WEIGHTS.athkarChecklist}</span>
+            </div>
+            <p className="text-[9px] text-slate-400 font-bold mr-6">(صباح، مساء، نوم، سفر)</p>
           </div>
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-emerald-500" />
+                <span className="text-sm font-bold text-slate-700 header-font">عدادات الأذكار (لكل ١٠)</span>
+              </div>
+              <span className="text-lg font-black text-emerald-600 font-mono">+{DEFAULT_WEIGHTS.athkarCounter * 10}</span>
+            </div>
+            <p className="text-[9px] text-slate-400 font-bold mr-6">(استغفار، صلاة على النبي، حوقلة، تahlيل..)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* النوافل وطلب العلم */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-2 mb-6">
+          <Clock className="w-5 h-5 text-emerald-500" />
+          <h3 className="font-bold text-slate-800 header-font text-lg">النوافل والزمن</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-orange-500" />
+                <span className="text-sm font-bold text-slate-800 header-font">النوافل (قيام، ضحى، وتر)</span>
+              </div>
+              <span className="text-lg font-black text-emerald-600 font-mono">+{DEFAULT_WEIGHTS.nawafilPerMin}/د</span>
+            </div>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-bold">كل دقيقة تقضيها في صلاة النفل تمنحك ٥ نقاط. العبرة بطول الوقوف.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 text-center">
+              <GraduationCap className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+              <h4 className="text-[10px] font-black text-slate-700 header-font">العلم الشرعي</h4>
+              <span className="text-lg font-black text-purple-700 font-mono">+{DEFAULT_WEIGHTS.knowledgeShari}/د</span>
+            </div>
+            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-center">
+              <BookOpen className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+              <h4 className="text-[10px] font-black text-slate-700 header-font">القراءة العامة</h4>
+              <span className="text-lg font-black text-blue-700 font-mono">+{DEFAULT_WEIGHTS.knowledgeGeneral}/د</span>
+            </div>
+          </div>
+          
+          <div className="p-4 bg-orange-500 text-white rounded-2xl shadow-lg shadow-orange-100 flex justify-between items-center">
+             <div className="flex items-center gap-2">
+               <Sun className="w-5 h-5" />
+               <span className="text-sm font-bold header-font">صيام يوم كامل</span>
+             </div>
+             <span className="text-lg font-black font-mono">+{DEFAULT_WEIGHTS.fastingDay}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* السنن المخصصة والعوامل البيئية */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-2 mb-6">
+          <Tags className="w-5 h-5 text-emerald-500" />
+          <h3 className="font-bold text-slate-800 header-font text-lg">السنن المخصصة والمجاهدة</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-2xl">
+            <h4 className="text-sm font-bold text-slate-700 mb-2 header-font">السنن المخصصة</h4>
+            <p className="text-[11px] text-slate-500 leading-relaxed font-bold">يمكنك إضافة عاداتك الخاصة (مثل بر الوالدين، صلة رحم) وتحديد نقاط لكل منها في "الإعدادات".</p>
+          </div>
+          
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/10 p-4 rounded-2xl border border-white/10">
-              <Heart className="w-5 h-5 text-rose-400 mb-2" />
-              <h4 className="text-[10px] font-bold uppercase mb-1 header-font">المجاهدة</h4>
-              <p className="text-[11px] leading-relaxed opacity-80 font-bold">تزيد إجمالي اليوم بنسبة <span className="font-black text-white">10%</span> تقديراً لصعوبة الظرف.</p>
+            <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
+              <Zap className="w-5 h-5 text-rose-500 mb-2" />
+              <h4 className="text-[10px] font-bold text-rose-800 uppercase header-font">معامل المجاهدة</h4>
+              <p className="text-[11px] text-rose-700 font-bold">+5% أو +10% زيادة على إجمالي نقاط اليوم تقديراً للجهد في الظروف الصعبة.</p>
             </div>
-            <div className="bg-white/10 p-4 rounded-2xl border border-white/10">
-              <ShieldAlert className="w-5 h-5 text-amber-400 mb-2" />
-              <h4 className="text-[10px] font-bold uppercase mb-1 header-font">العبء الروحي</h4>
-              <p className="text-[11px] leading-relaxed opacity-80 font-bold">تخصم من الإجمالي <span className="font-black text-white">20%</span> للتنبيه بوجود تقصير يحتاج علاج.</p>
+            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+              <ShieldAlert className="w-5 h-5 text-amber-500 mb-2" />
+              <h4 className="text-[10px] font-bold text-amber-800 uppercase header-font">العبء الروحي</h4>
+              <p className="text-[11px] text-amber-700 font-bold">-20% خصم من إجمالي اليوم في حال الشعور بالتقصير أو الذنب لغرض التنبيه.</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="text-center p-4">
-        <p className="text-[10px] text-slate-400 font-bold header-font">
-          "تذكر أن هذا النظام وسيلة للتحفيز، والقبول عند الله وحده سبحانه."
+      <div className="text-center p-8 bg-slate-900 text-white rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10">
+          <Sparkles className="w-full h-full" />
+        </div>
+        <p className="text-xs font-bold header-font leading-relaxed relative z-10">
+          "إنما الأعمال بالنيات، وهذا الميزان هو أداة لمساعدتك على رؤية تقدمك، لكن القبول والمضاعفة هما من فضل الله الواسع سبحانه."
         </p>
       </div>
     </div>

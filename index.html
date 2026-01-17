@@ -27,20 +27,22 @@
             background-color: #f8fafc;
             margin: 0;
             -webkit-font-smoothing: antialiased;
-            /* منع السحب لأسفل لتحديث الصفحة في تطبيقات الموبايل */
             overscroll-behavior-y: contain;
         }
         .header-font { font-family: 'Cairo', sans-serif; }
         .quran-font { font-family: 'Amiri', serif; }
-        /* إخفاء شريط التمرير للمتصفحات */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* تحسين مظهر التطبيق عند تثبيته */
+        @keyframes google-pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.05); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-google { animation: google-pulse 2s infinite ease-in-out; }
+
         @media all and (display-mode: standalone) {
-          body {
-            padding-top: env(safe-area-inset-top);
-          }
+          body { padding-top: env(safe-area-inset-top); }
         }
     </style>
 <script type="importmap">

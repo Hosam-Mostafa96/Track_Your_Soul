@@ -61,7 +61,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'timer' | 'stats' | 'patterns' | 'leaderboard' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
+  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'stats' | 'patterns' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -211,10 +211,10 @@ const App: React.FC = () => {
         {[
           {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
           {id: 'entry', icon: PenLine, label: 'تسجيل'},
+          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
           {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
           {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
           {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
-          {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
           {id: 'notes', icon: NotebookPen, label: 'يوميات'}
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
