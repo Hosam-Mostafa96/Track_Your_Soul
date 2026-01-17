@@ -8,10 +8,7 @@ import {
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
-// Fix: Use individual imports for subDays and addDays to resolve 'no exported member' error
-import { format } from 'date-fns';
-import subDays from 'date-fns/subDays';
-import addDays from 'date-fns/addDays';
+import { format, subDays, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 interface DailyEntryProps {
@@ -84,7 +81,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
       ...weights,
       customSunnahs: (weights.customSunnahs || []).filter(s => s.id !== id)
     });
-    // أيضاً يجب إزالتها من تسجيل اليوم الحالي إذا كانت مختارة
     if (log.customSunnahIds.includes(id)) {
       onUpdate({ ...log, customSunnahIds: log.customSunnahIds.filter(cid => cid !== id) });
     }
@@ -140,7 +136,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
-      {/* منتقي التاريخ الذكي */}
       <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-4">
         <button 
           onClick={() => onDateChange(format(subDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))}
@@ -176,7 +171,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         </button>
       </div>
 
-      {/* قسم الصلاة والسنن الرواتب */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -255,7 +249,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         </div>
       </div>
 
-      {/* قسم السنن المخصصة المحدث */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">

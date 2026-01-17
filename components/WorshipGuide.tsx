@@ -2,9 +2,11 @@
 import React from 'react';
 import { 
   Star, Heart, Book, GraduationCap, Zap, 
-  Target, Info, Clock, Sun, Flame,
-  Award, Home, Coins, Key, CloudMoon, ListChecks,
-  Activity, BookOpen, Users, MapPin, Sparkles
+  Target, Clock, Sun, Flame,
+  Award, Home, Coins, Key, CloudMoon, 
+  Activity, BookOpen, Users, MapPin, Sparkles,
+  ShieldCheck, UserCheck, HeartHandshake, Smile,
+  HandMetal, TreePine
 } from 'lucide-react';
 import { DEFAULT_WEIGHTS } from '../constants';
 
@@ -33,21 +35,20 @@ const WorshipGuide: React.FC = () => {
           <h2 className="text-xl font-bold text-slate-800 header-font">دليل ميزان العبادات الشامل</h2>
         </div>
         <p className="text-sm text-slate-500 leading-relaxed header-font">
-          هذا الدليل يوضح لك كيف يحسب النظام نقاطك الروحية بناءً على الأوزان الافتراضية. تذكر أنك تستطيع تخصيص هذه الأوزان من صفحة "الملف الشخصي".
+          هذا الدليل يوضح لك كيف يحسب النظام نقاطك الروحية بناءً على الأوزان الافتراضية لكل عمل صالح.
         </p>
       </div>
 
       {/* الفرائض والصلوات */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <SectionHeader icon={Star} title="الفرائض والسنن" color="emerald" />
+        <SectionHeader icon={Star} title="الفرائض والصلوات" color="emerald" />
         <div className="space-y-2">
           <PointRow label="صلاة الفريضة (في جماعة)" points={DEFAULT_WEIGHTS.fardCongregation} />
           <PointRow label="صلاة الفريضة (منفرداً)" points={DEFAULT_WEIGHTS.fardSolo} />
-          <PointRow label="السنة الراتبة (للركعتين)" points={DEFAULT_WEIGHTS.sunnahRawatib} />
-          <PointRow label="ترديد الأذان ودعاء الأذان" points={50} />
+          <PointRow label="السنة الراتبة (للواحدة)" points={DEFAULT_WEIGHTS.sunnahRawatib} />
+          <PointRow label="ترديد الأذان" points={50} />
           <PointRow label="التبكير للمسجد والصف الأول" points={100} />
-          <PointRow label="إسباغ الوضوء" points={50} />
-          <PointRow label="أذكار ما بعد الصلاة" points={100} />
+          <PointRow label="ختم الصلاة (الأذكار)" points={100} />
         </div>
       </div>
 
@@ -57,50 +58,74 @@ const WorshipGuide: React.FC = () => {
         <div className="space-y-2">
           <PointRow label="حفظ جديد (لكل ربع)" points={DEFAULT_WEIGHTS.quranHifz} />
           <PointRow label="مراجعة ورد (لكل ربع)" points={DEFAULT_WEIGHTS.quranRevision} />
-          <p className="text-[10px] text-slate-400 font-bold p-2 bg-slate-50 rounded-lg mt-2 header-font">
-            * الربع هو (حزب ÷ 8). الالتزام بالورد اليومي هو مفتاح التثبيت.
-          </p>
         </div>
       </div>
 
-      {/* الأذكار والتحصين */}
+      {/* الأذكار */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <SectionHeader icon={Activity} title="الأذكار والتحصين" color="rose" />
+        <SectionHeader icon={Activity} title="الأذكار اليومية" color="rose" />
         <div className="space-y-2">
           <PointRow label="أذكار الصباح / المساء (كاملة)" points={DEFAULT_WEIGHTS.athkarChecklist} />
           <PointRow label="أذكار النوم / السفر (كاملة)" points={DEFAULT_WEIGHTS.athkarChecklist} />
-          <PointRow label="الذكر (لكل ١٠ عدات)" points={DEFAULT_WEIGHTS.athkarCounter} />
-          <p className="text-[10px] text-slate-400 font-bold p-2 bg-slate-50 rounded-lg mt-2 header-font">
-            * يشمل العداد: الصلاة على النبي ﷺ، الاستغفار، الحوقلة، والتسبيح.
-          </p>
+          <PointRow label="الذكر المفتوح (لكل ١٠ عدات)" points={DEFAULT_WEIGHTS.athkarCounter} />
         </div>
       </div>
 
-      {/* العلم والنوافل */}
+      {/* النوافل والعلم */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <SectionHeader icon={Clock} title="الوقت والنوافل" color="blue" />
+        <SectionHeader icon={Clock} title="النوافل وطلب العلم" color="blue" />
         <div className="space-y-2">
-          <PointRow label="قيام الليل / الضحى" points={DEFAULT_WEIGHTS.nawafilPerMin} unit="نقطة/دقيقة" />
+          <PointRow label="قيام الليل / الضحى / الوتر" points={DEFAULT_WEIGHTS.nawafilPerMin} unit="نقطة/دقيقة" />
           <PointRow label="طلب العلم الشرعي" points={DEFAULT_WEIGHTS.knowledgeShari} unit="نقطة/دقيقة" />
           <PointRow label="القراءة العامة والاطلاع" points={DEFAULT_WEIGHTS.knowledgeGeneral} unit="نقطة/دقيقة" />
           <PointRow label="صيام يوم كامل" points={DEFAULT_WEIGHTS.fastingDay} />
         </div>
       </div>
 
-      {/* مضاعفات الجهد */}
+      {/* العبادات الاجتماعية والسنن المخصصة */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <SectionHeader icon={HeartHandshake} title="المعاملات والسنن المخصصة" color="purple" />
+        <div className="space-y-4">
+          <p className="text-[10px] text-slate-400 font-bold header-font mb-2">يمكنك إضافة هذه الأعمال الصالحة في قسم "سنن مخصصة":</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              { label: "بر الوالدين", icon: <UserCheck className="w-4 h-4" /> },
+              { label: "صلة الرحم", icon: <Users className="w-4 h-4" /> },
+              { label: "صدقة سر / علن", icon: <Coins className="w-4 h-4" /> },
+              { label: "إماطة الأذى", icon: <TreePine className="w-4 h-4" /> },
+              { label: "تبسم في وجه أخيك", icon: <Smile className="w-4 h-4" /> },
+              { label: "قضاء حاجة مسلم", icon: <HandMetal className="w-4 h-4" /> }
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2 p-2 bg-purple-50 rounded-xl border border-purple-100">
+                <span className="text-purple-600">{item.icon}</span>
+                <span className="text-[10px] font-bold text-purple-900 header-font">{item.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-500 leading-relaxed font-bold bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
+            * السنن المخصصة تمنحك نقاطاً إضافية تحددها أنت (الافتراضي ٥٠ نقطة للعمل الواحد).
+          </p>
+        </div>
+      </div>
+
+      {/* معاملات الجهد والخشوع */}
       <div className="bg-emerald-900 text-white rounded-[2rem] p-6 shadow-lg">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-5 h-5 text-yellow-400" />
-          <h3 className="font-bold header-font">أسرار مضاعفة الأجر</h3>
+          <h3 className="font-bold header-font">مضاعفات الإخلاص والجهد</h3>
         </div>
         <div className="space-y-4">
           <div className="bg-white/10 p-4 rounded-2xl border border-white/10">
-            <h4 className="text-xs font-black mb-1 header-font">١. مضاعف الخشوع</h4>
-            <p className="text-[10px] opacity-70 leading-relaxed font-bold">كلما زاد حضور قلبك في الصلاة، زادت قيمة الفريضة بنسبة تصل لـ ٢٠٪.</p>
+            <h4 className="text-xs font-black mb-1 header-font">١. معامل الخشوع (حتى +٢٠٪)</h4>
+            <p className="text-[10px] opacity-70 leading-relaxed font-bold">كلما ارتفع خشوعك في الصلاة، زادت النقاط المحتسبة لتلك الفريضة.</p>
           </div>
           <div className="bg-white/10 p-4 rounded-2xl border border-white/10">
-            <h4 className="text-xs font-black mb-1 header-font">٢. معامل المجاهدة</h4>
-            <p className="text-[10px] opacity-70 leading-relaxed font-bold">أداء العبادة في وقت المشقة أو الانشغال يزيد إجمالي نقاطك اليومية بنسبة ١٠٪.</p>
+            <h4 className="text-xs font-black mb-1 header-font">٢. معامل المجاهدة (+٥٪ أو +١٠٪)</h4>
+            <p className="text-[10px] opacity-70 leading-relaxed font-bold">عندما تؤدي وردك رغم التعب أو الانشغال، يضرب إجمالي نقاطك اليومية في هذا المعامل.</p>
+          </div>
+          <div className="bg-rose-500/20 p-4 rounded-2xl border border-rose-500/30">
+            <h4 className="text-xs font-black mb-1 header-font text-rose-300">٣. العبء الروحي (-٢٠٪)</h4>
+            <p className="text-[10px] opacity-70 leading-relaxed font-bold">في حالات الفتور الشديد أو التقصير المتعمد، يقلل النظام النقاط لتنبيهك بضرورة العودة.</p>
           </div>
         </div>
       </div>
