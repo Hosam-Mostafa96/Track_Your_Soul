@@ -121,7 +121,7 @@ const App: React.FC = () => {
         } catch (e) {
           console.error("Cloud Sync Error:", e);
         }
-      }, 2500); 
+      }, 2500); // تم التعديل إلى 2.5 ثانية لسرعة المزامنة
       return () => clearTimeout(timeout);
     }
   }, [logs, isGlobalSyncEnabled, user?.email]);
@@ -192,7 +192,7 @@ const App: React.FC = () => {
     { id: 'patterns', label: 'أنماط', icon: <Combine className="w-5 h-5" /> },
     { id: 'profile', label: 'حسابي', icon: <UserCircle className="w-5 h-5" /> },
     { id: 'guide', label: 'دليل', icon: <Info className="w-5 h-5" /> },
-    { id: 'contact', label: 'تواصل', icon: <MessageCircle className="w-5 h-5" />, hasNotification: true },
+    { id: 'contact', label: 'تواصل', icon: <MessageCircle className="w-5 h-5" /> },
   ];
 
   return (
@@ -200,13 +200,8 @@ const App: React.FC = () => {
       {/* Mobile Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between lg:hidden">
         <h1 className="font-black text-emerald-700 header-font text-xl">ميزان</h1>
-        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-slate-500 relative">
-          {isMenuOpen ? <CloseIcon className="w-6 h-6" /> : (
-            <>
-              <Menu className="w-6 h-6" />
-              <div className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full border border-white"></div>
-            </>
-          )}
+        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-slate-500">
+          {isMenuOpen ? <CloseIcon className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </header>
 
@@ -224,14 +219,9 @@ const App: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => { setActiveTab(item.id); setIsMenuOpen(false); }}
-                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all relative ${activeTab === item.id ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all ${activeTab === item.id ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
               >
                 {item.icon}
-                {item.hasNotification && (
-                  <div className="absolute top-3 right-3 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white animate-bounce">
-                    1
-                  </div>
-                )}
                 <span className="text-xs font-bold header-font">{item.label}</span>
               </button>
             ))}
@@ -324,12 +314,9 @@ const App: React.FC = () => {
           ))}
           <button
             onClick={() => setIsMenuOpen(true)}
-            className="flex flex-col items-center gap-1 text-slate-400 relative"
+            className="flex flex-col items-center gap-1 text-slate-400"
           >
             <Menu className="w-5 h-5" />
-            <div className="absolute top-[-2px] right-2 bg-rose-500 text-white text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white">
-              1
-            </div>
             <span className="text-[10px] font-bold header-font">المزيد</span>
           </button>
         </div>
