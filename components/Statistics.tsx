@@ -6,13 +6,13 @@ import {
   BookOpen, 
   Clock, 
   Flame, 
-  FileSpreadsheet,
+  CloudIcon,
   Loader2,
   Layers,
   Zap,
   Activity,
   Target,
-  CalendarDays
+  CloudUpload
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -59,11 +59,13 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
     });
     let counts = { prayers: 0, quran: 0, knowledge: 0, fasting: 0, dhikr: 0 };
     periodLogs.forEach(log => {
-      counts.prayers += Object.values(log.prayers).filter(p => (p as PrayerEntry).performed).length;
+      // Fix: Explicitly cast Object.values to PrayerEntry[] to resolve TS 'unknown' property access errors
+      counts.prayers += (Object.values(log.prayers) as PrayerEntry[]).filter(p => p.performed).length;
       counts.quran += (log.quran.hifzRub + log.quran.revisionRub);
       counts.knowledge += (log.knowledge.shariDuration + log.knowledge.readingDuration) / 30;
       counts.fasting += log.nawafil.fasting ? 10 : 0;
-      counts.dhikr += Object.values(log.athkar.counters).reduce((a, b) => a + (b as number), 0) / 100;
+      // Fix: Explicitly cast Object.values to number[] to resolve TS 'unknown' error in reduce accumulator
+      counts.dhikr += (Object.values(log.athkar.counters) as number[]).reduce((a, b) => a + b, 0) / 100;
     });
     const max = Math.max(...Object.values(counts), 1);
     return [
@@ -84,11 +86,13 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
       if (log) {
         switch (activityFilter) {
           case 'all': isConnected = calculateTotalScore(log, weights) > 0; break;
-          case 'prayers': isConnected = Object.values(log.prayers).some(p => p.performed); break;
+          // Fix: Cast result of Object.values to PrayerEntry[] to resolve 'unknown' type error in some()
+          case 'prayers': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.performed); break;
           case 'quran': isConnected = (log.quran.hifzRub + log.quran.revisionRub) > 0; break;
           case 'knowledge': isConnected = (log.knowledge.shariDuration + log.knowledge.readingDuration) > 0; break;
           case 'fasting': isConnected = log.nawafil.fasting; break;
-          case 'athkar': isConnected = Object.values(log.athkar.checklists).some(v => v) || Object.values(log.athkar.counters).some(v => v > 0); break;
+          // Fix: Cast result of Object.values to boolean[] and number[] to resolve 'unknown' type errors and comparison issues
+          case 'athkar': isConnected = (Object.values(log.athkar.checklists) as boolean[]).some(v => v) || (Object.values(log.athkar.counters) as number[]).some(v => v > 0); break;
         }
       }
       const activeColor = { all: 'bg-emerald-500', prayers: 'bg-blue-500', quran: 'bg-amber-500', knowledge: 'bg-purple-500', fasting: 'bg-orange-500', athkar: 'bg-rose-500' }[activityFilter];
@@ -96,13 +100,27 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
     });
   }, [logs, weights, activityFilter]);
 
-  const handleExport = async () => {
+  const handleCloudBackup = async () => {
+    if (!user?.email) return;
     setIsExporting(true);
     try {
-      const anonId = localStorage.getItem('mizan_anon_id') || Math.random().toString(36).substring(7);
-      await fetch(GOOGLE_STATS_API, { method: 'POST', body: JSON.stringify({ action: 'exportData', id: anonId, userName: user?.name, data: (Object.values(logs) as DailyLog[]).map(l => ({ التاريخ: l.date, النقاط: calculateTotalScore(l, weights) })) }) });
-      alert("تم التصدير بنجاح");
-    } catch (e) { alert("فشل التصدير"); } finally { setIsExporting(false); }
+      const email = user.email.toLowerCase().trim();
+      await fetch(GOOGLE_STATS_API, { 
+        method: 'POST', 
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ 
+          action: 'syncLogs', 
+          email: email, 
+          logs: JSON.stringify(logs) 
+        }) 
+      });
+      alert("تم حفظ نسخة احتياطية سحابية لجميع سجلاتك بنجاح.");
+    } catch (e) { 
+      alert("حدث خطأ أثناء المزامنة، يرجى التحقق من الاتصال."); 
+    } finally { 
+      setIsExporting(false); 
+    }
   };
 
   return (
@@ -115,7 +133,15 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
             <p className="text-[10px] text-slate-400 font-bold uppercase header-font">أنماط الاتصال والانقطاع</p>
           </div>
         </div>
-        <button onClick={handleExport} disabled={isExporting} className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all">{isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5" />}</button>
+        <button 
+          onClick={handleCloudBackup} 
+          disabled={isExporting} 
+          title="نسخة احتياطية سحابية"
+          className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all flex flex-col items-center gap-1"
+        >
+          {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CloudUpload className="w-5 h-5" />}
+          <span className="text-[7px] font-bold header-font">مزامنة</span>
+        </button>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">

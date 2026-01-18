@@ -32,7 +32,8 @@ interface WorshipPatternsProps {
 const WorshipPatterns: React.FC<WorshipPatternsProps> = ({ logs, weights }) => {
   // 1. تحليل الكثافة الروحية (النقاط مقابل الوقت)
   const scatterData = useMemo(() => {
-    return Object.values(logs).map(log => {
+    // Fix: Cast Object.values to DailyLog[] to resolve 'unknown' property access errors on log objects
+    return (Object.values(logs) as DailyLog[]).map(log => {
       const totalMinutes = 
         log.knowledge.shariDuration + 
         log.knowledge.readingDuration + 
@@ -59,7 +60,8 @@ const WorshipPatterns: React.FC<WorshipPatternsProps> = ({ logs, weights }) => {
       high: [] as number[]
     };
 
-    Object.values(logs).forEach(log => {
+    // Fix: Cast Object.values to DailyLog[] to resolve 'unknown' type errors during iteration
+    (Object.values(logs) as DailyLog[]).forEach(log => {
       const score = calculateTotalScore(log, weights);
       if (log.jihadFactor === 1.0) groups.normal.push(score);
       else if (log.jihadFactor === 1.05) groups.struggle.push(score);
