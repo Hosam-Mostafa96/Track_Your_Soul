@@ -61,7 +61,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
             }) 
         });
         setSyncStatus('success');
-        setTimeout(() => setSyncStatus('idle'), 500);
+        setTimeout(() => setSyncStatus('idle'), 300);
     } catch (e) { setSyncStatus('error'); }
   };
 
@@ -78,7 +78,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning && isSync) {
-      syncRef.current = window.setInterval(sendHeartbeat, 2500);
+      // تعديل التردد ليصبح كل 1 ثانية بدلاً من 2.5 ثانية
+      syncRef.current = window.setInterval(sendHeartbeat, 1000);
       sendHeartbeat();
     } else {
       if (syncRef.current) {
