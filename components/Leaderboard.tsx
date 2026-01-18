@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Hash } from 'lucide-react';
+import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Hash, Users } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -56,6 +56,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           const myEmail = user.email.toLowerCase().trim();
           const myIdx = sortedUnique.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
           
+          // تعرض أفضل 50 اسماً للمنافسة القوية
           setGlobalTop(sortedUnique.slice(0, 50));
           
           if (myIdx !== -1) {
@@ -149,9 +150,15 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Crown className="w-5 h-5 text-yellow-500" />
-            <h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">صفوة المتسابقين</h3>
+            <h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">أفضل ٥٠ مصلٍ عالمياً</h3>
           </div>
-          {isLoading && <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />}
+          <div className="flex items-center gap-2">
+            {isLoading && <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />}
+            <div className="bg-slate-100 px-2 py-1 rounded-lg flex items-center gap-1">
+              <Users className="w-3 h-3 text-slate-400" />
+              <span className="text-[10px] font-bold text-slate-500">{globalTop.length}</span>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-3">
