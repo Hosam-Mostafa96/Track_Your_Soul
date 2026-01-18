@@ -135,7 +135,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <div className="p-5 bg-emerald-50 rounded-[2rem] mb-4">
                 <Sparkles className="w-12 h-12 text-emerald-600" />
               </div>
-              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">مرحباً بك في ميزان</h1>
+              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">مرحباً بك في تطبيق إدارة العبادات والأوراد</h1>
               <p className="text-xs text-slate-500 font-bold header-font uppercase tracking-widest leading-relaxed">بوابتك للارتقاء الروحي ومحاسبة النفس</p>
             </div>
 

@@ -46,12 +46,19 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const [syncStatus, setSyncStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const syncRef = useRef<number | null>(null);
+  const lastSentRef = useRef<number>(0);
 
   const sendHeartbeat = async () => {
     if (!isSync || !isRunning || !userEmail) return;
+    
+    // منع الإرسال المتكرر جداً في حال إعادة الرندر
+    const now = Date.now();
+    if (now - lastSentRef.current < 1500) return; 
+    lastSentRef.current = now;
+
     setSyncStatus('sending');
     try {
-        await fetch(GOOGLE_STATS_API, { 
+        const response = await fetch(GOOGLE_STATS_API, { 
             method: 'POST', 
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ 
@@ -60,9 +67,15 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
               email: userEmail 
             }) 
         });
-        setSyncStatus('success');
-        setTimeout(() => setSyncStatus('idle'), 300);
-    } catch (e) { setSyncStatus('error'); }
+        if (response.ok) {
+          setSyncStatus('success');
+          setTimeout(() => setSyncStatus('idle'), 500);
+        } else {
+          setSyncStatus('error');
+        }
+    } catch (e) { 
+      setSyncStatus('error'); 
+    }
   };
 
   const sendStopSignal = async () => {
@@ -77,17 +90,24 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   };
 
   useEffect(() => {
-    if (isRunning && isSync) {
-      // تعديل التردد ليصبح كل 1 ثانية بدلاً من 2.5 ثانية
-      syncRef.current = window.setInterval(sendHeartbeat, 1000);
+    if (isRunning && isSync && userEmail) {
+      // 2 ثانية هي المدة المثالية لضمان استقرار الخدمة المجانية من جوجل
+      syncRef.current = window.setInterval(sendHeartbeat, 2000);
       sendHeartbeat();
     } else {
       if (syncRef.current) {
         clearInterval(syncRef.current);
+        syncRef.current = null;
         sendStopSignal(); 
       }
     }
-    return () => { if (syncRef.current) clearInterval(syncRef.current); };
+    
+    return () => { 
+      if (syncRef.current) {
+        clearInterval(syncRef.current);
+        syncRef.current = null;
+      }
+    };
   }, [isRunning, isSync, selectedActivity, userEmail]);
 
   const handleToggle = () => {

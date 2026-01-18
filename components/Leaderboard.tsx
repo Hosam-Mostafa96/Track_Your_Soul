@@ -66,7 +66,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             setUserRank(null);
           }
           
-          if (data.stats) setLiveStats(data.stats);
+          // تحديث الإحصائيات فقط إذا كانت موجودة ولا تسبب تصفير مفاجئ
+          if (data.stats) {
+            setLiveStats(data.stats);
+          }
           setHasError(false);
         }
       } else {
@@ -82,7 +85,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 2500); 
+    // تقليل وتيرة التحديث لتجنب الضغط على السيرفر (3 ثوانٍ)
+    const interval = setInterval(() => fetchGlobalData(true), 3000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
@@ -189,7 +193,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           </div>
           <div className="flex items-center gap-2">
             {isLoading && <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />}
-            <div className="bg-slate-50 px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-slate-100">
+            <div className="bg-slate-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-slate-100">
               <Users className="w-3 h-3 text-slate-400" />
               <span className="text-[10px] font-black text-slate-500">{globalTop.length}</span>
             </div>
