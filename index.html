@@ -21,14 +21,6 @@
     <!-- تحميل التنسيقات والخطوط -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-    <script>
-      // منع الوميض الأبيض عند تحميل الوضع الليلي
-      if (localStorage.getItem('worship_theme') === 'dark' || (!localStorage.getItem('worship_theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    </script>
     <style>
         body {
             font-family: 'IBM Plex Sans Arabic', sans-serif;
@@ -36,9 +28,6 @@
             margin: 0;
             -webkit-font-smoothing: antialiased;
             overscroll-behavior-y: contain;
-        }
-        .dark body {
-            background-color: #020617; /* slate-950 */
         }
         .header-font { font-family: 'Cairo', sans-serif; }
         .quran-font { font-family: 'Amiri', serif; }

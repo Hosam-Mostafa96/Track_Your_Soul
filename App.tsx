@@ -27,8 +27,10 @@ import DailyEntry from './DailyEntry';
 import WorshipHistory from './components/WorshipHistory';
 import WorshipGuide from './components/WorshipGuide';
 import WorshipTimer from './components/WorshipTimer';
+import Reflections from './components/Reflections';
 import UserProfile from './components/UserProfile';
 import Leaderboard from './components/Leaderboard';
+import ContactUs from './components/ContactUs';
 import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
 import WorshipPatterns from './components/WorshipPatterns';
@@ -61,7 +63,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'stats' | 'patterns' | 'guide' | 'history' | 'profile';
+  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'stats' | 'patterns' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -70,30 +72,6 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  // إدارة الوضع الليلي
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('worship_theme');
-    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(prev => {
-      const newVal = !prev;
-      if (newVal) {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('worship_theme', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('worship_theme', 'light');
-      }
-      return newVal;
-    });
-  };
 
   // منطق المؤقت المتقدم (يعمل حتى والجهاز مقفل)
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -105,7 +83,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isTimerRunning) {
+      // تسجيل وقت البداية (الطابع الزمني الحالي بالملي ثانية)
       startTimeRef.current = Date.now();
+      
       timerIntervalRef.current = window.setInterval(() => {
         if (startTimeRef.current !== null) {
           const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
@@ -117,12 +97,15 @@ const App: React.FC = () => {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
+      // حفظ الثواني التي تم جمعها قبل الإيقاف
       accumulatedSecondsRef.current = timerSeconds;
       startTimeRef.current = null;
     }
+    
     return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
   }, [isTimerRunning]);
 
+  // تحديث العداد فور عودة المستخدم للتطبيق (في حال كان مقفلاً)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isTimerRunning && startTimeRef.current !== null) {
@@ -142,6 +125,7 @@ const App: React.FC = () => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
   };
 
+  // مزامنة سريعة (كل 2.5 ثانية)
   useEffect(() => {
     if (isGlobalSyncEnabled && user?.email && Object.keys(logs).length > 0) {
       const timeout = setTimeout(async () => {
@@ -227,13 +211,15 @@ const App: React.FC = () => {
     {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
     {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
     {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-    {id: 'patterns', icon: TrendingUp, label: 'الأنماط'}
+    {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
+    {id: 'notes', icon: NotebookPen, label: 'يوميات'},
+    {id: 'contact', icon: Mail, label: 'تواصل', hasNotification: true}
   ];
 
   return (
-    <div className="min-h-screen pb-32 bg-slate-50 dark:bg-slate-950 text-right transition-colors duration-300" dir="rtl">
-      <header className="bg-emerald-800 dark:bg-emerald-950 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden transition-colors">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 dark:bg-emerald-900 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
+    <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
+      <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="w-full flex justify-between items-start mb-4 gap-4">
             <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
@@ -241,6 +227,10 @@ const App: React.FC = () => {
             </button>
             <h1 className="text-xl md:text-2xl font-bold header-font">إدارة العبادات والأوراد</h1>
             <div className="flex gap-2">
+              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative">
+                <Mail className="w-6 h-6 text-white/70" />
+                <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-emerald-800"></div>
+              </button>
               <button onClick={() => setActiveTab('guide')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
                 <Info className="w-6 h-6 text-white/70" />
               </button>
@@ -292,25 +282,30 @@ const App: React.FC = () => {
         )}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
         {activeTab === 'patterns' && <WorshipPatterns logs={logs} weights={weights} />}
+        {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
+        {activeTab === 'contact' && <ContactUs />}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-slate-900/95 shadow-2xl rounded-full px-6 py-3 flex items-center gap-4 border border-slate-200 dark:border-slate-800 backdrop-blur-lg z-50 max-w-[95vw] no-scrollbar transition-colors">
-        {navItems.map((tab) => (
-          <button 
-            key={tab.id} 
-            onClick={() => setActiveTab(tab.id as Tab)} 
-            className={`flex flex-col items-center min-w-[3.5rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 dark:text-emerald-400 scale-110' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
-          >
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
+        {navItems.slice(0, 7).map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
             <div className="relative">
-              <tab.icon className="w-6 h-6" />
-              {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></span>}
+              <tab.icon className="w-5 h-5" />
+              {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
             </div>
-            <span className="text-[8px] mt-1 font-bold header-font">{tab.label}</span>
+            <span className="text-[7px] mt-1 font-bold header-font">{tab.label}</span>
           </button>
         ))}
+        <button onClick={() => setActiveTab('contact')} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 relative ${activeTab === 'contact' ? 'text-emerald-600' : 'text-slate-400'}`}>
+          <div className="relative">
+            <Mail className="w-5 h-5" />
+            <div className="absolute -top-1 -right-1 bg-rose-500 text-white text-[7px] font-black w-3 h-3 rounded-full flex items-center justify-center border border-white">1</div>
+          </div>
+          <span className="text-[7px] mt-1 font-bold header-font">تواصل</span>
+        </button>
       </nav>
     </div>
   );
