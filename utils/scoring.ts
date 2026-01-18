@@ -1,3 +1,4 @@
+
 import { DailyLog, PrayerEntry, TranquilityLevel, AppWeights } from '../types';
 import { 
   TRANQUILITY_MULTIPLIERS,
@@ -22,7 +23,7 @@ export const calculatePrayerScore = (entry: PrayerEntry, hasBurden: boolean, wei
 };
 
 export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT_WEIGHTS) => {
-  const prayers = Object.values(log.prayers).reduce((sum, p) => sum + calculatePrayerScore(p, log.hasBurden, weights), 0);
+  const prayers = Object.values(log.prayers).reduce((sum, p) => sum + calculatePrayerScore(p as PrayerEntry, log.hasBurden, weights), 0);
   
   const quran = (log.quran.hifzRub * weights.quranHifz) + (log.quran.revisionRub * weights.quranRevision);
   
@@ -30,7 +31,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
                     (log.knowledge.readingDuration * weights.knowledgeGeneral);
   
   const athkarCheck = Object.values(log.athkar.checklists).filter(Boolean).length * weights.athkarChecklist;
-  const athkarCount = Object.values(log.athkar.counters).reduce((sum, count) => sum + (count * weights.athkarCounter), 0);
+  const athkarCount = Object.values(log.athkar.counters).reduce((sum, count) => sum + ((count as number) * weights.athkarCounter), 0);
   
   const nawafilPrayers = (log.nawafil.duhaDuration + log.nawafil.witrDuration + log.nawafil.qiyamDuration) * weights.nawafilPerMin;
   const fasting = log.nawafil.fasting ? weights.fastingDay : 0;
@@ -40,7 +41,10 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
     return sum + (sunnah ? sunnah.points : 0);
   }, 0);
   
-  const total = (prayers + quran + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints) * (log.hasBurden ? 0.8 : log.jihadFactor);
+  // حساب معامل الخصم بناءً على الإعدادات
+  const deductionMultiplier = 1 - (weights.burdenDeduction / 100);
+  
+  const total = (prayers + quran + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
 
   return Math.round(total);
 };

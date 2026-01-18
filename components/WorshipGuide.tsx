@@ -6,7 +6,7 @@ import {
   Users, Sparkles, Clock, Sun, Flame,
   Award, Home, Coins, Key, CloudMoon, MapPin,
   ListChecks, Activity, ScrollText, Tags,
-  BookOpen, CheckCircle2
+  BookOpen, CheckCircle2, Skull
 } from 'lucide-react';
 import { DEFAULT_WEIGHTS } from '../constants';
 
@@ -243,10 +243,10 @@ const WorshipGuide: React.FC = () => {
               <h4 className="text-[10px] font-bold text-rose-800 uppercase header-font">معامل المجاهدة</h4>
               <p className="text-[11px] text-rose-700 font-bold">+5% أو +10% زيادة على إجمالي نقاط اليوم تقديراً للجهد في الظروف الصعبة.</p>
             </div>
-            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
-              <ShieldAlert className="w-5 h-5 text-amber-500 mb-2" />
-              <h4 className="text-[10px] font-bold text-amber-800 uppercase header-font">العبء الروحي</h4>
-              <p className="text-[11px] text-amber-700 font-bold">-20% خصم من إجمالي اليوم في حال الشعور بالتقصير أو الذنب لغرض التنبيه.</p>
+            <div className="bg-rose-100 p-4 rounded-2xl border border-rose-200">
+              <Skull className="w-5 h-5 text-rose-600 mb-2" />
+              <h4 className="text-[10px] font-bold text-rose-900 uppercase header-font">اقتراف ذنوب</h4>
+              <p className="text-[11px] text-rose-800 font-bold">خصم نسبة مئوية (تحددها من الإعدادات) من إجمالي اليوم في حال تسجيل التقصير.</p>
             </div>
           </div>
         </div>

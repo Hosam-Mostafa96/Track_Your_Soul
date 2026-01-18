@@ -5,7 +5,7 @@ import {
   Settings2, ChevronDown, ChevronUp, Save, RotateCcw,
   Star, Users, Clock, Book, GraduationCap, Zap, 
   LockKeyhole, Globe, Flame, BookOpen, ListChecks,
-  Activity, Mail, MapPin, Calendar, Sparkles
+  Activity, Mail, MapPin, Calendar, Sparkles, Skull
 } from 'lucide-react';
 import { AppWeights, User as UserType } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
@@ -161,7 +161,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               </div>
               {weightInput('صلاة الجماعة', localWeights.fardCongregation, (val) => setLocalWeights({ ...localWeights, fardCongregation: val }), <Users className="w-4 h-4" />)}
               {weightInput('صلاة منفردة', localWeights.fardSolo, (val) => setLocalWeights({ ...localWeights, fardSolo: val }), <User className="w-4 h-4" />)}
-              {/* Fixed: Sparkles is now imported */}
               {weightInput('السنة الراتبة (للواحدة)', localWeights.sunnahRawatib, (val) => setLocalWeights({ ...localWeights, sunnahRawatib: val }), <Sparkles className="w-4 h-4" />)}
             </div>
 
@@ -195,6 +194,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               {weightInput('القراءة العامة (دقيقة)', localWeights.knowledgeGeneral, (val) => setLocalWeights({ ...localWeights, knowledgeGeneral: val }), <Book className="w-4 h-4" />)}
               {weightInput('الأذكار (لكل قائمة كاملة)', localWeights.athkarChecklist, (val) => setLocalWeights({ ...localWeights, athkarChecklist: val }), <ListChecks className="w-4 h-4" />)}
               {weightInput('الذكر (لكل ١٠ عدات)', localWeights.athkarCounter, (val) => setLocalWeights({ ...localWeights, athkarCounter: val }), <Activity className="w-4 h-4" />)}
+            </div>
+
+            {/* قسم الذنوب والمجاهدة */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Skull className="w-4 h-4 text-rose-500" />
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">الذنوب والمجاهدة</h4>
+              </div>
+              {weightInput('نسبة خصم الذنوب (%)', localWeights.burdenDeduction, (val) => setLocalWeights({ ...localWeights, burdenDeduction: val }), <Skull className="w-4 h-4" />)}
             </div>
 
             <div className="flex gap-4 pt-4">

@@ -74,6 +74,7 @@ export interface AppWeights {
   athkarCounter: number;
   nawafilPerMin: number;
   fastingDay: number;
+  burdenDeduction: number; // النسبة المئوية للخصم (مثال: 30)
   customSunnahs: CustomSunnah[];
 }
 

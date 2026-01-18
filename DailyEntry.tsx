@@ -4,7 +4,8 @@ import {
   Star, Users, Clock, Book, GraduationCap, Plus, Minus, Heart, ShieldAlert,
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
-  CalendarDays, ChevronRight, ChevronLeft, Edit3, Trash2, X, Check
+  CalendarDays, ChevronRight, ChevronLeft, Edit3, Trash2, X, Check,
+  Skull
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
@@ -135,7 +136,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-4">
-        {/* Fix: Use addDays with -1 instead of subDays */}
         <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), -1), 'yyyy-MM-dd'))} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><ChevronRight className="w-5 h-5" /></button>
         <div className="flex-1 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-1"><CalendarDays className="w-4 h-4 text-emerald-500" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">تاريخ التسجيل</span></div>
@@ -231,7 +231,13 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
               <button key={f} onClick={() => onUpdate({ ...log, jihadFactor: f })} className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all header-font ${log.jihadFactor === f ? 'bg-rose-500 text-white' : 'bg-slate-50 text-slate-400'}`}>{f === 1 ? 'عادي' : f === 1.05 ? 'مجاهدة' : 'شديدة'}</button>
             ))}</div>
         </div>
-        <button onClick={() => onUpdate({ ...log, hasBurden: !log.hasBurden })} className={`flex-1 p-4 rounded-2xl shadow-sm border transition-all flex flex-col items-center justify-center ${log.hasBurden ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'}`}><ShieldAlert className={`w-5 h-5 mb-1 ${log.hasBurden ? 'text-amber-500' : 'text-slate-300'}`} /><span className={`text-[10px] font-bold header-font ${log.hasBurden ? 'text-amber-700' : 'text-slate-400'}`}>عبء روحي</span></button>
+        <button onClick={() => onUpdate({ ...log, hasBurden: !log.hasBurden })} className={`flex-1 p-4 rounded-2xl shadow-sm border transition-all flex flex-col items-center justify-center ${log.hasBurden ? 'bg-rose-50 border-rose-200 shadow-lg shadow-rose-100' : 'bg-white border-slate-100'}`}>
+          <div className="flex flex-col items-center">
+            <Skull className={`w-5 h-5 mb-1 ${log.hasBurden ? 'text-rose-600 animate-pulse' : 'text-slate-300'}`} />
+            <span className={`text-[10px] font-black header-font ${log.hasBurden ? 'text-rose-800' : 'text-slate-400'}`}>اقتراف ذنوب</span>
+            <span className={`text-[8px] font-bold header-font ${log.hasBurden ? 'text-rose-600/70' : 'text-slate-300'}`}>خصم {weights.burdenDeduction}% من إجمالي النقاط</span>
+          </div>
+        </button>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
