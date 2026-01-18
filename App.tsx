@@ -72,26 +72,58 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // منطق المؤقت المتقدم (يعمل حتى والجهاز مقفل)
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
   const timerIntervalRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+  const accumulatedSecondsRef = useRef<number>(0);
 
   useEffect(() => {
     if (isTimerRunning) {
+      // تسجيل وقت البداية (الطابع الزمني الحالي بالملي ثانية)
+      startTimeRef.current = Date.now();
+      
       timerIntervalRef.current = window.setInterval(() => {
-        setTimerSeconds(s => s + 1);
+        if (startTimeRef.current !== null) {
+          const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+          setTimerSeconds(accumulatedSecondsRef.current + elapsed);
+        }
       }, 1000);
     } else {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
+      // حفظ الثواني التي تم جمعها قبل الإيقاف
+      accumulatedSecondsRef.current = timerSeconds;
+      startTimeRef.current = null;
     }
+    
     return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
   }, [isTimerRunning]);
+
+  // تحديث العداد فور عودة المستخدم للتطبيق (في حال كان مقفلاً)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isTimerRunning && startTimeRef.current !== null) {
+        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        setTimerSeconds(accumulatedSecondsRef.current + elapsed);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isTimerRunning]);
+
+  const resetTimer = () => {
+    setIsTimerRunning(false);
+    setTimerSeconds(0);
+    accumulatedSecondsRef.current = 0;
+    startTimeRef.current = null;
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+  };
 
   // مزامنة سريعة (كل 2.5 ثانية)
   useEffect(() => {
@@ -226,12 +258,28 @@ const App: React.FC = () => {
         {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('worship_target', s.toString()); }} onOpenSettings={() => setActiveTab('profile')} />}
         {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={handleUpdateWeights} currentDate={currentDate} onDateChange={setCurrentDate} />}
         {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
-        {activeTab === 'timer' && <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => { setTimerSeconds(0); setIsTimerRunning(false); }} onActivityChange={setActiveActivity} userEmail={user?.email} onApplyTime={(field, mins) => {
-            const newLog = { ...currentLog };
-            if (field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = { ...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins }; } 
-            else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] || 0) + mins }; }
-            updateLog(newLog); setTimerSeconds(0); setIsTimerRunning(false); 
-        }} />}
+        {activeTab === 'timer' && (
+          <WorshipTimer 
+            isSync={isGlobalSyncEnabled} 
+            seconds={timerSeconds} 
+            isRunning={isTimerRunning} 
+            selectedActivity={activeActivity} 
+            onToggle={() => setIsTimerRunning(!isTimerRunning)} 
+            onReset={resetTimer} 
+            onActivityChange={setActiveActivity} 
+            userEmail={user?.email} 
+            onApplyTime={(field, mins) => {
+              const newLog = { ...currentLog };
+              if (field === 'shariDuration' || field === 'readingDuration') { 
+                newLog.knowledge = { ...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins }; 
+              } 
+              else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { 
+                newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] || 0) + mins }; 
+              }
+              updateLog(newLog); 
+              resetTimer();
+          }} />
+        )}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} />}
         {activeTab === 'patterns' && <WorshipPatterns logs={logs} weights={weights} />}
         {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
