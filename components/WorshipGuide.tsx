@@ -6,7 +6,7 @@ import {
   Users, Sparkles, Clock, Sun, Flame,
   Award, Home, Coins, Key, CloudMoon, MapPin,
   ListChecks, Activity, ScrollText, Tags,
-  BookOpen
+  BookOpen, CheckCircle2
 } from 'lucide-react';
 import { DEFAULT_WEIGHTS } from '../constants';
 
@@ -24,6 +24,73 @@ const WorshipGuide: React.FC = () => {
         <p className="text-sm text-slate-500 leading-relaxed header-font">
           نظام الميزان هو أداة رقمية لمحاسبة النفس، تعتمد على تحويل الطاعات إلى "رصيد روحي" يعكس الجهد المبذول والوقت المستثمر في التقرب إلى الله.
         </p>
+      </div>
+
+      {/* قسم الأوسمة والكرامات */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-2 mb-6">
+          <Award className="w-5 h-5 text-amber-500" />
+          <h3 className="font-bold text-slate-800 header-font text-lg">دليل الأوسمة والكرامات</h3>
+        </div>
+        <p className="text-[11px] text-slate-400 font-bold mb-6 header-font">تُمنح هذه الأوسمة يومياً بناءً على إنجاز أوراد محددة، وهي حوافز معنوية تذكرك بفضل العمل:</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-4">
+             <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><Sun className="w-5 h-5 text-amber-500" /></div>
+             <div>
+               <h4 className="text-xs font-black text-slate-800 header-font mb-1">بشرى الرؤية</h4>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند تسجيل أداء <span className="text-amber-600">صلاة الفجر</span> في وقتها.</p>
+             </div>
+          </div>
+
+          <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-4">
+             <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><Home className="w-5 h-5 text-emerald-600" /></div>
+             <div>
+               <h4 className="text-xs font-black text-slate-800 header-font mb-1">بيت في الجنة</h4>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند إتمام <span className="text-emerald-600">١٢ ركعة راتبة</span> (فجر، ظهر، مغرب، عشاء).</p>
+             </div>
+          </div>
+
+          <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100 flex gap-4">
+             <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><Flame className="w-5 h-5 text-orange-500" /></div>
+             <div>
+               <h4 className="text-xs font-black text-slate-800 header-font mb-1">بعيد عن النار</h4>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند تفعيل خيار <span className="text-orange-600">الصيام</span> لهذا اليوم.</p>
+             </div>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4">
+             <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><CloudMoon className="w-5 h-5 text-indigo-900" /></div>
+             <div>
+               <h4 className="text-xs font-black text-slate-800 header-font mb-1">محبوب الرحمن</h4>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند تسجيل أي مدة زمنية في <span className="text-indigo-900">صلاة الوتر</span>.</p>
+             </div>
+          </div>
+
+          <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-4">
+             <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><Coins className="w-5 h-5 text-blue-600" /></div>
+             <div>
+               <h4 className="text-xs font-black text-slate-800 header-font mb-1">مفتاح الرزق</h4>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند تسجيل أي عدد في عداد <span className="text-blue-600">الاستغفار</span>.</p>
+             </div>
+          </div>
+
+          <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex gap-4">
+             <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><Key className="w-5 h-5 text-indigo-600" /></div>
+             <div>
+               <h4 className="text-xs font-black text-slate-800 header-font mb-1">مفتاح النجاح</h4>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند تسجيل أي عدد في عداد <span className="text-indigo-600">الحوقلة</span>.</p>
+             </div>
+          </div>
+
+          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100 flex gap-4">
+             <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><Heart className="w-5 h-5 text-rose-500" /></div>
+             <div>
+               <h4 className="text-xs font-black text-slate-800 header-font mb-1">مفتاح القرب</h4>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند تسجيل أي عدد في عداد <span className="text-rose-500">الصلاة على النبي</span>.</p>
+             </div>
+          </div>
+        </div>
       </div>
 
       {/* قسم الصلوات والخشوع */}
