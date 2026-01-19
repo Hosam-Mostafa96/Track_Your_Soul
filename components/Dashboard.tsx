@@ -22,7 +22,10 @@ import {
   BookOpen,
   Library,
   ChevronLeft,
-  ArrowRight
+  ArrowRight,
+  Send,
+  HelpCircle,
+  Loader2
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { format, addDays, startOfMonth } from 'date-fns';
@@ -54,6 +57,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [isEditingTarget, setIsEditingTarget] = useState(false);
   const [tempTarget, setTempTarget] = useState(targetScore.toString());
   const [readingInput, setReadingInput] = useState('');
+  const [userQuery, setUserQuery] = useState('');
   
   const prevBadgesActiveState = useRef<Record<string, boolean>>({});
   const isFirstRender = useRef(true);
@@ -120,18 +124,36 @@ const Dashboard: React.FC<DashboardProps> = ({
     return { percent: diff, status: diff >= 0 ? 'ارتقاء' : 'مجاهدة', color: diff >= 0 ? 'text-emerald-500' : 'text-amber-500' };
   }, [logs, currentTotalScore, weights]);
 
-  const getAiAdvice = async () => {
+  const askAi = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (isAiLoading) return;
+    
     setIsAiLoading(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const prompt = userQuery.trim() 
+        ? `سؤال المستخدم عن التطبيق أو وردة: "${userQuery}".`
+        : `أنا مستخدم لتطبيق إدارة عبادات. مجموع نقاطي ${currentTotalScore} من هدف ${targetScore}. زخمي ${momentumInfo.percent}%. أعطني نصيحة مشجعة قصيرة جداً.`;
+
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `أنا مستخدم لتطبيق إدارة عبادات. مجموع نقاطي ${currentTotalScore} من هدف ${targetScore}. زخمي ${momentumInfo.percent}%. أعطني نصيحة مشجعة قصيرة جداً.`,
+        contents: prompt,
+        config: {
+          systemInstruction: `أنت "المستشار الروحي والتقني" لتطبيق "إدارة العبادات والأوراد".
+          معلومات عن التطبيق لمساعدة المستخدم:
+          - التبويبات: الرئيسية (نظرة عامة)، تسجيل (لإدخال العبادات)، إنجازاتي (لوحة المتصدرين اليومية)، المؤقت (لأداء الأوراد الموقوتة)، المكتبة (للكتب والقراءة)، إحصائيات (الرسوم البيانية والمزامنة)، يوميات (للكتابة الخاصة).
+          - النقاط: الجماعة (2700)، المنفرد (100)، الختمة (40 للحفظ، 15 للمراجعة)، القراءة (2 لكل صفحة)، الصيام (1000).
+          - ميزات خاصة: "المحراب العالمي" للمنافسة، "معامل المجاهدة" لزيادة النقاط عند التعب، "اقتراف ذنوب" لخصم النقاط لمحاسبة النفس.
+          - هدفك: تقديم نصائح روحية أو شرح كيفية استخدام ميزات التطبيق بلغة مشجعة وبسيطة وقصيرة.`
+        }
       });
-      setAiAdvice(response.text || "استمر في المجاهدة، فكل خطوة تقربك من الله هي ربح عظيم.");
-    } catch (e) { setAiAdvice("النية الصالحة هي روح العمل، واصل مسيرك بارك الله فيك."); } 
-    finally { setIsAiLoading(false); }
+      setAiAdvice(response.text || "واصل مسيرك، فكل خطوة تقربك من الله هي ربح عظيم.");
+      setUserQuery('');
+    } catch (e) { 
+      setAiAdvice("حدث خطأ في الاتصال، لكن نيتك الصالحة هي روح العمل، واصل مسيرك بارك الله فيك."); 
+    } finally { 
+      setIsAiLoading(false); 
+    }
   };
 
   const handleSaveTarget = () => {
@@ -150,23 +172,56 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="relative group">
-        <button onClick={getAiAdvice} disabled={isAiLoading} className="w-full bg-gradient-to-r from-emerald-600 to-teal-700 p-4 rounded-3xl shadow-lg flex items-center justify-between group-active:scale-95 transition-all text-white border border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-xl"><BrainCircuit className={`w-5 h-5 ${isAiLoading ? 'animate-pulse' : ''}`} /></div>
-            <div className="text-right">
-              <h4 className="text-sm font-bold header-font">المستشار الروحي (AI)</h4>
-              <p className="text-[10px] opacity-80 header-font">اضغط للحصول على نصيحة لأورادك</p>
+      {/* AI Assistant Card - Updated for interactivity */}
+      <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[2.5rem] p-6 shadow-xl relative overflow-hidden border border-white/10">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+          <Sparkles className="w-full h-full" />
+        </div>
+        
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-center justify-between text-white">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white/20 rounded-2xl backdrop-blur-md">
+                <BrainCircuit className={`w-6 h-6 ${isAiLoading ? 'animate-pulse' : ''}`} />
+              </div>
+              <div>
+                <h4 className="text-sm font-black header-font">المستشار الروحي الذكي</h4>
+                <p className="text-[10px] text-emerald-100 font-bold opacity-80">اسأل عن التطبيق أو اطلب نصيحة</p>
+              </div>
             </div>
+            {isAiLoading ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <HelpCircle className="w-5 h-5 text-emerald-200 opacity-50" />}
           </div>
-          <Sparkles className={`w-5 h-5 text-yellow-300 ${isAiLoading ? 'animate-spin' : 'animate-bounce'}`} />
-        </button>
-        {aiAdvice && (
-          <div className="mt-4 bg-emerald-50 border border-emerald-100 p-4 rounded-2xl relative animate-in slide-in-from-top duration-300">
-            <button onClick={() => setAiAdvice(null)} className="absolute top-2 left-2 text-emerald-800 p-1 hover:bg-emerald-100 rounded-full"><X className="w-3 h-3" /></button>
-            <p className="text-sm text-emerald-900 quran-font text-center leading-relaxed px-4">"{aiAdvice}"</p>
-          </div>
-        )}
+
+          <form onSubmit={askAi} className="relative">
+            <input 
+              type="text"
+              value={userQuery}
+              onChange={(e) => setUserQuery(e.target.value)}
+              placeholder="كيف أسجل ورد القراءة؟ / أعطني نصيحة.."
+              className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 py-3.5 text-xs font-bold text-white placeholder:text-emerald-200/50 outline-none focus:bg-white/15 transition-all pr-12"
+            />
+            <button 
+              type="submit"
+              disabled={isAiLoading}
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-emerald-500 text-white rounded-xl shadow-lg active:scale-90 transition-all disabled:opacity-50"
+            >
+              <Send className="w-4 h-4 rotate-180" />
+            </button>
+          </form>
+
+          {!aiAdvice && !isAiLoading && (
+            <button onClick={() => askAi()} className="text-[9px] text-emerald-200 font-black uppercase tracking-wider bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
+              تحليل أدائي اليوم + نصيحة سريعة
+            </button>
+          )}
+
+          {aiAdvice && (
+            <div className="bg-white/95 backdrop-blur-md border border-white p-5 rounded-[2rem] relative animate-in zoom-in duration-300 shadow-2xl">
+              <button onClick={() => setAiAdvice(null)} className="absolute top-3 left-3 text-slate-400 p-1 hover:bg-slate-100 rounded-full transition-colors"><X className="w-3 h-3" /></button>
+              <p className="text-sm text-slate-800 quran-font text-center leading-relaxed px-2 font-medium">"{aiAdvice}"</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
