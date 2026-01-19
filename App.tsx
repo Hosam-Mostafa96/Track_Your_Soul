@@ -12,7 +12,6 @@ import {
   Info,
   Loader2,
   BarChart3,
-  TrendingUp,
   Menu,
   X as CloseIcon,
   Library
@@ -34,7 +33,6 @@ import Leaderboard from './components/Leaderboard';
 import ContactUs from './components/ContactUs';
 import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
-import WorshipPatterns from './components/WorshipPatterns';
 import BookLibrary from './components/BookLibrary';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
@@ -65,7 +63,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'stats' | 'patterns' | 'notes' | 'guide' | 'history' | 'profile' | 'contact' | 'library';
+  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'library' | 'stats' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
@@ -87,7 +85,6 @@ const App: React.FC = () => {
   const startTimeRef = useRef<number | null>(null);
   const accumulatedSecondsRef = useRef<number>(0);
 
-  // التعامل مع روابط الودجت والاختصارات
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab') as Tab;
@@ -97,7 +94,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // مراقب منتصف الليل
   useEffect(() => {
     const scheduleMidnightUpdate = () => {
       const now = new Date();
@@ -161,7 +157,6 @@ const App: React.FC = () => {
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
 
-  // تحديث الـ Badge والمزامنة مع الودجت
   useEffect(() => {
     if (isAppReady) {
       localStorage.setItem('today_score_cache', todayScore.toString());
@@ -181,7 +176,6 @@ const App: React.FC = () => {
     localStorage.setItem('worship_logs', JSON.stringify(newLogs));
   };
 
-  // دوال إدارة الكتب
   const addBook = (title: string, totalPages: number) => {
     const newBook: Book = {
       id: Math.random().toString(36).substring(7),
@@ -217,7 +211,6 @@ const App: React.FC = () => {
     setBooks(updatedBooks);
     localStorage.setItem('worship_books', JSON.stringify(updatedBooks));
 
-    // تحديث السجل اليومي ليحسب النقاط
     const newLog = { ...currentLog };
     newLog.knowledge = { 
       ...newLog.knowledge, 
@@ -246,19 +239,14 @@ const App: React.FC = () => {
         onComplete={(userData, restoredLogs, restoredBooks) => {
           setUser(userData);
           localStorage.setItem('worship_user', JSON.stringify(userData));
-          
-          // استعادة السجلات
           if (restoredLogs) {
             setLogs(JSON.parse(restoredLogs));
             localStorage.setItem('worship_logs', restoredLogs);
           }
-          
-          // استعادة المكتبة
           if (restoredBooks) {
             setBooks(JSON.parse(restoredBooks));
             localStorage.setItem('worship_books', restoredBooks);
           }
-
           setIsGlobalSyncEnabled(true);
           localStorage.setItem('worship_global_sync', JSON.stringify(true));
         }} 
@@ -269,11 +257,10 @@ const App: React.FC = () => {
   const navItems = [
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
     {id: 'entry', icon: PenLine, label: 'تسجيل'},
+    {id: 'leaderboard', icon: Medal, label: 'إنجازاتى'},
+    {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
     {id: 'library', icon: Library, label: 'المكتبة'},
-    {id: 'leaderboard', icon: Medal, label: 'إنجازاتي'},
-    {id: 'timer', icon: TimerIcon, label: 'مؤقت'},
     {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-    {id: 'patterns', icon: TrendingUp, label: 'الأنماط'},
     {id: 'notes', icon: NotebookPen, label: 'يوميات'}
   ];
 
@@ -370,7 +357,6 @@ const App: React.FC = () => {
           }} />
         )}
         {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} books={books} />}
-        {activeTab === 'patterns' && <WorshipPatterns logs={logs} weights={weights} />}
         {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
@@ -380,12 +366,12 @@ const App: React.FC = () => {
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
         {navItems.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.5rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
             <div className="relative">
               <tab.icon className="w-5 h-5" />
               {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
             </div>
-            <span className="text-[7px] mt-1 font-bold header-font">{tab.label}</span>
+            <span className="text-[8px] mt-1 font-bold header-font">{tab.label}</span>
           </button>
         ))}
       </nav>

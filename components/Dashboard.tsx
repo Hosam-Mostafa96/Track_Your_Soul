@@ -220,24 +220,24 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         {activeBook ? (
           <div className="space-y-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="text-sm font-bold text-slate-700 truncate max-w-[180px]">{activeBook.title}</h4>
+            <div className="flex justify-between items-center">
+              <div className="flex-1 min-w-0 pr-4">
+                <h4 className="text-sm font-bold text-slate-700 truncate">{activeBook.title}</h4>
                 <p className="text-[10px] text-slate-400 font-bold">إنجاز: {Math.round((activeBook.currentPages / activeBook.totalPages) * 100)}% ({activeBook.currentPages} من {activeBook.totalPages} صفحة)</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <input 
                   type="number" 
                   value={readingInput}
                   onChange={(e) => setReadingInput(e.target.value)}
                   placeholder="صفحات اليوم"
-                  className="w-20 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-center text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
+                  className="w-28 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-center text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                 />
                 <button 
                   onClick={handleUpdateReading}
-                  className="p-2 bg-emerald-600 text-white rounded-xl shadow-md active:scale-95 transition-all"
+                  className="p-3.5 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-100 active:scale-95 transition-all"
                 >
-                  <Check className="w-4 h-4" />
+                  <Check className="w-5 h-5" />
                 </button>
               </div>
             </div>
