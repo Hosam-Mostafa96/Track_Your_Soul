@@ -25,7 +25,8 @@ import {
   ArrowRight,
   Send,
   HelpCircle,
-  Loader2
+  Loader2,
+  BookMarked
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { format, addDays, startOfMonth } from 'date-fns';
@@ -124,33 +125,35 @@ const Dashboard: React.FC<DashboardProps> = ({
     return { percent: diff, status: diff >= 0 ? 'ارتقاء' : 'مجاهدة', color: diff >= 0 ? 'text-emerald-500' : 'text-amber-500' };
   }, [logs, currentTotalScore, weights]);
 
-  const askAi = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const askAi = async (forcedQuery?: string) => {
     if (isAiLoading) return;
     
     setIsAiLoading(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = userQuery.trim() 
-        ? `سؤال المستخدم عن التطبيق أو وردة: "${userQuery}".`
-        : `أنا مستخدم لتطبيق إدارة عبادات. مجموع نقاطي ${currentTotalScore} من هدف ${targetScore}. زخمي ${momentumInfo.percent}%. أعطني نصيحة مشجعة قصيرة جداً.`;
+      const queryToUse = forcedQuery || userQuery.trim() || `أعطني نصيحة مشجعة قصيرة جداً بناءً على أدائي (نقاطي ${currentTotalScore} من ${targetScore})`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: prompt,
+        contents: queryToUse,
         config: {
           systemInstruction: `أنت "المستشار الروحي والتقني" لتطبيق "إدارة العبادات والأوراد".
-          معلومات عن التطبيق لمساعدة المستخدم:
-          - التبويبات: الرئيسية (نظرة عامة)، تسجيل (لإدخال العبادات)، إنجازاتي (لوحة المتصدرين اليومية)، المؤقت (لأداء الأوراد الموقوتة)، المكتبة (للكتب والقراءة)، إحصائيات (الرسوم البيانية والمزامنة)، يوميات (للكتابة الخاصة).
-          - النقاط: الجماعة (2700)، المنفرد (100)، الختمة (40 للحفظ، 15 للمراجعة)، القراءة (2 لكل صفحة)، الصيام (1000).
-          - ميزات خاصة: "المحراب العالمي" للمنافسة، "معامل المجاهدة" لزيادة النقاط عند التعب، "اقتراف ذنوب" لخصم النقاط لمحاسبة النفس.
-          - هدفك: تقديم نصائح روحية أو شرح كيفية استخدام ميزات التطبيق بلغة مشجعة وبسيطة وقصيرة.`
+          توضيح للمستخدمين الجدد:
+          1. لتسجيل العبادات: اذهب لتبويب "تسجيل" (أيقونة القلم).
+          2. للمنافسة: تبويب "إنجازاتي" (أيقونة الميدالية) - تعرض فقط من سجلوا نقاطاً "اليوم".
+          3. للمؤقت: تبويب "المؤقت" (أيقونة الساعة) للقيام أو العلم.
+          4. للمكتبة: تبويب "المكتبة" (أيقونة الكتب) لإضافة كتبك وتتبع صفحاتك.
+          5. الإحصائيات: تبويب "إحصائيات" لرؤية رسوم بيانية والمزامنة السحابية.
+          6. اليوميات: تبويب "يوميات" لكتابة خواطرك الخاصة.
+          7. الإعدادات: اضغط على أيقونة المستخدم (أعلى اليمين) لتغيير أوزان النقاط أو المزامنة.
+          قواعد النقاط: الجماعة (2700)، الصفحة (2)، ربع القرآن (40)، الصيام (1000).
+          أجب بلغة مشجعة، بسيطة، قصيرة، ومباشرة.`
         }
       });
       setAiAdvice(response.text || "واصل مسيرك، فكل خطوة تقربك من الله هي ربح عظيم.");
       setUserQuery('');
     } catch (e) { 
-      setAiAdvice("حدث خطأ في الاتصال، لكن نيتك الصالحة هي روح العمل، واصل مسيرك بارك الله فيك."); 
+      setAiAdvice("حدث خطأ في الاتصال، واصل مجاهدتك فالله لا يضيع أجر المحسنين."); 
     } finally { 
       setIsAiLoading(false); 
     }
@@ -172,11 +175,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* AI Assistant Card - Updated for interactivity */}
       <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[2.5rem] p-6 shadow-xl relative overflow-hidden border border-white/10">
-        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-          <Sparkles className="w-full h-full" />
-        </div>
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none"><Sparkles className="w-full h-full" /></div>
         
         <div className="relative z-10 space-y-4">
           <div className="flex items-center justify-between text-white">
@@ -192,7 +192,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             {isAiLoading ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <HelpCircle className="w-5 h-5 text-emerald-200 opacity-50" />}
           </div>
 
-          <form onSubmit={askAi} className="relative">
+          <form onSubmit={(e) => { e.preventDefault(); askAi(); }} className="relative">
             <input 
               type="text"
               value={userQuery}
@@ -200,20 +200,19 @@ const Dashboard: React.FC<DashboardProps> = ({
               placeholder="كيف أسجل ورد القراءة؟ / أعطني نصيحة.."
               className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 py-3.5 text-xs font-bold text-white placeholder:text-emerald-200/50 outline-none focus:bg-white/15 transition-all pr-12"
             />
-            <button 
-              type="submit"
-              disabled={isAiLoading}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-emerald-500 text-white rounded-xl shadow-lg active:scale-90 transition-all disabled:opacity-50"
-            >
+            <button type="submit" disabled={isAiLoading} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-emerald-500 text-white rounded-xl shadow-lg active:scale-90 transition-all disabled:opacity-50">
               <Send className="w-4 h-4 rotate-180" />
             </button>
           </form>
 
-          {!aiAdvice && !isAiLoading && (
-            <button onClick={() => askAi()} className="text-[9px] text-emerald-200 font-black uppercase tracking-wider bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
-              تحليل أدائي اليوم + نصيحة سريعة
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => askAi("كيف أستخدم التطبيق؟ اشرح لي التبويبات باختصار")} className="text-[9px] text-emerald-200 font-black uppercase tracking-wider bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors flex items-center gap-1.5">
+              <HelpCircle className="w-3 h-3" /> كيف أستخدم التطبيق؟
             </button>
-          )}
+            <button onClick={() => askAi()} className="text-[9px] text-white font-black uppercase tracking-wider bg-emerald-500/30 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-emerald-500/50 transition-colors flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3" /> حلل أدائي اليوم
+            </button>
+          </div>
 
           {aiAdvice && (
             <div className="bg-white/95 backdrop-blur-md border border-white p-5 rounded-[2rem] relative animate-in zoom-in duration-300 shadow-2xl">
@@ -279,10 +278,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-[1.5rem] text-center text-lg font-black focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all placeholder:text-slate-300 placeholder:text-xs placeholder:font-bold"
                     />
                 </div>
-                <button 
-                  onClick={handleUpdateReading}
-                  className="p-5 bg-emerald-600 text-white rounded-[1.5rem] shadow-xl shadow-emerald-100 active:scale-90 transition-all hover:bg-emerald-700"
-                >
+                <button onClick={handleUpdateReading} className="p-5 bg-emerald-600 text-white rounded-[1.5rem] shadow-xl shadow-emerald-100 active:scale-90 transition-all hover:bg-emerald-700">
                   <Check className="w-6 h-6 stroke-[3px]" />
                 </button>
               </div>

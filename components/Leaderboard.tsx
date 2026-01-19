@@ -17,7 +17,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [globalTop, setGlobalTop] = useState<any[]>([]);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   const lastSuccessTimeRef = useRef<number>(Date.now());
@@ -38,7 +37,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           email: user.email.toLowerCase().trim(),
           name: user.name || "مصلٍ مجهول",
           score: currentScore,
-          todayOnly: true // إرسال تلميح للسيرفر بفلترة اليوم فقط
+          todayOnly: true 
         })
       });
 
@@ -51,7 +50,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             if (!emailKey) return;
             const score = parseInt(entry.score) || 0;
             
-            // تصفير واستبعاد من لم يجمع أي نقاط اليوم لضمان "سباق اليوم" فقط
+            // تصفير واستبعاد تام لأي مستخدم لم يسجل نقاطاً "اليوم"
+            // هذا يضمن أن القائمة نظيفة وتخص سباق اليوم فقط
             if (score <= 0) return;
 
             if (!uniqueMap.has(emailKey) || uniqueMap.get(emailKey).score < score) {
@@ -62,7 +62,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           const sortedUnique = Array.from(uniqueMap.values())
             .sort((a, b) => b.score - a.score);
 
-          setGlobalTop(sortedUnique.slice(0, 50));
+          // عرض حتى 100 متصدر لضمان زخم القائمة
+          setGlobalTop(sortedUnique.slice(0, 100));
           
           const myEmail = user.email.toLowerCase().trim();
           const myIdx = sortedUnique.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
@@ -74,31 +75,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             statsCacheRef.current = data.stats;
             lastSuccessTimeRef.current = Date.now();
           }
-          setHasError(false);
         }
-      } else {
-        handleFetchError();
       }
     } catch (e) {
-      handleFetchError();
+      console.error("Leaderboard fetch error", e);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   };
 
-  const handleFetchError = () => {
-    const timeSinceLastSuccess = Date.now() - lastSuccessTimeRef.current;
-    if (timeSinceLastSuccess > 10000) {
-      setHasError(true);
-    } else {
-      setLiveStats(statsCacheRef.current);
-    }
-  };
-
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 3000); 
+    const interval = setInterval(() => fetchGlobalData(true), 4000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
@@ -131,13 +120,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2"><Globe className={`w-5 h-5 ${isSync ? 'text-emerald-500' : 'text-slate-300'}`} /><h3 className="font-bold text-slate-800 header-font text-sm">نبض المحراب الآن</h3></div>
-          <button 
-            onClick={() => fetchGlobalData()} 
-            disabled={isRefreshing}
-            className={`p-2 rounded-xl bg-slate-50 transition-all ${isRefreshing ? 'animate-spin text-emerald-600' : 'text-slate-400'}`}
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-2 rounded-xl bg-slate-50 transition-all ${isRefreshing ? 'animate-spin text-emerald-600' : 'text-slate-400'}`}><RefreshCw className="w-4 h-4" /></button>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[
@@ -148,7 +131,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           ].map((s, i) => (
             <div key={i} className="bg-slate-50/50 p-4 rounded-2xl border border-transparent hover:border-slate-100 transition-all text-center group">
               <div className="flex items-center justify-center gap-2 mb-1">{s.icon} <span className="text-[10px] font-bold text-slate-400 header-font group-hover:text-slate-600 transition-colors">{s.label}</span></div>
-              <span className="text-2xl font-black text-slate-800 font-mono tracking-tighter transition-all duration-500">{s.val}</span>
+              <span className="text-2xl font-black text-slate-800 font-mono tracking-tighter">{s.val}</span>
             </div>
           ))}
         </div>
@@ -167,7 +150,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               <div key={player.email || index} className={`group flex items-center justify-between p-4 rounded-3xl transition-all duration-500 ${isMe ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xl shadow-emerald-100 scale-[1.02] border-none' : 'bg-white border border-slate-100 hover:border-emerald-200 hover:shadow-lg'}`}>
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black relative overflow-hidden ${rank.bg} ${rank.text} ${rank.shadow} border-2 ${rank.border}`}><span className="relative z-10">{index + 1}</span>{rank.icon && <div className="absolute -bottom-1 -right-1 opacity-20 rotate-12">{rank.icon}</div>}</div>
-                  <div className="flex flex-col"><span className={`text-sm font-bold header-font truncate max-w-[140px] ${isMe ? 'text-white' : 'text-slate-800'}`}>{player.name} {isMe && <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-lg mr-1">أنت</span>}</span><span className={`text-[9px] font-bold header-font ${isMe ? 'text-emerald-100 opacity-70' : 'text-slate-400'}`}>{index < 3 ? 'والسابقون السابقون' : 'في طريق الارتقاء اليوم'}</span></div>
+                  <div className="flex flex-col"><span className={`text-sm font-bold header-font truncate max-w-[140px] ${isMe ? 'text-white' : 'text-slate-800'}`}>{player.name} {isMe && <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-lg mr-1">أنت</span>}</span><span className={`text-[9px] font-bold header-font ${isMe ? 'text-emerald-100 opacity-70' : 'text-slate-400'}`}>{index < 10 ? 'والسابقون السابقون' : 'في طريق الارتقاء اليوم'}</span></div>
                 </div>
                 <div className="flex flex-col items-end"><div className="flex items-center gap-1"><span className={`text-base font-black font-mono tabular-nums ${isMe ? 'text-white' : 'text-emerald-700'}`}>{player.score.toLocaleString()}</span></div><span className={`text-[8px] font-black uppercase tracking-tighter ${isMe ? 'text-emerald-200' : 'text-slate-300'}`}>نقطة اليوم</span></div>
               </div>
@@ -177,7 +160,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               {isLoading ? (
                 <div className="relative mb-4"><Loader2 className="w-12 h-12 text-emerald-100 animate-spin" /><Globe className="w-6 h-6 text-emerald-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" /></div>
               ) : (
-                <div className="p-4 bg-slate-50 rounded-2xl text-slate-400"><Users className="w-10 h-10 mx-auto mb-2 opacity-20" /><p className="text-xs font-bold header-font">لا يوجد متسابقون نشطون اليوم حتى الآن</p></div>
+                <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 flex flex-col items-center gap-3">
+                    <WifiOff className="w-10 h-10 opacity-20" />
+                    <p className="text-xs font-bold header-font">لا يوجد متسابقون نشطون اليوم حتى الآن</p>
+                    <p className="text-[10px] opacity-60">كن أنت أول من يفتتح سباق الخير!</p>
+                </div>
               )}
             </div>
           )}
