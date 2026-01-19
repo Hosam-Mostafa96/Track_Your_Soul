@@ -247,7 +247,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                   <Loader2 className="w-12 h-12 text-emerald-100 animate-spin" />
                   <Globe className="w-6 h-6 text-emerald-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                 </div>
-                <p className="text-xs text-slate-400 font-bold header-font animate-pulse">يتم استدعاء السجلات من قاعدة البيانات..</p>
+                <p className="text-xs text-slate-400 font-bold header-font animate-pulse">يتم استدعاء السجلات من اللوح المحفوظ..</p>
             </div>
           )}
         </div>
