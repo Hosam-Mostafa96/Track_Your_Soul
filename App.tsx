@@ -84,6 +84,27 @@ const App: React.FC = () => {
   const startTimeRef = useRef<number | null>(null);
   const accumulatedSecondsRef = useRef<number>(0);
 
+  // مراقب منتصف الليل لتجديد اليوم تلقائياً
+  useEffect(() => {
+    const scheduleMidnightUpdate = () => {
+      const now = new Date();
+      const nextMidnight = new Date();
+      nextMidnight.setHours(24, 0, 0, 0); // ضبط الوقت على 12:00 AM القادمة
+      
+      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+      
+      return setTimeout(() => {
+        const newDate = format(new Date(), 'yyyy-MM-dd');
+        setCurrentDate(newDate);
+        // إعادة جدولة لليوم التالي
+        scheduleMidnightUpdate();
+      }, msUntilMidnight);
+    };
+
+    const timerId = scheduleMidnightUpdate();
+    return () => clearTimeout(timerId);
+  }, []);
+
   useEffect(() => {
     if (isTimerRunning) {
       startTimeRef.current = Date.now();
