@@ -27,6 +27,29 @@
       "purpose": "maskable"
     }
   ],
+  "shortcuts": [
+    {
+      "name": "تسجيل العبادات",
+      "short_name": "تسجيل",
+      "description": "انتقل مباشرة لصفحة تسجيل أوراد اليوم",
+      "url": "/?tab=entry",
+      "icons": [{ "src": "https://i.pinimg.com/736x/ea/14/fa/ea14fac8f3b250e178768d8010106bda.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "مؤقت العبادة",
+      "short_name": "المؤقت",
+      "description": "ابدأ جلسة ذكر أو قيام ليل",
+      "url": "/?tab=timer",
+      "icons": [{ "src": "https://i.pinimg.com/736x/ea/14/fa/ea14fac8f3b250e178768d8010106bda.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "المتصدرون",
+      "short_name": "المحراب",
+      "description": "شاهد ترتيبك في الخيرات",
+      "url": "/?tab=leaderboard",
+      "icons": [{ "src": "https://i.pinimg.com/736x/ea/14/fa/ea14fac8f3b250e178768d8010106bda.jpg", "sizes": "192x192" }]
+    }
+  ],
   "screenshots": [
     {
       "src": "https://i.pinimg.com/736x/ea/14/fa/ea14fac8f3b250e178768d8010106bda.jpg",

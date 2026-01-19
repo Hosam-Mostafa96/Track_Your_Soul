@@ -73,7 +73,7 @@ const App: React.FC = () => {
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
 
-  // منطق المؤقت المتقدم
+  // منطق المؤقت
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
@@ -84,23 +84,29 @@ const App: React.FC = () => {
   const startTimeRef = useRef<number | null>(null);
   const accumulatedSecondsRef = useRef<number>(0);
 
-  // مراقب منتصف الليل لتجديد اليوم تلقائياً
+  // التعامل مع روابط الودجت والاختصارات
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab') as Tab;
+    if (tabParam && ['dashboard', 'entry', 'leaderboard', 'timer', 'stats', 'patterns', 'notes', 'guide', 'history', 'profile', 'contact'].includes(tabParam)) {
+      setActiveTab(tabParam);
+      // تنظيف الـ URL
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
+
+  // مراقب منتصف الليل
   useEffect(() => {
     const scheduleMidnightUpdate = () => {
       const now = new Date();
       const nextMidnight = new Date();
-      nextMidnight.setHours(24, 0, 0, 0); // ضبط الوقت على 12:00 AM القادمة
-      
+      nextMidnight.setHours(24, 0, 0, 0);
       const msUntilMidnight = nextMidnight.getTime() - now.getTime();
-      
       return setTimeout(() => {
-        const newDate = format(new Date(), 'yyyy-MM-dd');
-        setCurrentDate(newDate);
-        // إعادة جدولة لليوم التالي
+        setCurrentDate(format(new Date(), 'yyyy-MM-dd'));
         scheduleMidnightUpdate();
       }, msUntilMidnight);
     };
-
     const timerId = scheduleMidnightUpdate();
     return () => clearTimeout(timerId);
   }, []);
@@ -115,25 +121,11 @@ const App: React.FC = () => {
         }
       }, 1000);
     } else {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       accumulatedSecondsRef.current = timerSeconds;
       startTimeRef.current = null;
     }
     return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
-  }, [isTimerRunning]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isTimerRunning && startTimeRef.current !== null) {
-        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-        setTimerSeconds(accumulatedSecondsRef.current + elapsed);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isTimerRunning]);
 
   const resetTimer = () => {
@@ -161,6 +153,26 @@ const App: React.FC = () => {
     
     setIsAppReady(true);
   }, []);
+
+  const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
+  const todayScore = calculateTotalScore(currentLog, weights);
+
+  // تحديث الـ Badge والمزامنة مع الودجت
+  useEffect(() => {
+    if (isAppReady) {
+      // حفظ السكور للودجت (widget.html)
+      localStorage.setItem('today_score_cache', todayScore.toString());
+      
+      // تحديث أيقونة التطبيق (Badging API) - تظهر عدد مئات النقاط أو تنبيه
+      if ('setAppBadge' in navigator) {
+        if (todayScore > 0) {
+          (navigator as any).setAppBadge(Math.floor(todayScore / 100));
+        } else {
+          (navigator as any).clearAppBadge();
+        }
+      }
+    }
+  }, [todayScore, isAppReady]);
 
   const updateLog = (updated: DailyLog) => {
     const newLogs = { ...logs, [updated.date]: updated };
@@ -199,9 +211,6 @@ const App: React.FC = () => {
       />
     );
   }
-
-  const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
-  const todayScore = calculateTotalScore(currentLog, weights);
 
   const navItems = [
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
