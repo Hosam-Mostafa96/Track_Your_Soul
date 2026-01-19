@@ -18,7 +18,7 @@ import {
   Map as MapIcon,
   AlertCircle
 } from 'lucide-react';
-import { User as UserType } from '../types';
+import { User as UserType, Book } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
 const COUNTRIES = [
@@ -30,7 +30,7 @@ const COUNTRIES = [
 
 interface OnboardingProps {
   installPrompt: any;
-  onComplete: (user: UserType, restoredLogs?: string) => void;
+  onComplete: (user: UserType, restoredLogs?: string, restoredBooks?: string) => void;
 }
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
@@ -97,13 +97,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       if (response.ok) {
         const data = await response.json();
+        // التحقق من وجود بيانات سابقة لاستعادتها
         if (data.userSync && data.userSync.existingUser) {
           const globalId = data.userSync.existingUser.id || data.userSync.existingUser.ID || tempId;
           localStorage.setItem('worship_anon_id', globalId);
           
-          const confirmed = window.confirm("وجدنا بيانات سابقة مرتبطة بهذا البريد. هل تريد استعادتها؟");
+          const confirmed = window.confirm("وجدنا بيانات سابقة مرتبطة بهذا البريد (سجلات + مكتبة). هل تريد استعادتها الآن؟");
           if (confirmed) {
-            onComplete(data.userSync.existingUser, data.userSync.existingLogs);
+            // نمرر السجلات والكتب للمكون الأب لمعالجتها
+            onComplete(
+              data.userSync.existingUser, 
+              data.userSync.existingLogs, 
+              data.userSync.existingBooks // استلام الكتب المستعادة من السيرفر
+            );
             return;
           }
         } else {

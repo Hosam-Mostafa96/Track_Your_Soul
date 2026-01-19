@@ -25,8 +25,9 @@ export const DEFAULT_WEIGHTS: AppWeights = {
   athkarCounter: 1,
   nawafilPerMin: 5,
   fastingDay: 1000,
-  burdenDeduction: 30, // خصم 30% افتراضياً
-  customSunnahs: []
+  burdenDeduction: 30,
+  customSunnahs: [],
+  pointsPerPage: 2 // تم التعديل من 10 إلى 2 نقطة لكل صفحة
 };
 
 export const TRANQUILITY_MULTIPLIERS = {

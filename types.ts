@@ -32,6 +32,16 @@ export interface User {
   method: 'google' | 'email';
 }
 
+export interface Book {
+  id: string;
+  title: string;
+  totalPages: number;
+  currentPages: number;
+  startDate: string;
+  finishDate?: string;
+  isFinished: boolean;
+}
+
 export interface CustomSunnah {
   id: string;
   name: string;
@@ -74,15 +84,16 @@ export interface AppWeights {
   athkarCounter: number;
   nawafilPerMin: number;
   fastingDay: number;
-  burdenDeduction: number; // النسبة المئوية للخصم (مثال: 30)
+  burdenDeduction: number;
   customSunnahs: CustomSunnah[];
+  pointsPerPage: number; // نقاط لكل صفحة مقروءة
 }
 
 export interface DailyLog {
   date: string;
   prayers: Record<string, PrayerEntry>;
   quran: { hifzRub: number; revisionRub: number };
-  knowledge: { shariDuration: number; readingDuration: number };
+  knowledge: { shariDuration: number; readingDuration: number; readingPages?: number };
   athkar: {
     checklists: { morning: boolean; evening: boolean; sleep: boolean; travel: boolean };
     counters: { salawat: number; hawqalah: number; tahlil: number; baqiyat: number; istighfar: number };

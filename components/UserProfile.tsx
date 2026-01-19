@@ -192,6 +192,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               </div>
               {weightInput('العلم الشرعي (دقيقة)', localWeights.knowledgeShari, (val) => setLocalWeights({ ...localWeights, knowledgeShari: val }), <GraduationCap className="w-4 h-4" />)}
               {weightInput('القراءة العامة (دقيقة)', localWeights.knowledgeGeneral, (val) => setLocalWeights({ ...localWeights, knowledgeGeneral: val }), <Book className="w-4 h-4" />)}
+              {weightInput('نقاط لكل صفحة كتاب', localWeights.pointsPerPage, (val) => setLocalWeights({ ...localWeights, pointsPerPage: val }), <BookOpen className="w-4 h-4" />)}
               {weightInput('الأذكار (لكل قائمة كاملة)', localWeights.athkarChecklist, (val) => setLocalWeights({ ...localWeights, athkarChecklist: val }), <ListChecks className="w-4 h-4" />)}
               {weightInput('الذكر (لكل ١٠ عدات)', localWeights.athkarCounter, (val) => setLocalWeights({ ...localWeights, athkarCounter: val }), <Activity className="w-4 h-4" />)}
             </div>

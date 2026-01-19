@@ -128,7 +128,7 @@ const WorshipGuide: React.FC = () => {
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6">
           <Book className="w-5 h-5 text-emerald-500" />
-          <h3 className="font-bold text-slate-800 header-font text-lg">ورد القرآن الكريم</h3>
+          <h3 className="font-bold text-slate-800 header-font text-lg"> ورد القرآن الكريم </h3>
         </div>
         <div className="grid grid-cols-1 gap-3">
           <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl">
@@ -211,13 +211,15 @@ const WorshipGuide: React.FC = () => {
             <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-center">
               <BookOpen className="w-6 h-6 text-blue-600 mx-auto mb-2" />
               <h4 className="text-[10px] font-black text-slate-700 header-font">القراءة العامة</h4>
-              <span className="text-lg font-black text-blue-700 font-mono">+{DEFAULT_WEIGHTS.knowledgeGeneral}/د</span>
+              <div className="flex flex-col gap-1 mt-1">
+                <span className="text-xs font-black text-blue-700 font-mono">+{DEFAULT_WEIGHTS.knowledgeGeneral}/د</span>
+                <span className="text-[9px] font-bold text-blue-500">+{DEFAULT_WEIGHTS.pointsPerPage}/صفحة</span>
+              </div>
             </div>
           </div>
           
           <div className="p-4 bg-orange-500 text-white rounded-2xl shadow-lg shadow-orange-100 flex justify-between items-center">
              <div className="flex items-center gap-2">
-               <Sun className="w-5 h-5" />
                <span className="text-sm font-bold header-font">صيام يوم كامل</span>
              </div>
              <span className="text-lg font-black font-mono">+{DEFAULT_WEIGHTS.fastingDay}</span>

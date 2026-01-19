@@ -23,7 +23,7 @@ import {
   Radar,
   Tooltip as RechartsTooltip
 } from 'recharts';
-import { DailyLog, AppWeights, User, PrayerEntry } from '../types';
+import { DailyLog, AppWeights, User, PrayerEntry, Book } from '../types';
 import { isWithinInterval, endOfDay, format, addDays } from 'date-fns';
 import { calculateTotalScore } from '../utils/scoring';
 import { GOOGLE_STATS_API } from '../constants';
@@ -32,11 +32,12 @@ interface StatisticsProps {
   user: User | null;
   logs: Record<string, DailyLog>;
   weights: AppWeights;
+  books: Book[]; // إضافة الكتب للبروبس للمزامنة
 }
 
 type ActivityType = 'all' | 'prayers' | 'quran' | 'knowledge' | 'fasting' | 'athkar';
 
-const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
+const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) => {
   const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'all'>('month');
   const [activityFilter, setActivityFilter] = useState<ActivityType>('all');
   const [isExporting, setIsExporting] = useState(false);
@@ -59,12 +60,10 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
     });
     let counts = { prayers: 0, quran: 0, knowledge: 0, fasting: 0, dhikr: 0 };
     periodLogs.forEach(log => {
-      // Fix: Explicitly cast Object.values to PrayerEntry[] to resolve TS 'unknown' property access errors
       counts.prayers += (Object.values(log.prayers) as PrayerEntry[]).filter(p => p.performed).length;
       counts.quran += (log.quran.hifzRub + log.quran.revisionRub);
       counts.knowledge += (log.knowledge.shariDuration + log.knowledge.readingDuration) / 30;
       counts.fasting += log.nawafil.fasting ? 10 : 0;
-      // Fix: Explicitly cast Object.values to number[] to resolve TS 'unknown' error in reduce accumulator
       counts.dhikr += (Object.values(log.athkar.counters) as number[]).reduce((a, b) => a + b, 0) / 100;
     });
     const max = Math.max(...Object.values(counts), 1);
@@ -86,12 +85,10 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
       if (log) {
         switch (activityFilter) {
           case 'all': isConnected = calculateTotalScore(log, weights) > 0; break;
-          // Fix: Cast result of Object.values to PrayerEntry[] to resolve 'unknown' type error in some()
           case 'prayers': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.performed); break;
           case 'quran': isConnected = (log.quran.hifzRub + log.quran.revisionRub) > 0; break;
           case 'knowledge': isConnected = (log.knowledge.shariDuration + log.knowledge.readingDuration) > 0; break;
           case 'fasting': isConnected = log.nawafil.fasting; break;
-          // Fix: Cast result of Object.values to boolean[] and number[] to resolve 'unknown' type errors and comparison issues
           case 'athkar': isConnected = (Object.values(log.athkar.checklists) as boolean[]).some(v => v) || (Object.values(log.athkar.counters) as number[]).some(v => v > 0); break;
         }
       }
@@ -112,10 +109,11 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
         body: JSON.stringify({ 
           action: 'syncLogs', 
           email: email, 
-          logs: JSON.stringify(logs) 
+          logs: JSON.stringify(logs),
+          books: JSON.stringify(books) // إضافة الكتب للمزامنة السحابية
         }) 
       });
-      alert("تم حفظ نسخة احتياطية سحابية لجميع سجلاتك بنجاح.");
+      alert("تم حفظ نسخة احتياطية سحابية (السجلات + المكتبة) بنجاح.");
     } catch (e) { 
       alert("حدث خطأ أثناء المزامنة، يرجى التحقق من الاتصال."); 
     } finally { 
@@ -155,6 +153,14 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights }) => {
         </div>
         <div className="grid grid-cols-10 gap-2 mb-4">
           {consistencyGrid.map((day, i) => (<div key={i} title={`${day.dateStr}`} className={`aspect-square rounded-md transition-all duration-300 hover:scale-110 cursor-help ${day.colorClass} shadow-sm`}></div>))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center">
+        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+          <p className="text-[10px] text-emerald-800 font-bold header-font">
+            نظام المزامنة يحفظ الآن: سجلات العبادة اليومية + مكتبة الكتب الخاصة بك لضمان عدم فقدان أي جزء من رحلتك العلمية.
+          </p>
         </div>
       </div>
 

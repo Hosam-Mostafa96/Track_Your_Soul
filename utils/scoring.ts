@@ -28,7 +28,8 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   const quran = (log.quran.hifzRub * weights.quranHifz) + (log.quran.revisionRub * weights.quranRevision);
   
   const knowledge = (log.knowledge.shariDuration * weights.knowledgeShari) + 
-                    (log.knowledge.readingDuration * weights.knowledgeGeneral);
+                    (log.knowledge.readingDuration * weights.knowledgeGeneral) +
+                    ((log.knowledge.readingPages || 0) * (weights.pointsPerPage || 0));
   
   const athkarCheck = Object.values(log.athkar.checklists).filter(Boolean).length * weights.athkarChecklist;
   const athkarCount = Object.values(log.athkar.counters).reduce((sum, count) => sum + ((count as number) * weights.athkarCounter), 0);
@@ -41,7 +42,6 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
     return sum + (sunnah ? sunnah.points : 0);
   }, 0);
   
-  // حساب معامل الخصم بناءً على الإعدادات
   const deductionMultiplier = 1 - (weights.burdenDeduction / 100);
   
   const total = (prayers + quran + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
