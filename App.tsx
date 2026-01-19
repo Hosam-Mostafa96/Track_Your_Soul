@@ -72,20 +72,44 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // منطق المؤقت المتقدم (يعمل حتى والجهاز مقفل)
+  // ميزات المؤقت
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
+  const [timerMode, setTimerMode] = useState<'stopwatch' | 'pomodoro'>('stopwatch');
+  const [pomodoroGoal, setPomodoroGoal] = useState(25 * 60);
+  
   const timerIntervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const accumulatedSecondsRef = useRef<number>(0);
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem('worship_theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => {
+      const newVal = !prev;
+      if (newVal) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('worship_theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('worship_theme', 'light');
+      }
+      return newVal;
+    });
+  };
+
+  useEffect(() => {
     if (isTimerRunning) {
-      // تسجيل وقت البداية (الطابع الزمني الحالي بالملي ثانية)
       startTimeRef.current = Date.now();
-      
       timerIntervalRef.current = window.setInterval(() => {
         if (startTimeRef.current !== null) {
           const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
@@ -97,15 +121,12 @@ const App: React.FC = () => {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
-      // حفظ الثواني التي تم جمعها قبل الإيقاف
       accumulatedSecondsRef.current = timerSeconds;
       startTimeRef.current = null;
     }
-    
     return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
   }, [isTimerRunning]);
 
-  // تحديث العداد فور عودة المستخدم للتطبيق (في حال كان مقفلاً)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isTimerRunning && startTimeRef.current !== null) {
@@ -125,7 +146,6 @@ const App: React.FC = () => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
   };
 
-  // مزامنة سريعة (كل 2.5 ثانية)
   useEffect(() => {
     if (isGlobalSyncEnabled && user?.email && Object.keys(logs).length > 0) {
       const timeout = setTimeout(async () => {
@@ -154,12 +174,14 @@ const App: React.FC = () => {
     const savedUser = localStorage.getItem('worship_user');
     const savedSync = localStorage.getItem('worship_global_sync');
     const savedWeights = localStorage.getItem('worship_weights');
+    const savedPomodoro = localStorage.getItem('worship_pomodoro_goal');
     
     if (savedLogs) setLogs(JSON.parse(savedLogs));
     if (savedTarget) setTargetScore(parseInt(savedTarget));
     if (savedUser) setUser(JSON.parse(savedUser));
     if (savedSync) setIsGlobalSyncEnabled(JSON.parse(savedSync));
     if (savedWeights) setWeights(JSON.parse(savedWeights));
+    if (savedPomodoro) setPomodoroGoal(parseInt(savedPomodoro));
     
     setIsAppReady(true);
   }, []);
@@ -217,9 +239,9 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
-      <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
+    <div className={`min-h-screen pb-32 bg-slate-50 dark:bg-slate-950 text-right transition-colors duration-300`} dir="rtl">
+      <header className="bg-emerald-800 dark:bg-emerald-950 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden transition-colors">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 dark:bg-emerald-900 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="w-full flex justify-between items-start mb-4 gap-4">
             <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
@@ -268,6 +290,10 @@ const App: React.FC = () => {
             onReset={resetTimer} 
             onActivityChange={setActiveActivity} 
             userEmail={user?.email} 
+            timerMode={timerMode}
+            onTimerModeChange={setTimerMode}
+            pomodoroGoal={pomodoroGoal}
+            onPomodoroGoalChange={(g) => { setPomodoroGoal(g); localStorage.setItem('worship_pomodoro_goal', g.toString()); }}
             onApplyTime={(field, mins) => {
               const newLog = { ...currentLog };
               if (field === 'shariDuration' || field === 'readingDuration') { 
@@ -286,12 +312,12 @@ const App: React.FC = () => {
         {activeTab === 'guide' && <WorshipGuide />}
         {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
         {activeTab === 'contact' && <ContactUs />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
+        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-slate-900/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 dark:border-slate-800 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar transition-colors">
         {navItems.slice(0, 7).map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 dark:text-emerald-400 scale-110' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>
             <div className="relative">
               <tab.icon className="w-5 h-5" />
               {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
