@@ -73,19 +73,20 @@ const App: React.FC = () => {
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
 
-  // منطق المؤقت المتقدم (يعمل حتى والجهاز مقفل)
+  // منطق المؤقت المتقدم
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
+  const [timerMode, setTimerMode] = useState<'stopwatch' | 'pomodoro'>('stopwatch');
+  const [pomodoroGoal, setPomodoroGoal] = useState(25 * 60);
+
   const timerIntervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const accumulatedSecondsRef = useRef<number>(0);
 
   useEffect(() => {
     if (isTimerRunning) {
-      // تسجيل وقت البداية (الطابع الزمني الحالي بالملي ثانية)
       startTimeRef.current = Date.now();
-      
       timerIntervalRef.current = window.setInterval(() => {
         if (startTimeRef.current !== null) {
           const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
@@ -97,15 +98,12 @@ const App: React.FC = () => {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
-      // حفظ الثواني التي تم جمعها قبل الإيقاف
       accumulatedSecondsRef.current = timerSeconds;
       startTimeRef.current = null;
     }
-    
     return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
   }, [isTimerRunning]);
 
-  // تحديث العداد فور عودة المستخدم للتطبيق (في حال كان مقفلاً)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isTimerRunning && startTimeRef.current !== null) {
@@ -125,41 +123,20 @@ const App: React.FC = () => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
   };
 
-  // مزامنة سريعة (كل 2.5 ثانية)
-  useEffect(() => {
-    if (isGlobalSyncEnabled && user?.email && Object.keys(logs).length > 0) {
-      const timeout = setTimeout(async () => {
-        try {
-          await fetch(GOOGLE_STATS_API, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              action: 'syncLogs',
-              email: user.email.toLowerCase().trim(),
-              logs: JSON.stringify(logs)
-            })
-          });
-        } catch (e) {
-          console.error("Cloud Sync Error:", e);
-        }
-      }, 2500); 
-      return () => clearTimeout(timeout);
-    }
-  }, [logs, isGlobalSyncEnabled, user?.email]);
-
   useEffect(() => {
     const savedLogs = localStorage.getItem('worship_logs');
     const savedTarget = localStorage.getItem('worship_target');
     const savedUser = localStorage.getItem('worship_user');
     const savedSync = localStorage.getItem('worship_global_sync');
     const savedWeights = localStorage.getItem('worship_weights');
+    const savedPomodoro = localStorage.getItem('worship_pomodoro_goal');
     
     if (savedLogs) setLogs(JSON.parse(savedLogs));
     if (savedTarget) setTargetScore(parseInt(savedTarget));
     if (savedUser) setUser(JSON.parse(savedUser));
     if (savedSync) setIsGlobalSyncEnabled(JSON.parse(savedSync));
     if (savedWeights) setWeights(JSON.parse(savedWeights));
+    if (savedPomodoro) setPomodoroGoal(parseInt(savedPomodoro));
     
     setIsAppReady(true);
   }, []);
@@ -217,7 +194,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
+    <div className="min-h-screen pb-32 bg-slate-50 text-right transition-colors duration-300" dir="rtl">
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -268,6 +245,10 @@ const App: React.FC = () => {
             onReset={resetTimer} 
             onActivityChange={setActiveActivity} 
             userEmail={user?.email} 
+            timerMode={timerMode}
+            onTimerModeChange={setTimerMode}
+            pomodoroGoal={pomodoroGoal}
+            onPomodoroGoalChange={(g) => { setPomodoroGoal(g); localStorage.setItem('worship_pomodoro_goal', g.toString()); }}
             onApplyTime={(field, mins) => {
               const newLog = { ...currentLog };
               if (field === 'shariDuration' || field === 'readingDuration') { 
