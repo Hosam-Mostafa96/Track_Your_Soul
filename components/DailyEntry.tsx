@@ -112,7 +112,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl transition-all font-bold header-font text-xs ${isPerformed ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'bg-slate-100 text-slate-500'}`}
           >
             {isPerformed ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-            {isPerformed ? 'تمت الصلاة' : 'لم تُسجل بعد'}
+            {isPerformed ? 'تمت الصلاة' :'اضغط للتفعيل'}
           </button>
         </div>
 
@@ -280,7 +280,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         <div className="space-y-4">
           {[
             { label: 'حفظ جديد', field: 'hifzRub' as const },
-            { label: 'مراجعة', field: 'revisionRub' as const }
+            { label: 'مراجعة & قراءة', field: 'revisionRub' as const }
           ].map(q => (
             <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
               <span className="text-sm font-bold text-slate-700 header-font">{q.label}</span>
