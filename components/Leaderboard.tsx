@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Hash, Users, Medal } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
@@ -21,8 +21,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   
+  const lastSuccessTimeRef = useRef<number>(Date.now());
+  const statsCacheRef = useRef(liveStats);
+
   const fetchGlobalData = async (isSilent = false) => {
-    if (!isSync || !user?.email) return;
+    if (!isSync || !user?.email || !navigator.onLine) return;
     
     if (!isSilent && globalTop.length === 0) setIsLoading(true);
     try {
@@ -53,36 +56,44 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           const sortedUnique = Array.from(uniqueMap.values())
             .sort((a, b) => b.score - a.score);
 
-          const myEmail = user.email.toLowerCase().trim();
-          const myIdx = sortedUnique.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
-          
           setGlobalTop(sortedUnique.slice(0, 50));
           
-          if (myIdx !== -1) {
-            setUserRank(myIdx + 1);
-          } else if (data.userRank && data.userRank !== "---") {
-            setUserRank(parseInt(data.userRank));
-          }
+          const myEmail = user.email.toLowerCase().trim();
+          const myIdx = sortedUnique.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
+          if (myIdx !== -1) setUserRank(myIdx + 1);
           
           if (data.stats) {
             setLiveStats(data.stats);
+            statsCacheRef.current = data.stats;
+            lastSuccessTimeRef.current = Date.now();
           }
           setHasError(false);
         }
       } else {
-        setHasError(true);
+        handleFetchError();
       }
     } catch (e) {
-      setHasError(true);
+      handleFetchError();
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleFetchError = () => {
+    // إذا حدث خطأ، لا نصفر الأرقام فوراً، بل ننتظر 10 ثوانٍ قبل إظهار حالة الخطأ
+    const timeSinceLastSuccess = Date.now() - lastSuccessTimeRef.current;
+    if (timeSinceLastSuccess > 10000) {
+      setHasError(true);
+    } else {
+      // الحفاظ على الأرقام القديمة من الكاش
+      setLiveStats(statsCacheRef.current);
+    }
+  };
+
   useEffect(() => {
     fetchGlobalData();
-    // تحديث الإحصائيات كل 2.5 ثانية لجعلها تبدو حية وبدقة عالية
-    const interval = setInterval(() => fetchGlobalData(true), 2500); 
+    // تحديث أسرع كل 2 ثانية لضمان دقة "نبض المحراب"
+    const interval = setInterval(() => fetchGlobalData(true), 2000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
