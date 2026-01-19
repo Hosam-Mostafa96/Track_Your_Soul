@@ -12,8 +12,6 @@ import {
   Info,
   Loader2,
   BarChart3,
-  Menu,
-  X as CloseIcon,
   Library
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -160,13 +158,6 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isAppReady) {
       localStorage.setItem('today_score_cache', todayScore.toString());
-      if ('setAppBadge' in navigator) {
-        if (todayScore > 0) {
-          (navigator as any).setAppBadge(Math.floor(todayScore / 100));
-        } else {
-          (navigator as any).clearAppBadge();
-        }
-      }
     }
   }, [todayScore, isAppReady]);
 
@@ -254,6 +245,7 @@ const App: React.FC = () => {
     );
   }
 
+  // الترتيب الجديد المطلوب من المستخدم
   const navItems = [
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
     {id: 'entry', icon: PenLine, label: 'تسجيل'},
@@ -329,7 +321,7 @@ const App: React.FC = () => {
             }} 
           />
         )}
-        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} logs={logs} weights={weights} isSync={isGlobalSyncEnabled} />}
+        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />}
         {activeTab === 'timer' && (
           <WorshipTimer 
             isSync={isGlobalSyncEnabled} 
@@ -366,12 +358,12 @@ const App: React.FC = () => {
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
         {navItems.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.5rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.6rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
             <div className="relative">
               <tab.icon className="w-5 h-5" />
               {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
             </div>
-            <span className="text-[8px] mt-1 font-bold header-font">{tab.label}</span>
+            <span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span>
           </button>
         ))}
       </nav>

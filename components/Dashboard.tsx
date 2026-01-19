@@ -61,10 +61,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   const currentTotalScore = calculateTotalScore(log, weights);
   const progressPercent = Math.min((currentTotalScore / targetScore) * 100, 100);
 
-  // الكتاب الحالي (أول كتاب غير منتهٍ)
   const activeBook = useMemo(() => books.find(b => !b.isFinished), [books]);
   
-  // عدد الكتب المنتهية هذا الشهر
   const finishedThisMonth = useMemo(() => {
     const monthStart = startOfMonth(new Date()).getTime();
     return books.filter(b => b.isFinished && b.finishDate && new Date(b.finishDate).getTime() >= monthStart).length;
@@ -122,22 +120,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     return { percent: diff, status: diff >= 0 ? 'ارتقاء' : 'مجاهدة', color: diff >= 0 ? 'text-emerald-500' : 'text-amber-500' };
   }, [logs, currentTotalScore, weights]);
 
-  const streakCount = useMemo(() => {
-    let count = 0;
-    let checkDate = new Date();
-    while (true) {
-      const dateStr = format(checkDate, 'yyyy-MM-dd');
-      const dayLog = logs[dateStr];
-      if (!dayLog) break;
-      if (calculateTotalScore(dayLog, weights) >= targetScore * 0.5) { 
-        count++; 
-        checkDate = addDays(checkDate, -1); 
-      } 
-      else break;
-    }
-    return count;
-  }, [logs, weights, targetScore]);
-
   const getAiAdvice = async () => {
     if (isAiLoading) return;
     setIsAiLoading(true);
@@ -168,7 +150,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* AI Advice Section */}
       <div className="relative group">
         <button onClick={getAiAdvice} disabled={isAiLoading} className="w-full bg-gradient-to-r from-emerald-600 to-teal-700 p-4 rounded-3xl shadow-lg flex items-center justify-between group-active:scale-95 transition-all text-white border border-white/10">
           <div className="flex items-center gap-3">
@@ -188,7 +169,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         )}
       </div>
 
-      {/* Target Section */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2"><Target className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-sm">الهدف اليومي</h3></div>
@@ -207,53 +187,60 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className="flex justify-between text-[10px] font-bold text-slate-400 px-1 header-font uppercase tracking-wider"><span>{Math.round(progressPercent)}% تم إنجازه</span><span>المتبقي: {Math.max(0, targetScore - currentTotalScore).toLocaleString()}</span></div>
       </div>
 
-      {/* ميزة متابعة القراءة السريعة */}
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/20"></div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-emerald-600" />
-            <h3 className="font-bold text-slate-800 header-font text-sm">متابعة القراءة</h3>
+      <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 overflow-hidden relative group">
+        <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/20"></div>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-50 rounded-2xl"><BookOpen className="w-6 h-6 text-emerald-600" /></div>
+            <div>
+                <h3 className="font-bold text-slate-800 header-font text-lg">متابعة القراءة اليومية</h3>
+                <p className="text-[10px] text-slate-400 font-bold">دوّن ما نهلت منه اليوم</p>
+            </div>
           </div>
-          <button onClick={() => onSwitchTab('library')} className="text-[10px] font-bold text-emerald-600 hover:underline flex items-center gap-1">المكتبة <ChevronLeft className="w-3 h-3" /></button>
+          <button onClick={() => onSwitchTab('library')} className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1">المكتبة <ChevronLeft className="w-4 h-4" /></button>
         </div>
 
         {activeBook ? (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="flex-1 min-w-0 pr-4">
-                <h4 className="text-sm font-bold text-slate-700 truncate">{activeBook.title}</h4>
-                <p className="text-[10px] text-slate-400 font-bold">إنجاز: {Math.round((activeBook.currentPages / activeBook.totalPages) * 100)}% ({activeBook.currentPages} من {activeBook.totalPages} صفحة)</p>
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-6 items-center">
+              <div className="flex-1 min-w-0 w-full">
+                <h4 className="text-base font-bold text-slate-700 truncate mb-1">{activeBook.title}</h4>
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-black text-emerald-700 header-font tracking-wide">الإنجاز: {Math.round((activeBook.currentPages / activeBook.totalPages) * 100)}%</span>
+                    <span className="text-[11px] font-bold text-slate-400">{activeBook.currentPages} / {activeBook.totalPages} صفحة</span>
+                </div>
+                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${(activeBook.currentPages / activeBook.totalPages) * 100}%` }}></div>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <input 
-                  type="number" 
-                  value={readingInput}
-                  onChange={(e) => setReadingInput(e.target.value)}
-                  placeholder="صفحات اليوم"
-                  className="w-28 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-center text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                />
+              
+              <div className="flex items-center gap-4 w-full md:w-auto shrink-0">
+                <div className="relative flex-1 md:w-36">
+                    <input 
+                    type="number" 
+                    value={readingInput}
+                    onChange={(e) => setReadingInput(e.target.value)}
+                    placeholder="صفحات اليوم"
+                    className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-[1.5rem] text-center text-lg font-black focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all placeholder:text-slate-300 placeholder:text-xs placeholder:font-bold"
+                    />
+                </div>
                 <button 
                   onClick={handleUpdateReading}
-                  className="p-3.5 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-100 active:scale-95 transition-all"
+                  className="p-5 bg-emerald-600 text-white rounded-[1.5rem] shadow-xl shadow-emerald-100 active:scale-90 transition-all hover:bg-emerald-700"
                 >
-                  <Check className="w-5 h-5" />
+                  <Check className="w-6 h-6 stroke-[3px]" />
                 </button>
               </div>
             </div>
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${(activeBook.currentPages / activeBook.totalPages) * 100}%` }}></div>
-            </div>
           </div>
         ) : (
-          <div className="text-center py-4 border-2 border-dashed border-slate-100 rounded-2xl">
-            <p className="text-[10px] text-slate-400 font-bold header-font mb-2">لا يوجد كتاب قيد القراءة حالياً</p>
-            <button onClick={() => onSwitchTab('library')} className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-wider">ابدأ كتاباً جديداً</button>
+          <div className="text-center py-6 border-2 border-dashed border-slate-100 rounded-3xl">
+            <p className="text-xs text-slate-400 font-bold header-font mb-3">لا يوجد كتاب قيد القراءة حالياً</p>
+            <button onClick={() => onSwitchTab('library')} className="px-6 py-3 bg-emerald-50 text-emerald-600 rounded-2xl text-[11px] font-black uppercase tracking-wider hover:bg-emerald-100 transition-colors">ابدأ رحلة علمية جديدة</button>
           </div>
         )}
       </div>
 
-      {/* Badges Section */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-4"><Award className="w-5 h-5 text-amber-500" /><h3 className="font-bold text-slate-800 header-font text-sm uppercase tracking-wider">أوسمة الأبرار اليوم</h3></div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -268,7 +255,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
           <div className={`p-3 rounded-2xl mb-3 ${momentumInfo.percent >= 0 ? 'bg-emerald-50' : 'bg-amber-50'}`}><Activity className={`w-6 h-6 ${momentumInfo.color}`} /></div>
@@ -284,7 +270,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Performance Graph */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-4"><History className="w-4 h-4 text-slate-400" /><h3 className="font-bold text-slate-600 header-font text-xs">نبض الأداء (أخر ٧ أيام)</h3></div>
         <div className="h-48 w-full">
