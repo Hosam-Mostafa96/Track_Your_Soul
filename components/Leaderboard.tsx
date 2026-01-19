@@ -226,7 +226,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                         {player.name} {isMe && <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-lg mr-1">أنت</span>}
                     </span>
                     <span className={`text-[9px] font-bold header-font ${isMe ? 'text-emerald-100 opacity-70' : 'text-slate-400'}`}>
-                       {index < 3 ? 'من الأبرار السابقين' : 'في طريق الارتقاء'}
+                       {index < 3 ? 'والسابقون السابقون' : 'في طريق الارتقاء'}
                     </span>
                   </div>
                 </div>
