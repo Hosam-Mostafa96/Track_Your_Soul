@@ -33,18 +33,6 @@ import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
 import BookLibrary from './components/BookLibrary';
 
-// دالة للحصول على التاريخ المحلي الفعلي للمستخدم بصيغة YYYY-MM-DD
-const getLocalDate = () => {
-  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: userTimeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  return formatter.format(new Date()); 
-};
-
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
   prayers: {
@@ -77,13 +65,14 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
-  const [currentDate, setCurrentDate] = useState(getLocalDate());
+  const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [targetScore, setTargetScore] = useState(5000);
   const [user, setUser] = useState<User | null>(null);
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
 
+  // منطق المؤقت
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
@@ -104,15 +93,19 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const checkMidnight = () => {
-      const nowLocal = getLocalDate();
-      if (nowLocal !== currentDate) {
-        setCurrentDate(nowLocal);
-      }
+    const scheduleMidnightUpdate = () => {
+      const now = new Date();
+      const nextMidnight = new Date();
+      nextMidnight.setHours(24, 0, 0, 0);
+      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+      return setTimeout(() => {
+        setCurrentDate(format(new Date(), 'yyyy-MM-dd'));
+        scheduleMidnightUpdate();
+      }, msUntilMidnight);
     };
-    const timerId = setInterval(checkMidnight, 60000);
-    return () => clearInterval(timerId);
-  }, [currentDate]);
+    const timerId = scheduleMidnightUpdate();
+    return () => clearTimeout(timerId);
+  }, []);
 
   useEffect(() => {
     if (isTimerRunning) {
@@ -252,6 +245,7 @@ const App: React.FC = () => {
     );
   }
 
+  // الترتيب الجديد المطلوب من المستخدم
   const navItems = [
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
     {id: 'entry', icon: PenLine, label: 'تسجيل'},
