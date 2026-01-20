@@ -127,7 +127,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-700 pb-24">
+    <div className="space-y-4 animate-in fade-in duration-700 pb-24 text-right" dir="rtl">
       
       {/* قسم النفحة الربانية */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-3xl p-5 border border-emerald-100/50 shadow-sm text-center relative overflow-hidden group">
@@ -215,31 +215,31 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               const rank = getRankConfig(index);
 
               return (
-                <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-3.5 rounded-[2.2rem] transition-all relative gap-3 shadow-sm group border ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.01] z-10 border-transparent' : 'bg-white border-slate-50 hover:border-emerald-100'}`}>
+                <div key={`${player.email || player.name}-${index}`} className={`flex items-center p-3 rounded-[2.2rem] transition-all relative gap-3 shadow-sm group border ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.01] z-10 border-transparent' : 'bg-white border-slate-50 hover:border-emerald-100'}`}>
                   
-                  {/* الاسم - جهة اليمين */}
-                  <div className="flex-grow text-right min-w-0 pr-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[15px] font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                  {/* الرتبة - أقصى اليمين */}
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 border-2 transition-transform shadow-sm ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-inner`}`}>
+                    {rank.icon ? rank.icon : <span className="text-sm font-black font-mono">{index + 1}</span>}
+                  </div>
+
+                  {/* الاسم - المنتصف (مرن ليدعم الاسم الثلاثي) */}
+                  <div className="flex-grow text-right min-w-0">
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                      <span className={`text-[14px] font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
                         {player.name}
                       </span>
                       {isMe && <Sparkles className="w-3 h-3 text-yellow-300 shrink-0" />}
                     </div>
                   </div>
 
-                  {/* النقاط - المنتصف */}
-                  <div className={`flex flex-col items-center px-4 shrink-0 border-x border-slate-100/50 ${isMe ? 'border-white/10' : ''}`}>
-                    <span className={`text-xl font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                  {/* النقاط - أقصى اليسار */}
+                  <div className={`flex flex-col items-center px-3 shrink-0 border-r border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
+                    <span className={`text-lg font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
                       {player.score.toLocaleString()}
                     </span>
                     <span className={`text-[8px] font-black header-font mt-1 uppercase opacity-60 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>
                       نقطة
                     </span>
-                  </div>
-
-                  {/* الترتيب (الأيقونة) - جهة اليسار */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 transition-transform shadow-sm ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-inner`}`}>
-                    {rank.icon ? rank.icon : <span className="text-[13px] font-black font-mono">{index + 1}</span>}
                   </div>
 
                 </div>
