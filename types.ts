@@ -71,6 +71,12 @@ export interface ReflectionNote {
   timestamp: number;
 }
 
+export interface SleepSession {
+  id: string;
+  start: string; // HH:mm
+  end: string;   // HH:mm
+}
+
 export interface AppWeights {
   fardCongregation: number;
   fardSolo: number;
@@ -86,7 +92,7 @@ export interface AppWeights {
   fastingDay: number;
   burdenDeduction: number;
   customSunnahs: CustomSunnah[];
-  pointsPerPage: number; // نقاط لكل صفحة مقروءة
+  pointsPerPage: number;
 }
 
 export interface DailyLog {
@@ -99,6 +105,7 @@ export interface DailyLog {
     counters: { salawat: number; hawqalah: number; tahlil: number; baqiyat: number; istighfar: number };
   };
   nawafil: { duhaDuration: number; witrDuration: number; qiyamDuration: number; fasting: boolean; custom: Array<{ id: string; value: number }> };
+  sleep: { sessions: SleepSession[] };
   customSunnahIds: string[];
   jihadFactor: number;
   hasBurden: boolean;

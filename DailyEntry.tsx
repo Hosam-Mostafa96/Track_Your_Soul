@@ -5,9 +5,9 @@ import {
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
   CalendarDays, ChevronRight, ChevronLeft, Edit3, Trash2, X, Check,
-  Skull
+  Skull, Bed
 } from 'lucide-react';
-import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from './types';
+import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights, SleepSession } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
 import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -37,6 +37,9 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
   const [isManagingSunnahs, setIsManagingSunnahs] = useState(false);
   const [newSunnahName, setNewSunnahName] = useState('');
   const [newSunnahPoints, setNewSunnahPoints] = useState(50);
+  
+  const [sleepStart, setSleepStart] = useState('22:00');
+  const [sleepEnd, setSleepEnd] = useState('04:30');
 
   const updateSection = (section: keyof DailyLog, data: any) => {
     onUpdate({ ...log, [section]: { ...(log[section] as any), ...data } });
@@ -61,6 +64,37 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
       : [...current, sunnahId];
     onUpdate({ ...log, customSunnahIds: newIds });
   };
+
+  const addSleepSession = () => {
+    const newSession: SleepSession = {
+      id: Math.random().toString(36).substr(2, 9),
+      start: sleepStart,
+      end: sleepEnd
+    };
+    onUpdate({
+      ...log,
+      sleep: { sessions: [...(log.sleep?.sessions || []), newSession] }
+    });
+  };
+
+  const removeSleepSession = (id: string) => {
+    onUpdate({
+      ...log,
+      sleep: { sessions: (log.sleep?.sessions || []).filter(s => s.id !== id) }
+    });
+  };
+
+  const calculateSleepDuration = (start: string, end: string) => {
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+    
+    let totalMins = (endH * 60 + endM) - (startH * 60 + startM);
+    if (totalMins < 0) totalMins += 24 * 60; // Crosses midnight
+    
+    return totalMins / 60;
+  };
+
+  const totalSleepHours = (log.sleep?.sessions || []).reduce((acc, s) => acc + calculateSleepDuration(s.start, s.end), 0);
 
   const addSunnah = () => {
     if (!newSunnahName.trim()) return;
@@ -145,6 +179,68 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
           </div>
         </div>
         <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))} disabled={currentDate === format(new Date(), 'yyyy-MM-dd')} className={`p-2 rounded-xl transition-colors ${currentDate === format(new Date(), 'yyyy-MM-dd') ? 'text-slate-200 cursor-not-allowed' : 'hover:bg-slate-50 text-slate-400'}`}><ChevronLeft className="w-5 h-5" /></button>
+      </div>
+
+      {/* قسم النوم الجديد */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-indigo-50 rounded-xl">
+              <Bed className="w-5 h-5 text-indigo-600" />
+            </div>
+            <h3 className="font-bold text-slate-800 header-font text-lg">سجل النوم</h3>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-100">
+            <span className="text-xs font-black font-mono">{totalSleepHours.toFixed(1)}</span>
+            <span className="text-[9px] font-bold header-font">ساعة</span>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-400 header-font">من الساعة</label>
+              <input 
+                type="time" 
+                value={sleepStart} 
+                onChange={(e) => setSleepStart(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-400 header-font">إلى الساعة</label>
+              <input 
+                type="time" 
+                value={sleepEnd} 
+                onChange={(e) => setSleepEnd(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+              />
+            </div>
+          </div>
+          <button 
+            onClick={addSleepSession}
+            className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-xs header-font flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 transition-all"
+          >
+            <Plus className="w-4 h-4" /> إضافة فترة نوم
+          </button>
+
+          {log.sleep?.sessions?.length > 0 && (
+            <div className="space-y-2 mt-4">
+              {log.sleep.sessions.map((s) => (
+                <div key={s.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl animate-in slide-in-from-top duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-50 rounded-lg"><Moon className="w-3.5 h-3.5 text-indigo-500" /></div>
+                    <span className="text-xs font-bold text-slate-600 header-font">من {s.start} إلى {s.end}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-indigo-700 font-mono">({calculateSleepDuration(s.start, s.end).toFixed(1)} س)</span>
+                    <button onClick={() => removeSleepSession(s.id)} className="p-1.5 text-rose-400 hover:bg-rose-50 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">

@@ -51,6 +51,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
   nawafil: {
     duhaDuration: 0, witrDuration: 0, qiyamDuration: 0, fasting: false, custom: []
   },
+  sleep: { sessions: [] },
   customSunnahIds: [],
   jihadFactor: JihadFactor.NORMAL,
   hasBurden: false,
@@ -72,7 +73,6 @@ const App: React.FC = () => {
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
 
-  // منطق المؤقت
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
@@ -245,7 +245,6 @@ const App: React.FC = () => {
     );
   }
 
-  // الترتيب الجديد المطلوب من المستخدم
   const navItems = [
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
     {id: 'entry', icon: PenLine, label: 'تسجيل'},

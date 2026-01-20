@@ -12,7 +12,9 @@ import {
   Zap,
   Activity,
   Target,
-  CloudUpload
+  CloudUpload,
+  Bed,
+  Moon
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -21,10 +23,17 @@ import {
   PolarAngleAxis, 
   PolarRadiusAxis, 
   Radar,
-  Tooltip as RechartsTooltip
+  Tooltip as RechartsTooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Cell
 } from 'recharts';
 import { DailyLog, AppWeights, User, PrayerEntry, Book } from '../types';
 import { isWithinInterval, endOfDay, format, addDays } from 'date-fns';
+import { ar } from 'date-fns/locale';
 import { calculateTotalScore } from '../utils/scoring';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -35,7 +44,7 @@ interface StatisticsProps {
   books: Book[]; 
 }
 
-type ActivityType = 'all' | 'prayers' | 'quran' | 'knowledge' | 'fasting' | 'athkar';
+type ActivityType = 'all' | 'prayers' | 'quran' | 'knowledge' | 'fasting' | 'athkar' | 'sleep';
 
 const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) => {
   const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'all'>('month');
@@ -49,6 +58,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
     { id: 'knowledge', label: 'طلب العلم', icon: <Clock className="w-3 h-3" />, color: 'purple' },
     { id: 'fasting', label: 'الصيام', icon: <Flame className="w-3 h-3" />, color: 'orange' },
     { id: 'athkar', label: 'الأذكار', icon: <Zap className="w-3 h-3" />, color: 'rose' },
+    { id: 'sleep', label: 'النوم', icon: <Bed className="w-3 h-3" />, color: 'indigo' },
   ];
 
   const radarData = useMemo(() => {
@@ -76,6 +86,39 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
     ];
   }, [logs, timeFilter]);
 
+  const sleepStatsData = useMemo(() => {
+    const days = 30;
+    const data = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = addDays(new Date(), -i);
+      const dStr = format(d, 'yyyy-MM-dd');
+      const log = logs[dStr];
+      
+      let totalHours = 0;
+      if (log && log.sleep?.sessions) {
+        log.sleep.sessions.forEach(s => {
+          const [sH, sM] = s.start.split(':').map(Number);
+          const [eH, eM] = s.end.split(':').map(Number);
+          let mins = (eH * 60 + eM) - (sH * 60 + sM);
+          if (mins < 0) mins += 24 * 60;
+          totalHours += mins / 60;
+        });
+      }
+      
+      data.push({
+        date: format(d, 'dd MMM', { locale: ar }),
+        hours: parseFloat(totalHours.toFixed(1))
+      });
+    }
+    return data;
+  }, [logs]);
+
+  const avgSleepHours = useMemo(() => {
+    const total = sleepStatsData.reduce((acc, curr) => acc + curr.hours, 0);
+    const recordedDays = sleepStatsData.filter(d => d.hours > 0).length;
+    return recordedDays > 0 ? (total / recordedDays).toFixed(1) : "0";
+  }, [sleepStatsData]);
+
   const consistencyGrid = useMemo(() => {
     return Array.from({ length: 30 }).map((_, i) => {
       const date = addDays(new Date(), -(29 - i));
@@ -90,9 +133,10 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
           case 'knowledge': isConnected = (log.knowledge.shariDuration + log.knowledge.readingDuration) > 0; break;
           case 'fasting': isConnected = log.nawafil.fasting; break;
           case 'athkar': isConnected = (Object.values(log.athkar.checklists) as boolean[]).some(v => v) || (Object.values(log.athkar.counters) as number[]).some(v => v > 0); break;
+          case 'sleep': isConnected = (log.sleep?.sessions || []).length > 0; break;
         }
       }
-      const activeColor = { all: 'bg-emerald-500', prayers: 'bg-blue-500', quran: 'bg-amber-500', knowledge: 'bg-purple-500', fasting: 'bg-orange-500', athkar: 'bg-rose-500' }[activityFilter];
+      const activeColor = { all: 'bg-emerald-500', prayers: 'bg-blue-500', quran: 'bg-amber-500', knowledge: 'bg-purple-500', fasting: 'bg-orange-500', athkar: 'bg-rose-500', sleep: 'bg-indigo-500' }[activityFilter];
       return { date, isConnected, colorClass: isConnected ? activeColor : 'bg-slate-100', dateStr };
     });
   }, [logs, weights, activityFilter]);
@@ -113,7 +157,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
         }) 
       });
       if (res.ok) {
-        alert("تم حفظ نسخة احتياطية سحابية (السجلات + المكتبة) بنجاح.");
+        alert("تم حفظ نسخة احتياطية سحابية (السجلات + المكتبة + سجل النوم) بنجاح.");
       } else {
         throw new Error("Failed to backup");
       }
@@ -131,7 +175,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-xl"><BarChart3 className="w-6 h-6 text-emerald-600" /></div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800 header-font">بصمتك الروحية</h2>
+            <h2 className="text-xl font-bold text-slate-800 header-font">بصمتك الروحية والبدنية</h2>
             <p className="text-[10px] text-slate-400 font-bold uppercase header-font">أنماط الاتصال والانقطاع</p>
           </div>
         </div>
@@ -160,10 +204,64 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
         </div>
       </div>
 
+      {/* قسم إحصائيات النوم المضافة */}
+      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 overflow-hidden relative group">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full -translate-y-12 translate-x-12 opacity-50 group-hover:scale-110 transition-transform"></div>
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-700">
+              <Moon className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-800 header-font leading-tight">تحليل ساعات النوم</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase header-font">آخر 30 يوماً</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-2xl font-black font-mono text-indigo-600 leading-none">{avgSleepHours}</span>
+            <p className="text-[8px] font-bold text-slate-400 header-font mt-1">ساعة كمتوسط</p>
+          </div>
+        </div>
+
+        <div className="h-48 w-full relative z-10">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={sleepStatsData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis 
+                dataKey="date" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 8, fontWeight: 700, fill: '#94a3b8', fontFamily: 'Cairo' }} 
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} 
+                width={20}
+              />
+              <RechartsTooltip 
+                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo' }}
+              />
+              <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
+                {sleepStatsData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.hours >= 6 && entry.hours <= 8 ? '#6366f1' : '#a5b4fc'} 
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="text-[9px] text-slate-400 font-bold text-center mt-3 header-font">
+          الأعمدة الداكنة تشير إلى النوم الصحي (6-8 ساعات)
+        </p>
+      </div>
+
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center">
         <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
           <p className="text-[10px] text-emerald-800 font-bold header-font">
-            نظام المزامنة يحفظ الآن: سجلات العبادة اليومية + مكتبة الكتب الخاصة بك لضمان عدم فقدان أي جزء من رحلتك العلمية.
+            نظام المزامنة يحفظ الآن: سجلات العبادة اليومية + سجل النوم + مكتبة الكتب لضمان تتبع شامل لرحلتك.
           </p>
         </div>
       </div>
