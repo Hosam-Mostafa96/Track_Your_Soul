@@ -18,63 +18,38 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [userRank, setUserRank] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  const lastSuccessTimeRef = useRef<number>(Date.now());
 
   /**
-   * دالة متطورة للتحقق مما إذا كان التاريخ القادم من جوجل شيت يوافق "اليوم"
-   * تتعامل مع صيغ مثل: "1/20/2025 8:34:32" أو "2025-01-20"
+   * دالة معالجة التاريخ لضمان مطابقة 20 يناير
    */
   const checkIfIsToday = (entryDateStr: string) => {
     if (!entryDateStr) return false;
 
     try {
-      // 1. إزالة جزء الوقت إذا وجد (Split by space)
-      const datePart = entryDateStr.split(' ')[0];
-      
-      // 2. تقسيم التاريخ بناءً على الفواصل الممكنة (- أو /)
+      // تنظيف النص من أي فراغات زائدة
+      const cleanStr = entryDateStr.trim();
+      // فصل التاريخ عن الوقت
+      const datePart = cleanStr.split(/\s+/)[0]; 
+      // تقسيم المكونات (يدعم / و -)
       const parts = datePart.split(/[-/]/);
+      
       if (parts.length !== 3) return false;
 
-      // 3. الحصول على تاريخ اليوم من جهاز المستخدم
       const now = new Date();
       const currentDay = now.getDate();
-      const currentMonth = now.getMonth() + 1; // JS months are 0-11
-      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
 
-      let entryDay, entryMonth, entryYear;
+      // تحويل الأجزاء لأرقام
+      const p0 = parseInt(parts[0]);
+      const p1 = parseInt(parts[1]);
+      const p2 = parseInt(parts[2]);
 
-      // تحديد اليوم والشهر والسنة بناءً على شكل المصفوفة
-      if (parts[0].length === 4) {
-        // صيغة YYYY-MM-DD
-        entryYear = parseInt(parts[0]);
-        entryMonth = parseInt(parts[1]);
-        entryDay = parseInt(parts[2]);
-      } else {
-        // صيغ M/D/YYYY أو D/M/YYYY
-        // بما أننا نعرف أن اليوم هو 20 والشهر 1، سنبحث عن هذه القيم
-        const p0 = parseInt(parts[0]);
-        const p1 = parseInt(parts[1]);
-        const p2 = parseInt(parts[2]);
+      // منطق مرن: نبحث عن وجود اليوم (20) والشهر (1) في أي من الخانتين الأوليين
+      const hasDay = p0 === currentDay || p1 === currentDay;
+      const hasMonth = p0 === currentMonth || p1 === currentMonth;
 
-        // السنة عادة تكون الجزء الأخير المكون من 4 أرقام أو رقم كبير
-        entryYear = p2 > 100 ? p2 : p0; 
-        
-        // محاولة ذكية لمعرفة اليوم والشهر
-        if ((p0 === currentMonth && p1 === currentDay) || (p0 === currentDay && p1 === currentMonth)) {
-          entryMonth = currentMonth;
-          entryDay = currentDay;
-        } else {
-          // إذا لم تتطابق، نأخذ الترتيب الافتراضي M/D
-          entryMonth = p0;
-          entryDay = p1;
-        }
-      }
-
-      // المقارنة النهائية
-      return entryDay === currentDay && entryMonth === currentMonth;
+      return hasDay && hasMonth;
     } catch (e) {
-      console.error("Date parsing error", e);
       return false;
     }
   };
@@ -102,40 +77,48 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         const data = await res.json();
         if (data && data.leaderboard) {
           const uniqueMap = new Map();
+          const myEmail = user.email.toLowerCase().trim();
           
           data.leaderboard.forEach((entry: any) => {
             const emailKey = (entry.email || entry.name || "").toLowerCase().trim();
             if (!emailKey) return;
             
-            const score = parseInt(entry.score) || 0;
-            if (score <= 0) return;
+            const scoreInSheet = parseInt(entry.score) || 0;
+            if (scoreInSheet <= 0) return;
 
-            // استخدام الدالة الجديدة لفحص التاريخ
-            const isToday = checkIfIsToday(entry.date) || entry.isToday === true || entry.isToday === "true";
+            const isMe = emailKey === myEmail;
+            
+            // القاعدة الذهبية: إذا كان هذا أنا وسكوري في الشيت يطابق سكوري الحالي، فهو "اليوم" حتماً
+            // أو إذا نجحت دالة فحص التاريخ
+            let isToday = checkIfIsToday(entry.date) || entry.isToday === true || entry.isToday === "true";
+            
+            if (isMe && scoreInSheet === currentScore) {
+              isToday = true;
+            }
             
             if (!uniqueMap.has(emailKey)) {
-              uniqueMap.set(emailKey, { ...entry, score, isToday });
+              uniqueMap.set(emailKey, { ...entry, score: scoreInSheet, isToday, isMe });
             } else {
               const existing = uniqueMap.get(emailKey);
+              // تفضيل سكور اليوم على الأمس لنفس الشخص
               if (isToday && !existing.isToday) {
-                uniqueMap.set(emailKey, { ...entry, score, isToday });
-              } else if (isToday === existing.isToday) {
-                if (score > existing.score) {
-                  uniqueMap.set(emailKey, { ...entry, score, isToday });
-                }
+                uniqueMap.set(emailKey, { ...entry, score: scoreInSheet, isToday, isMe });
+              } else if (isToday === existing.isToday && scoreInSheet > existing.score) {
+                uniqueMap.set(emailKey, { ...entry, score: scoreInSheet, isToday, isMe });
               }
             }
           });
 
           const allPlayers = Array.from(uniqueMap.values());
+          
+          // ترتيب: فرسان اليوم (حسب السكور) ثم فرسان الأمس (حسب السكور)
           const todayPlayers = allPlayers.filter(p => p.isToday).sort((a, b) => b.score - a.score);
           const yesterdayPlayers = allPlayers.filter(p => !p.isToday).sort((a, b) => b.score - a.score);
 
           const combined = [...todayPlayers, ...yesterdayPlayers];
           setGlobalTop(combined.slice(0, 100));
           
-          const myEmail = user.email.toLowerCase().trim();
-          const myIdx = combined.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
+          const myIdx = combined.findIndex(p => p.isMe);
           if (myIdx !== -1) setUserRank(myIdx + 1);
           else setUserRank(null);
           
@@ -213,7 +196,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           {globalTop.length > 0 ? (
             <>
               {globalTop.map((player, index) => {
-                const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
                 const rank = getRankStyle(index, player.isToday);
                 const isFirstYesterday = index > 0 && globalTop[index-1].isToday && !player.isToday;
 
@@ -229,19 +211,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                         <div className="h-px bg-slate-100 flex-1"></div>
                       </div>
                     )}
-                    <div className={`group flex items-center justify-between p-4 rounded-3xl transition-all duration-500 ${isMe ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xl scale-[1.02] border-none' : player.isToday ? 'bg-white border border-slate-100 hover:border-emerald-200' : 'bg-slate-50/50 border border-transparent opacity-80'}`}>
+                    <div className={`group flex items-center justify-between p-4 rounded-3xl transition-all duration-500 ${player.isMe ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xl scale-[1.02] border-none' : player.isToday ? 'bg-white border border-slate-100 hover:border-emerald-200' : 'bg-slate-50/50 border border-transparent opacity-80'}`}>
                       <div className="flex items-center gap-4">
                         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black relative overflow-hidden ${rank.bg} ${rank.text} border-2 ${rank.border}`}>
                           <span className="relative z-10">{index + 1}</span>
                         </div>
                         <div className="flex flex-col">
-                          <span className={`text-sm font-bold header-font truncate max-w-[140px] ${isMe ? 'text-white' : 'text-slate-800'}`}>{player.name} {isMe && <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-lg mr-1">أنت</span>}</span>
-                          <span className={`text-[9px] font-bold header-font ${isMe ? 'text-emerald-100 opacity-70' : 'text-slate-400'}`}>{player.isToday ? 'والسابقون السابقون' : 'جاهد فأصاب بالأمس'}</span>
+                          <span className={`text-sm font-bold header-font truncate max-w-[140px] ${player.isMe ? 'text-white' : 'text-slate-800'}`}>{player.name} {player.isMe && <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-lg mr-1">أنت</span>}</span>
+                          <span className={`text-[9px] font-bold header-font ${player.isMe ? 'text-emerald-100 opacity-70' : 'text-slate-400'}`}>{player.isToday ? 'والسابقون السابقون' : 'جاهد فأصاب بالأمس'}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className={`text-base font-black font-mono ${isMe ? 'text-white' : player.isToday ? 'text-emerald-700' : 'text-slate-500'}`}>{player.score.toLocaleString()}</span>
-                        <span className={`text-[8px] font-black uppercase ${isMe ? 'text-emerald-200' : 'text-slate-400'}`}>{player.isToday ? 'نقاط اليوم' : 'نقاط الأمس'}</span>
+                        <span className={`text-base font-black font-mono ${player.isMe ? 'text-white' : player.isToday ? 'text-emerald-700' : 'text-slate-500'}`}>{player.score.toLocaleString()}</span>
+                        <span className={`text-[8px] font-black uppercase ${player.isMe ? 'text-emerald-200' : 'text-slate-400'}`}>{player.isToday ? 'نقاط اليوم' : 'نقاط الأمس'}</span>
                       </div>
                     </div>
                   </React.Fragment>
