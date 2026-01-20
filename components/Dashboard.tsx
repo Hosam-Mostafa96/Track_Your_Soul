@@ -64,7 +64,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   const isFirstRender = useRef(true);
 
   const currentTotalScore = calculateTotalScore(log, weights);
-  const progressPercent = Math.min((currentTotalScore / targetScore) * 100, 100);
+  // فتح السماحية: إزالة Math.min لكي تتجاوز النسبة 100%
+  const progressPercent = (currentTotalScore / targetScore) * 100;
 
   const activeBook = useMemo(() => books.find(b => !b.isFinished), [books]);
   
@@ -238,8 +239,21 @@ const Dashboard: React.FC<DashboardProps> = ({
             )}
           </div>
         </div>
-        <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden mb-2 relative"><div className="bg-emerald-500 h-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%` }} /></div>
-        <div className="flex justify-between text-[10px] font-bold text-slate-400 px-1 header-font uppercase tracking-wider"><span>{Math.round(progressPercent)}% تم إنجازه</span><span>المتبقي: {Math.max(0, targetScore - currentTotalScore).toLocaleString()}</span></div>
+        <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden mb-2 relative">
+          <div 
+            className={`${progressPercent >= 100 ? 'bg-amber-400' : 'bg-emerald-500'} h-full transition-all duration-1000 ease-out`} 
+            style={{ width: `${Math.min(progressPercent, 100)}%` }} 
+          />
+        </div>
+        <div className="flex justify-between text-[10px] font-bold text-slate-400 px-1 header-font uppercase tracking-wider">
+          <span>{Math.round(progressPercent)}% تم إنجازه</span>
+          <span>
+            {currentTotalScore > targetScore 
+              ? `فائض: ${(currentTotalScore - targetScore).toLocaleString()}` 
+              : `المتبقي: ${(targetScore - currentTotalScore).toLocaleString()}`
+            }
+          </span>
+        </div>
       </div>
 
       <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 overflow-hidden relative group">

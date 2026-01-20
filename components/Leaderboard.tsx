@@ -149,11 +149,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.8rem] p-8 min-w-[170px] shadow-2xl relative overflow-hidden ring-4 ring-white/5">
                <div className="absolute -top-2 -right-2 opacity-10"><Crown className="w-20 h-20" /></div>
               <span className="text-[10px] font-black text-emerald-200 block mb-2 uppercase tracking-widest">رتبتك اليوم</span>
-              <div className="flex items-baseline justify-center gap-1">
+              <div className="flex items-center justify-center">
                 <span className="text-7xl font-black font-mono text-yellow-400 tracking-tighter drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] leading-none">
                   {userRank || "---"}
                 </span>
-                <span className="text-3xl font-black text-yellow-400/40">#</span>
               </div>
             </div>
           </div>
@@ -223,9 +222,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                   </div>
 
                   {/* الاسم - المنتصف (مرن ليدعم الاسم الثلاثي) */}
-                  <div className="flex-grow text-right min-w-0">
+                  <div className="flex-grow text-right min-w-0 pr-1">
                     <div className="flex items-center gap-1.5 overflow-hidden">
-                      <span className={`text-[14px] font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                      <span className={`text-[15px] font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
                         {player.name}
                       </span>
                       {isMe && <Sparkles className="w-3 h-3 text-yellow-300 shrink-0" />}
@@ -233,8 +232,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                   </div>
 
                   {/* النقاط - أقصى اليسار */}
-                  <div className={`flex flex-col items-center px-3 shrink-0 border-r border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
-                    <span className={`text-lg font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                  <div className={`flex flex-col items-center px-4 shrink-0 border-r border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
+                    <span className={`text-xl font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
                       {player.score.toLocaleString()}
                     </span>
                     <span className={`text-[8px] font-black header-font mt-1 uppercase opacity-60 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>
