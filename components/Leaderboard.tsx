@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, Quote, Zap } from 'lucide-react';
+import { Trophy, Crown, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, Quote } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -108,9 +108,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   const getRankConfig = (index: number) => {
     switch(index) {
-      case 0: return { bg: 'bg-amber-400', text: 'text-white', icon: <Crown className="w-3.5 h-3.5" /> };
-      case 1: return { bg: 'bg-slate-300', text: 'text-slate-600', icon: <Medal className="w-3.5 h-3.5" /> };
-      case 2: return { bg: 'bg-orange-400', text: 'text-white', icon: <Star className="w-3.5 h-3.5" /> };
+      case 0: return { bg: 'bg-amber-400', text: 'text-white', icon: <Crown className="w-5 h-5" /> };
+      case 1: return { bg: 'bg-slate-300', text: 'text-slate-600', icon: <Medal className="w-5 h-5" /> };
+      case 2: return { bg: 'bg-orange-400', text: 'text-white', icon: <Star className="w-5 h-5" /> };
       default: return { bg: 'bg-slate-100', text: 'text-slate-400', icon: null };
     }
   };
@@ -188,8 +188,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       <div className="space-y-4 px-1">
         <div className="flex items-center justify-between px-3 mb-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-black header-font text-slate-800">فرسان اليوم</h2>
             <Trophy className="w-5 h-5 text-yellow-500" />
+            <h2 className="text-xl font-black header-font text-slate-800">فرسان اليوم</h2>
           </div>
           <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3.5 py-1.5 rounded-full border border-emerald-100 shadow-sm">
              <Users className="w-3.5 h-3.5" />
@@ -197,38 +197,38 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           </div>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {globalTop.length > 0 ? (
             globalTop.map((player, index) => {
               const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
               const rank = getRankConfig(index);
 
               return (
-                <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-4 rounded-[2rem] transition-all relative gap-4 group ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.01] z-10' : 'bg-white border border-slate-100'}`}>
+                <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-4 rounded-[2rem] transition-all relative gap-4 shadow-sm group border ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.01] z-10' : 'bg-white border-slate-50'}`}>
                   
-                  {/* الرتبة - جهة اليسار (في RTL تظهر يساراً) */}
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-mono font-black text-sm border-2 transition-transform ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-transparent shadow-sm`}`}>
-                    {rank.icon ? rank.icon : index + 1}
-                  </div>
-
-                  {/* النقاط - المنتصف */}
-                  <div className={`flex flex-col items-center px-3 shrink-0 border-x border-slate-100/50 ${isMe ? 'border-white/10' : ''}`}>
-                    <span className={`text-base font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
-                      {player.score.toLocaleString()}
-                    </span>
-                    <span className={`text-[8px] font-bold header-font mt-1 ${isMe ? 'text-emerald-200/50' : 'text-slate-400'}`}>
-                      نقطة
-                    </span>
-                  </div>
-
-                  {/* الاسم - جهة اليمين (تصغير الخط وحذف الهاشتاج) */}
-                  <div className="flex-grow text-right min-w-0">
-                    <div className="flex items-center justify-end gap-2">
-                      <span className={`text-base font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                  {/* الاسم - جهة اليمين */}
+                  <div className="flex-grow text-right min-w-0 pr-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-base font-black header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
                         {player.name}
                       </span>
                       {isMe && <Sparkles className="w-3 h-3 text-yellow-300 shrink-0" />}
                     </div>
+                  </div>
+
+                  {/* النقاط - المنتصف */}
+                  <div className={`flex flex-col items-center px-4 shrink-0 border-x border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
+                    <span className={`text-xl font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                      {player.score.toLocaleString()}
+                    </span>
+                    <span className={`text-[9px] font-bold header-font mt-1.5 ${isMe ? 'text-emerald-200/50' : 'text-slate-400'}`}>
+                      نقطة
+                    </span>
+                  </div>
+
+                  {/* الترتيب (الصورة/الأيقونة) - جهة اليسار */}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 transition-transform shadow-sm ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-inner`}`}>
+                    {rank.icon ? rank.icon : <span className="text-sm font-black font-mono">{index + 1}</span>}
                   </div>
 
                 </div>
