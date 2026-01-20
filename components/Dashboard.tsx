@@ -140,7 +140,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           systemInstruction: `أنت "المستشار الروحي والتقني" لتطبيق "إدارة العبادات والأوراد".
           توضيح للمستخدمين الجدد:
           1. لتسجيل العبادات: اذهب لتبويب "تسجيل" (أيقونة القلم).
-          2. للمنافسة: تبويب "إنجازاتي" (أيقونة الميدالية) - تعرض فقط من سجلوا نقاطاً "اليوم".
+          2. للمنافسة: تبويب "إنجازاتي" (أيقونة الميدالية) - تعرض فرسان اليوم أولاً ثم فرسان الأمس.
           3. للمؤقت: تبويب "المؤقت" (أيقونة الساعة) للقيام أو العلم.
           4. للمكتبة: تبويب "المكتبة" (أيقونة الكتب) لإضافة كتبك وتتبع صفحاتك.
           5. الإحصائيات: تبويب "إحصائيات" لرؤية رسوم بيانية والمزامنة السحابية.
@@ -175,6 +175,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* المستشار الروحي المطور */}
       <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[2.5rem] p-6 shadow-xl relative overflow-hidden border border-white/10">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none"><Sparkles className="w-full h-full" /></div>
         
