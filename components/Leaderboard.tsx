@@ -22,6 +22,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   
   const lastSuccessTimeRef = useRef<number>(Date.now());
 
+  // دالة لتنظيف وتوحيد صيغة التاريخ للمقارنة
+  const normalizeDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    // إزالة أي فواصل وتحويلها لشرطات لتوحيد الصيغة YYYY-MM-DD
+    return dateStr.replace(/\//g, '-').split('T')[0]; 
+  };
+
   const fetchGlobalData = async (isSilent = false) => {
     if (!isSync || !user?.email || !navigator.onLine) return;
     
@@ -29,7 +36,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     if (!isSilent && globalTop.length === 0) setIsLoading(true);
     
     try {
-      const todayStr = format(new Date(), 'yyyy-MM-dd'); // الحصول على تاريخ اليوم المحلي بدقة
+      const todayDate = new Date();
+      const todayStr = format(todayDate, 'yyyy-MM-dd'); 
 
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
@@ -55,22 +63,29 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             const score = parseInt(entry.score) || 0;
             if (score <= 0) return;
 
-            // التحقق من "اليوم" بناءً على تاريخ الإدخال القادم من الشيت أو العلم المرفق
-            // نقارن تاريخ الإدخال (entry.date) مع تاريخ اليوم الحالي للجهاز (todayStr)
-            const entryDate = entry.date || ""; 
-            const isToday = entryDate === todayStr || entry.isToday === true || entry.isToday === "true";
+            // منطق تحديد "اليوم" المطور:
+            // 1. تنظيف تاريخ الإدخال من الشيت
+            const entryDateNormalized = normalizeDate(entry.date);
+            // 2. التحقق مما إذا كان التاريخ يطابق اليوم محلياً (20 يناير مثلاً)
+            const matchesLocalToday = entryDateNormalized === todayStr;
+            // 3. التحقق من العلامة القادمة من السيرفر كخيار احتياطي
+            const serverSaysToday = entry.isToday === true || entry.isToday === "true";
+            
+            const isToday = matchesLocalToday || serverSaysToday;
             
             if (!uniqueMap.has(emailKey)) {
-              uniqueMap.set(emailKey, { ...entry, score, isToday });
+              uniqueMap.set(emailKey, { ...entry, score, isToday, entryDateNormalized });
             } else {
               const existing = uniqueMap.get(emailKey);
-              // إذا وجدنا إدخالاً مسجلاً كـ "اليوم"، فله الأولوية القصوى
+              
+              // إذا كان الإدخال الحالي هو "اليوم" والقديم لا، نحدث فوراً
               if (isToday && !existing.isToday) {
-                uniqueMap.set(emailKey, { ...entry, score, isToday });
-              } else if (isToday === existing.isToday) {
-                // إذا تساوت الحالة الزمنية، نأخذ السكور الأعلى
+                uniqueMap.set(emailKey, { ...entry, score, isToday, entryDateNormalized });
+              } 
+              // إذا تساويا في الحالة الزمنية، نأخذ السكور الأعلى
+              else if (isToday === existing.isToday) {
                 if (score > existing.score) {
-                  uniqueMap.set(emailKey, { ...entry, score, isToday });
+                  uniqueMap.set(emailKey, { ...entry, score, isToday, entryDateNormalized });
                 }
               }
             }
@@ -78,7 +93,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
           const allPlayers = Array.from(uniqueMap.values());
           
-          // الفرز النهائي: فرسان اليوم أولاً (حسب النقاط)، ثم فرسان الأمس (حسب النقاط)
+          // الفرز: فرسان اليوم أولاً ثم مجاهدو الأمس
           const todayPlayers = allPlayers.filter(p => p.isToday).sort((a, b) => b.score - a.score);
           const yesterdayPlayers = allPlayers.filter(p => !p.isToday).sort((a, b) => b.score - a.score);
 
@@ -106,7 +121,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 10000); 
+    const interval = setInterval(() => fetchGlobalData(true), 8000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
