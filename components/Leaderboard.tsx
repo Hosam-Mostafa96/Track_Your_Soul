@@ -30,14 +30,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
-  const getEncouragement = (index: number) => {
-    if (index === 0) return "سابق بالخيرات";
-    if (index === 1) return "مقبل غير مدبر";
-    if (index === 2) return "فارس مجتهد";
-    if (index < 10) return "في علياء الخير";
-    return "مرابط في المحراب";
-  };
-
   const getLocalDateStr = () => {
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     return new Intl.DateTimeFormat('en-CA', {
@@ -133,29 +125,36 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   return (
     <div className="space-y-6 animate-in fade-in duration-700 pb-20">
       
-      {/* قسم الآية الكريمة */}
-      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-[2.5rem] p-6 border border-emerald-100 shadow-sm text-center relative overflow-hidden">
+      {/* آية اليوم */}
+      <div className="bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-[2rem] p-6 border border-emerald-100/40 text-center relative overflow-hidden group">
         <Quote className="absolute -top-2 -right-2 w-16 h-16 text-emerald-200/20 -rotate-12" />
         <p className="text-2xl font-bold quran-font text-emerald-950 leading-relaxed mb-1 relative z-10">"{currentQuote.text}"</p>
         <span className="text-[10px] font-black text-emerald-600/50 header-font uppercase tracking-[0.3em]">{currentQuote.source}</span>
       </div>
 
-      {/* هيدر الترتيب الملكي - رقم ضخم جداً */}
-      <div className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 rounded-[3.5rem] p-12 text-white shadow-2xl relative overflow-hidden border border-white/5">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_0%,_transparent_100%)]"></div>
+      {/* هيدر الترتيب الملكي - رقم عملاق */}
+      <div className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden border border-white/5">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] opacity-20"></div>
         <div className="relative z-10 flex flex-col items-center">
-          <div className="flex items-center gap-3 mb-4 bg-white/5 px-6 py-2 rounded-full border border-white/10 backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-6 bg-white/5 px-6 py-2 rounded-full border border-white/10 backdrop-blur-sm">
              <Trophy className="w-4 h-4 text-yellow-400" />
-             <h2 className="text-xs font-black header-font uppercase tracking-widest">ترتيبك في سباق الخير</h2>
+             <h2 className="text-sm font-black header-font uppercase tracking-widest">فرسان المحراب اليوم</h2>
           </div>
           
-          <div className="relative mb-6">
-            <span className="text-[14rem] font-black font-mono leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-amber-600 drop-shadow-[0_15px_15px_rgba(0,0,0,0.5)]">
-              {userRank || "---"}
-            </span>
+          <div className="relative mb-8 group">
+            <div className="absolute inset-0 bg-yellow-400/20 blur-[60px] rounded-full scale-150 group-hover:bg-yellow-400/30 transition-all duration-1000"></div>
+            <div className="relative flex items-center justify-center">
+               <span className="text-[12rem] font-black font-mono leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-amber-600 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
+                 {userRank || "---"}
+               </span>
+               <div className="absolute -bottom-2 flex flex-col items-center">
+                 <span className="text-xs font-black text-white/40 header-font uppercase tracking-[0.5em] mb-1">ترتيبك الحالي</span>
+                 <Sparkles className="w-6 h-6 text-yellow-400 animate-pulse" />
+               </div>
+            </div>
           </div>
           
-          <p className="text-emerald-200/40 text-[9px] font-bold header-font uppercase tracking-[0.5em]">حسب توقيتك الجغرافي الفعلي</p>
+          <p className="text-emerald-200/40 text-[9px] font-bold header-font uppercase tracking-[0.4em]">حسب توقيتك الجغرافي الفعلي</p>
         </div>
       </div>
 
@@ -163,13 +162,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       <div className="bg-white rounded-[2.8rem] p-8 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center gap-4">
-             <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center relative shadow-inner">
-                <Zap className="w-7 h-7 text-emerald-600 fill-emerald-600" />
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[3px] border-white animate-ping"></span>
+             <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center relative">
+                <Zap className="w-6 h-6 text-emerald-600 fill-emerald-600 animate-google" />
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-[3px] border-white animate-ping"></span>
              </div>
              <div>
-                <h3 className="font-black text-slate-900 header-font text-base mb-1 uppercase tracking-tight">جلسات إيمانية نشطة</h3>
-                <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">نبض المحراب في هذه اللحظة</p>
+                <h3 className="font-black text-slate-900 header-font text-base leading-none mb-1.5 uppercase">المرابطون الآن</h3>
+                <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">نبض العبادة في هذه اللحظة</p>
              </div>
           </div>
           <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-all hover:bg-white active:scale-90 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-300'}`}>
@@ -184,20 +183,20 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             { label: 'علم', val: liveStats.knowledge, icon: <GraduationCap className="w-4 h-4" />, color: 'text-emerald-500' },
             { label: 'ذكر', val: liveStats.athkar, icon: <Activity className="w-4 h-4" />, color: 'text-rose-500' }
           ].map((s, i) => (
-            <div key={i} className="flex flex-col items-center bg-slate-50/50 min-w-[6rem] py-5 rounded-[2rem] border border-slate-100 group hover:bg-white hover:border-emerald-100 transition-all duration-300">
-              <span className={`p-2.5 rounded-xl bg-white shadow-sm ${s.color} mb-2 group-hover:scale-110 transition-transform`}>{s.icon}</span>
-              <span className="text-xl font-black text-slate-900 font-mono leading-none tracking-tighter">{s.val}</span>
+            <div key={i} className="flex flex-col items-center bg-slate-50/50 min-w-[5.5rem] py-4 rounded-[1.8rem] border border-slate-100 group hover:bg-white hover:border-emerald-100 transition-all duration-300">
+              <span className={`p-2.5 rounded-xl bg-white shadow-xs ${s.color} mb-2 group-hover:scale-110 transition-transform`}>{s.icon}</span>
+              <span className="text-lg font-black text-slate-900 font-mono tracking-tighter">{s.val}</span>
               <span className="text-[10px] font-bold text-slate-400 header-font mt-1 uppercase">{s.label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* قائمة الفرسان - تصميم موسع وفخم */}
+      {/* قائمة الفرسان - تصميم موسع ومحكم */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-6 mb-2">
             <div className="w-1.5 h-6 bg-amber-400 rounded-full"></div>
-            <h3 className="text-sm font-black text-slate-800 header-font uppercase tracking-[0.2em]">فرسان اليوم</h3>
+            <h3 className="text-sm font-black text-slate-800 header-font uppercase tracking-[0.2em]">فرسان الخيرات اليوم</h3>
         </div>
 
         {globalTop.length > 0 ? (
@@ -206,35 +205,30 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             const rank = getRankConfig(index);
 
             return (
-              <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-8 md:p-10 rounded-[3rem] transition-all duration-500 relative gap-6 group ${isMe ? 'bg-gradient-to-r from-emerald-800 to-emerald-950 text-white shadow-[0_25px_50px_rgba(6,95,70,0.3)] scale-[1.04] z-10 border-none ring-4 ring-emerald-400/20' : 'bg-white border border-slate-100 hover:border-emerald-200 hover:shadow-2xl hover:shadow-slate-100 hover:-translate-y-2'}`}>
+              <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-6 md:p-8 rounded-[2.8rem] transition-all duration-500 relative gap-5 group ${isMe ? 'bg-gradient-to-r from-emerald-800 to-emerald-950 text-white shadow-[0_20px_40px_rgba(6,95,70,0.3)] scale-[1.04] z-10 border-none ring-4 ring-emerald-400/20' : 'bg-white border border-slate-100 hover:border-emerald-200 hover:shadow-2xl hover:shadow-slate-100 hover:-translate-y-1.5'}`}>
                 
-                {/* الرتبة - أيقونة أو رقم أنيق */}
-                <div className={`w-12 h-12 rounded-[1.5rem] flex items-center justify-center shrink-0 font-mono font-black text-base shadow-sm border-2 ${isMe ? 'bg-white/10 text-white border-white/20' : `${rank.bg} ${rank.text} border-white`}`}>
+                {/* الرتبة - مصغرة ولا تزدحم */}
+                <div className={`w-10 h-10 rounded-[1.2rem] flex items-center justify-center shrink-0 font-mono font-black text-sm shadow-sm border-2 ${isMe ? 'bg-white/10 text-white border-white/20' : `${rank.bg} ${rank.text} border-white`}`}>
                   {rank.icon ? rank.icon : index + 1}
                 </div>
 
-                {/* الاسم والمعلومات التشجيعية */}
+                {/* الاسم - فسيح وواضح */}
                 <div className="flex-grow min-w-0">
-                  <div className="flex flex-col gap-0.5">
-                    <span className={`text-2xl md:text-3xl font-black header-font truncate tracking-tight leading-none mb-1 ${isMe ? 'text-white' : 'text-slate-900'}`}>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xl md:text-2xl font-black header-font truncate tracking-tight leading-none ${isMe ? 'text-white' : 'text-slate-900'}`}>
                       {player.name}
                     </span>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${isMe ? 'bg-emerald-300' : 'bg-emerald-400'}`}></div>
-                      <span className={`text-[11px] font-black header-font uppercase tracking-[0.1em] ${isMe ? 'text-emerald-200' : 'text-emerald-600/70'}`}>
-                        {getEncouragement(index)}
-                      </span>
-                    </div>
+                    {isMe && <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse shrink-0" />}
                   </div>
                 </div>
 
-                {/* النقاط - في كبسولة فخمة */}
+                {/* النقاط - كبسولة احترافية فخمة */}
                 <div className="flex flex-col items-end shrink-0">
-                   <div className={`px-8 py-4 rounded-[2rem] flex items-center gap-3 border shadow-inner transition-all group-hover:scale-105 ${isMe ? 'bg-white/10 border-white/10' : 'bg-emerald-50/50 border-emerald-100 group-hover:bg-emerald-100'}`}>
-                      <span className={`text-3xl md:text-5xl font-black font-mono tracking-tighter tabular-nums leading-none ${isMe ? 'text-white' : 'text-emerald-900'}`}>
+                   <div className={`px-6 py-3 rounded-[1.8rem] flex items-center gap-2 border shadow-inner transition-all group-hover:scale-105 ${isMe ? 'bg-white/10 border-white/10' : 'bg-emerald-50/50 border-emerald-100 group-hover:bg-emerald-100'}`}>
+                      <span className={`text-2xl md:text-4xl font-black font-mono tracking-tighter tabular-nums leading-none ${isMe ? 'text-white' : 'text-emerald-900'}`}>
                         {player.score.toLocaleString()}
                       </span>
-                      <ArrowUpRight className={`w-5 h-5 ${isMe ? 'text-white/40' : 'text-emerald-300'}`} />
+                      <ArrowUpRight className={`w-4 h-4 ${isMe ? 'text-white/40' : 'text-emerald-300'}`} />
                    </div>
                 </div>
 
