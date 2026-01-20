@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, ChevronLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -19,6 +19,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // دالة الحصول على تاريخ القاهرة الحالي بتنسيق YYYY-MM-DD
   const getCairoDateStr = () => {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Africa/Cairo',
@@ -28,18 +29,33 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     }).format(new Date());
   };
 
+  // دالة ذكية للتحقق من أن السجل ينتمي لليوم الحالي في القاهرة
   const checkIfIsTodayCairo = (entry: any) => {
-    const todayCairo = getCairoDateStr();
+    const todayCairo = getCairoDateStr(); // الناتج: YYYY-MM-DD
+    const [cYear, cMonth, cDay] = todayCairo.split('-').map(Number);
+
     if (entry.isToday === true || entry.isToday === "true") return true;
     if (!entry.date) return false;
     
     try {
-      const entryDateStr = String(entry.date).trim();
-      if (entryDateStr.startsWith(todayCairo)) return true;
-      const dateParts = entryDateStr.split(/[-/.]/);
-      const cairoParts = todayCairo.split('-'); 
-      return dateParts.some(p => parseInt(p) === parseInt(cairoParts[2])) && 
-             dateParts.some(p => parseInt(p) === parseInt(cairoParts[1]));
+      const entryStr = String(entry.date).trim();
+      
+      // الحالة 1: يبدأ بـ YYYY-MM-DD
+      if (entryStr.startsWith(todayCairo)) return true;
+
+      // الحالة 2: تحليل الأرقام يدوياً (DD/MM/YYYY أو MM/DD/YYYY)
+      const digits = entryStr.match(/\d+/g);
+      if (digits && digits.length >= 2) {
+        // نبحث عن تطابق اليوم والشهر في أجزاء التاريخ
+        const hasDay = digits.some(d => parseInt(d) === cDay);
+        const hasMonth = digits.some(d => parseInt(d) === cMonth);
+        // نتحقق أيضاً من عدم قدم السنة إذا وجدت
+        const hasOldYear = digits.some(d => d.length === 4 && parseInt(d) < cYear);
+        
+        return hasDay && hasMonth && !hasOldYear;
+      }
+      
+      return false;
     } catch (e) {
       return false;
     }
@@ -72,17 +88,23 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             if (!emailKey) return;
             const score = parseInt(entry.score) || 0;
             if (score <= 0) return;
+
+            // تطبيق الفلترة الصارمة لتوقيت القاهرة
             if (!checkIfIsTodayCairo(entry)) return;
+
             const record = { ...entry, score, isToday: true };
             if (!uniqueMap.has(emailKey) || score > uniqueMap.get(emailKey).score) {
               uniqueMap.set(emailKey, record);
             }
           });
+
           const sorted = Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score);
           setGlobalTop(sorted.slice(0, 100));
+          
           const myEmail = user.email.toLowerCase().trim();
           const myIdx = sorted.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
           setUserRank(myIdx !== -1 ? myIdx + 1 : null);
+          
           if (data.stats) setLiveStats(data.stats);
         }
       }
@@ -176,7 +198,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         </div>
       </div>
 
-      {/* قائمة الفرسان المحدثة */}
+      {/* قائمة الفرسان - تصميم محسن للفصل بين الاسم والنقاط */}
       <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center gap-3">
@@ -199,16 +221,16 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                 const badge = getRankBadge(index);
 
                 return (
-                  <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-4 md:p-6 rounded-[2.2rem] transition-all duration-300 relative ${isMe ? 'bg-gradient-to-l from-emerald-600 to-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.02] border-none' : 'bg-white border border-slate-50 hover:border-emerald-100 hover:shadow-lg'}`}>
+                  <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-4 md:p-6 rounded-[2.2rem] transition-all duration-300 relative gap-4 ${isMe ? 'bg-gradient-to-l from-emerald-600 to-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.02] border-none' : 'bg-white border border-slate-50 hover:border-emerald-100 hover:shadow-lg'}`}>
                     
-                    {/* الجانب الأيمن: الرتبة والاسم */}
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                    {/* الكتلة اليمنى: الهوية */}
+                    <div className="flex items-center gap-4 flex-grow min-w-0">
                       <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shrink-0 border-2 font-mono font-black text-sm md:text-base ${isMe ? 'bg-white/20 border-white/30 text-white' : `${badge.bg} ${badge.border} ${badge.text}`}`}>
                         {badge.icon ? badge.icon : index + 1}
                       </div>
-                      <div className="flex flex-col min-w-0">
+                      <div className="flex flex-col min-w-0 flex-grow">
                         <div className="flex items-center gap-2">
-                          <span className={`text-sm md:text-base font-bold header-font truncate max-w-[120px] md:max-w-[200px] ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                          <span className={`text-sm md:text-base font-bold header-font truncate ${isMe ? 'text-white' : 'text-slate-800'}`}>
                             {player.name}
                           </span>
                           {isMe && <Sparkles className="w-3 h-3 text-yellow-300 shrink-0" />}
@@ -219,11 +241,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                       </div>
                     </div>
 
-                    {/* الفاصل البصري عند الحاجة (للموبايل الصغير) */}
-                    <div className="w-4"></div>
-
-                    {/* الجانب الأيسر: النقاط */}
-                    <div className="flex flex-col items-end shrink-0 pl-1">
+                    {/* الكتلة اليسرى: الأداء الرقمي */}
+                    <div className="flex flex-col items-end shrink-0 min-w-fit">
                       <div className={`px-4 py-1.5 rounded-2xl flex items-center gap-1.5 ${isMe ? 'bg-white/10' : 'bg-emerald-50/50'}`}>
                         <span className={`text-lg md:text-2xl font-black font-mono tracking-tighter tabular-nums ${isMe ? 'text-white' : 'text-emerald-700'}`}>
                           {player.score.toLocaleString()}
