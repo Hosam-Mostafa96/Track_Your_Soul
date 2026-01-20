@@ -32,7 +32,7 @@ interface StatisticsProps {
   user: User | null;
   logs: Record<string, DailyLog>;
   weights: AppWeights;
-  books: Book[]; // إضافة الكتب للبروبس للمزامنة
+  books: Book[]; 
 }
 
 type ActivityType = 'all' | 'prayers' | 'quran' | 'knowledge' | 'fasting' | 'athkar';
@@ -98,23 +98,27 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
   }, [logs, weights, activityFilter]);
 
   const handleCloudBackup = async () => {
-    if (!user?.email) return;
+    if (!user?.email || !navigator.onLine) return;
     setIsExporting(true);
     try {
       const email = user.email.toLowerCase().trim();
-      await fetch(GOOGLE_STATS_API, { 
+      const res = await fetch(GOOGLE_STATS_API, { 
         method: 'POST', 
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ 
           action: 'syncLogs', 
           email: email, 
           logs: JSON.stringify(logs),
-          books: JSON.stringify(books) // إضافة الكتب للمزامنة السحابية
+          books: JSON.stringify(books)
         }) 
       });
-      alert("تم حفظ نسخة احتياطية سحابية (السجلات + المكتبة) بنجاح.");
+      if (res.ok) {
+        alert("تم حفظ نسخة احتياطية سحابية (السجلات + المكتبة) بنجاح.");
+      } else {
+        throw new Error("Failed to backup");
+      }
     } catch (e) { 
+      console.error("Backup error:", e);
       alert("حدث خطأ أثناء المزامنة، يرجى التحقق من الاتصال."); 
     } finally { 
       setIsExporting(false); 

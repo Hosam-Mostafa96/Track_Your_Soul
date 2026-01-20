@@ -57,7 +57,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const lastHeartbeatTimeRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
 
-  // وظيفة منع قفل الشاشة
   const requestWakeLock = async () => {
     if ('wakeLock' in navigator) {
       try {
@@ -84,7 +83,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      releaseWakeLock(); // التأكد من التحرير عند الخروج
+      releaseWakeLock();
     };
   }, []);
 
@@ -121,15 +120,14 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const sendHeartbeat = async () => {
     if (!isSync || !isRunning || !userEmail || !navigator.onLine) return;
     const now = Date.now();
-    if (now - lastHeartbeatTimeRef.current < 1200) return; 
+    if (now - lastHeartbeatTimeRef.current < 2000) return; 
     lastHeartbeatTimeRef.current = now;
 
     try {
         await fetch(GOOGLE_STATS_API, { 
             method: 'POST', 
-            mode: 'no-cors',
             keepalive: true,
-            headers: { 'Content-Type': 'text/plain' },
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ 
               action: 'heartbeat', 
               activity: selectedActivity, 
@@ -141,13 +139,12 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   };
 
   const sendStopSignal = async () => {
-    if (!isSync || !userEmail) return;
+    if (!isSync || !userEmail || !navigator.onLine) return;
     try {
         await fetch(GOOGLE_STATS_API, { 
           method: 'POST', 
-          mode: 'no-cors',
           keepalive: true,
-          headers: { 'Content-Type': 'text/plain' }, 
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
           body: JSON.stringify({ action: 'stop', email: userEmail.toLowerCase().trim() }) 
         });
     } catch (e) {}
@@ -155,13 +152,13 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   useEffect(() => {
     if (isRunning) {
-      requestWakeLock(); // تفعيل منع القفل عند البدء
+      requestWakeLock();
       if (isSync && userEmail) {
         sendHeartbeat();
-        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 1500);
+        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 5000); // زيادة المدة لتقليل الضغط
       }
     } else {
-      releaseWakeLock(); // تحرير القفل عند التوقف
+      releaseWakeLock();
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;

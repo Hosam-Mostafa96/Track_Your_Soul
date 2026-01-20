@@ -37,6 +37,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [step, setStep] = useState(1); 
   const [isSaving, setIsSaving] = useState(false);
   const [emailError, setEmailError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<UserType>({
     name: '',
@@ -65,6 +66,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const handleSubmitData = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     
     if (!validateEmail(formData.email)) {
       setEmailError(true);
@@ -82,12 +84,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     try {
       const response = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'registerUser', 
           id: tempId,
           name: formData.name,
-          email: formData.email,
+          email: formData.email.toLowerCase().trim(),
           age: formData.age,
           country: formData.country,
           city: formData.city,
@@ -97,31 +99,31 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       if (response.ok) {
         const data = await response.json();
-        // التحقق من وجود بيانات سابقة لاستعادتها
         if (data.userSync && data.userSync.existingUser) {
           const globalId = data.userSync.existingUser.id || data.userSync.existingUser.ID || tempId;
           localStorage.setItem('worship_anon_id', globalId);
           
-          const confirmed = window.confirm("وجدنا بيانات سابقة مرتبطة بهذا البريد (سجلات + مكتبة). هل تريد استعادتها الآن؟");
+          const confirmed = window.confirm("وجدنا بيانات سابقة مرتبطة بهذا البريد. هل تريد استعادتها الآن؟");
           if (confirmed) {
-            // نمرر السجلات والكتب للمكون الأب لمعالجتها
             onComplete(
               data.userSync.existingUser, 
               data.userSync.existingLogs, 
-              data.userSync.existingBooks // استلام الكتب المستعادة من السيرفر
+              data.userSync.existingBooks
             );
             return;
           }
         } else {
           localStorage.setItem('worship_anon_id', tempId);
         }
+        setStep(3);
+      } else {
+        throw new Error("خطأ في الاتصال بالسيرفر");
       }
-      
-      setStep(3);
     } catch (error) {
-      console.error("Sync error:", error);
-      localStorage.setItem('worship_anon_id', tempId);
-      setStep(3);
+      console.error("Onboarding sync error:", error);
+      setErrorMessage("تعذر الاتصال بالمحراب السحابي حالياً. يمكنك المتابعة وسيتم حفظ بياناتك محلياً.");
+      // السماح بالمتابعة حتى في حالة الخطأ لضمان تجربة المستخدم
+      setTimeout(() => setStep(3), 3000);
     } finally {
       setIsSaving(false);
     }
@@ -141,7 +143,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <div className="p-5 bg-emerald-50 rounded-[2rem] mb-4">
                 <Sparkles className="w-12 h-12 text-emerald-600" />
               </div>
-              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">مرحباً بك في تطبيق إدارة العبادات والأوراد</h1>
+              <h1 className="text-2xl font-black text-slate-800 header-font mb-2">تطبيق إدارة العبادات والأوراد</h1>
               <p className="text-xs text-slate-500 font-bold header-font uppercase tracking-widest leading-relaxed">بوابتك للارتقاء الروحي ومحاسبة النفس</p>
             </div>
 
@@ -163,6 +165,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               </button>
               <h2 className="text-2xl font-black text-slate-800 header-font">بيانات المنتسب</h2>
             </div>
+
+            {errorMessage && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <p className="text-[10px] font-bold text-amber-800 leading-tight">{errorMessage}</p>
+              </div>
+            )}
 
             <form onSubmit={handleSubmitData} className="space-y-4">
               <input 

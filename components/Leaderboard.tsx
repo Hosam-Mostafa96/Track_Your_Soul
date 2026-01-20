@@ -18,6 +18,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [userRank, setUserRank] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
 
   const motivationalQuotes = useMemo(() => [
     { text: "وَفِي ذَلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ", source: "المطففين ٢٦" },
@@ -56,20 +57,27 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     if (!isSilent && globalTop.length === 0) setIsLoading(true);
     
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' }, 
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({
           action: 'getStats',
           email: user.email.toLowerCase().trim(),
           name: user.name || "مصلٍ مجهول",
           score: currentScore,
           includeYesterday: false 
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         const data = await res.json();
+        setNetworkError(false);
         if (data && data.leaderboard) {
           const uniqueMap = new Map();
           data.leaderboard.forEach((entry: any) => {
@@ -91,9 +99,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           setUserRank(myIdx !== -1 ? myIdx + 1 : null);
           if (data.stats) setLiveStats(data.stats);
         }
+      } else {
+        throw new Error("Server error");
       }
     } catch (e) {
-      console.error("Leaderboard error", e);
+      console.error("Leaderboard fetch error:", e);
+      if (!isSilent) setNetworkError(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -147,7 +158,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             </div>
           </div>
           
-          <p className="text-[10px] font-bold text-emerald-100/50 header-font italic tracking-wide">النتائج تتحدث تلقائياً</p>
+          <p className="text-[10px] font-bold text-emerald-100/50 header-font italic tracking-wide">تحديث تلقائي من السحاب</p>
         </div>
       </div>
 
@@ -206,10 +217,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               return (
                 <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-4 rounded-[2rem] transition-all relative gap-4 shadow-sm group border ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.01] z-10' : 'bg-white border-slate-50'}`}>
                   
-                  {/* الاسم - جهة اليمين */}
+                  {/* الاسم - جهة اليمين (تصغير الخط) */}
                   <div className="flex-grow text-right min-w-0 pr-2">
                     <div className="flex items-center gap-2">
-                      <span className={`text-base font-black header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                      <span className={`text-sm font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
                         {player.name}
                       </span>
                       {isMe && <Sparkles className="w-3 h-3 text-yellow-300 shrink-0" />}
@@ -218,17 +229,17 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
                   {/* النقاط - المنتصف */}
                   <div className={`flex flex-col items-center px-4 shrink-0 border-x border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
-                    <span className={`text-xl font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                    <span className={`text-lg font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
                       {player.score.toLocaleString()}
                     </span>
-                    <span className={`text-[9px] font-bold header-font mt-1.5 ${isMe ? 'text-emerald-200/50' : 'text-slate-400'}`}>
+                    <span className={`text-[8px] font-bold header-font mt-1 ${isMe ? 'text-emerald-200/50' : 'text-slate-400'}`}>
                       نقطة
                     </span>
                   </div>
 
-                  {/* الترتيب (الصورة/الأيقونة) - جهة اليسار */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 transition-transform shadow-sm ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-inner`}`}>
-                    {rank.icon ? rank.icon : <span className="text-sm font-black font-mono">{index + 1}</span>}
+                  {/* الترتيب (الأيقونة) - جهة اليسار */}
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 border-2 transition-transform shadow-sm ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-inner`}`}>
+                    {rank.icon ? rank.icon : <span className="text-xs font-black font-mono">{index + 1}</span>}
                   </div>
 
                 </div>
@@ -238,6 +249,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             <div className="text-center py-20 flex flex-col items-center">
               {isLoading ? (
                 <Loader2 className="w-10 h-10 text-emerald-200 animate-spin" />
+              ) : networkError ? (
+                <div className="p-8 bg-rose-50 rounded-[2.5rem] text-rose-400 flex flex-col items-center gap-4 border-2 border-dashed border-rose-200">
+                    <WifiOff className="w-10 h-10 opacity-40" />
+                    <p className="text-[10px] font-black header-font">تعذر الاتصال بالمحراب السحابي</p>
+                    <button onClick={() => fetchGlobalData()} className="text-[10px] font-black bg-white px-4 py-2 rounded-xl shadow-sm border border-rose-100 text-rose-600">إعادة المحاولة</button>
+                </div>
               ) : (
                 <div className="p-8 bg-slate-50 rounded-[2.5rem] text-slate-400 flex flex-col items-center gap-4 border-2 border-dashed border-slate-200">
                     <WifiOff className="w-10 h-10 opacity-20" />
