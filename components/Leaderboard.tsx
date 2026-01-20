@@ -20,33 +20,28 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   /**
-   * دالة معالجة التاريخ لضمان مطابقة 20 يناير
+   * دالة مطابقة التاريخ الذكية
+   * تدعم صيغة Timestamp (1/20/2026 8:51:59)
+   * تبحث عن تطابق اليوم والشهر لضمان أقصى درجات المرونة
    */
   const checkIfIsToday = (entryDateStr: string) => {
     if (!entryDateStr) return false;
 
     try {
-      // تنظيف النص من أي فراغات زائدة
-      const cleanStr = entryDateStr.trim();
-      // فصل التاريخ عن الوقت
-      const datePart = cleanStr.split(/\s+/)[0]; 
-      // تقسيم المكونات (يدعم / و -)
-      const parts = datePart.split(/[-/]/);
-      
-      if (parts.length !== 3) return false;
-
       const now = new Date();
       const currentDay = now.getDate();
       const currentMonth = now.getMonth() + 1;
 
-      // تحويل الأجزاء لأرقام
-      const p0 = parseInt(parts[0]);
-      const p1 = parseInt(parts[1]);
-      const p2 = parseInt(parts[2]);
+      // استخراج التاريخ فقط قبل المسافة (تجاهل الوقت)
+      const datePart = entryDateStr.trim().split(/\s+/)[0];
+      // تقسيم المكونات (يوم/شهر/سنة)
+      const parts = datePart.split(/[-/]/).map(p => parseInt(p));
+      
+      if (parts.length < 2) return false;
 
-      // منطق مرن: نبحث عن وجود اليوم (20) والشهر (1) في أي من الخانتين الأوليين
-      const hasDay = p0 === currentDay || p1 === currentDay;
-      const hasMonth = p0 === currentMonth || p1 === currentMonth;
+      // التحقق من وجود اليوم والشهر الحاليين في أي من الخانات (لدعم MDY و DMY)
+      const hasDay = parts.includes(currentDay);
+      const hasMonth = parts.includes(currentMonth);
 
       return hasDay && hasMonth;
     } catch (e) {
@@ -88,10 +83,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
             const isMe = emailKey === myEmail;
             
-            // القاعدة الذهبية: إذا كان هذا أنا وسكوري في الشيت يطابق سكوري الحالي، فهو "اليوم" حتماً
-            // أو إذا نجحت دالة فحص التاريخ
+            // فحص التاريخ لجميع المستخدمين لتحديد فرسان اليوم
             let isToday = checkIfIsToday(entry.date) || entry.isToday === true || entry.isToday === "true";
             
+            // قاعدة إضافية للمستخدم الحالي لضمان التزامن اللحظي
             if (isMe && scoreInSheet === currentScore) {
               isToday = true;
             }
@@ -100,7 +95,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               uniqueMap.set(emailKey, { ...entry, score: scoreInSheet, isToday, isMe });
             } else {
               const existing = uniqueMap.get(emailKey);
-              // تفضيل سكور اليوم على الأمس لنفس الشخص
+              // تفضيل السجل الذي يمثل "اليوم" أو السجل ذو النقاط الأعلى
               if (isToday && !existing.isToday) {
                 uniqueMap.set(emailKey, { ...entry, score: scoreInSheet, isToday, isMe });
               } else if (isToday === existing.isToday && scoreInSheet > existing.score) {
@@ -111,7 +106,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
           const allPlayers = Array.from(uniqueMap.values());
           
-          // ترتيب: فرسان اليوم (حسب السكور) ثم فرسان الأمس (حسب السكور)
+          // الفرز النهائي: فرسان اليوم أولاً (حسب النقاط) ثم مجاهدو الأمس (حسب النقاط)
           const todayPlayers = allPlayers.filter(p => p.isToday).sort((a, b) => b.score - a.score);
           const yesterdayPlayers = allPlayers.filter(p => !p.isToday).sort((a, b) => b.score - a.score);
 
@@ -218,7 +213,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                         </div>
                         <div className="flex flex-col">
                           <span className={`text-sm font-bold header-font truncate max-w-[140px] ${player.isMe ? 'text-white' : 'text-slate-800'}`}>{player.name} {player.isMe && <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-lg mr-1">أنت</span>}</span>
-                          <span className={`text-[9px] font-bold header-font ${player.isMe ? 'text-emerald-100 opacity-70' : 'text-slate-400'}`}>{player.isToday ? 'والسابقون السابقون' : 'جاهد فأصاب بالأمس'}</span>
+                          <span className={`text-[9px] font-bold header-font ${player.isMe ? 'text-emerald-100 opacity-70' : 'text-slate-400'}`}>{player.isToday ? 'فرسان اليوم' : 'جاهد فأصاب بالأمس'}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end">
