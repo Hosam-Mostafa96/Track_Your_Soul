@@ -115,84 +115,88 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   const getRankConfig = (index: number) => {
     switch(index) {
-      case 0: return { bg: 'bg-amber-400', text: 'text-white', icon: <Crown className="w-4 h-4" /> };
-      case 1: return { bg: 'bg-slate-400', text: 'text-white', icon: <Medal className="w-4 h-4" /> };
-      case 2: return { bg: 'bg-orange-500', text: 'text-white', icon: <Star className="w-4 h-4" /> };
-      default: return { bg: 'bg-slate-100', text: 'text-slate-500', icon: null };
+      case 0: return { bg: 'bg-amber-400', text: 'text-white', icon: <Crown className="w-5 h-5" /> };
+      case 1: return { bg: 'bg-slate-400', text: 'text-white', icon: <Medal className="w-5 h-5" /> };
+      case 2: return { bg: 'bg-orange-500', text: 'text-white', icon: <Star className="w-5 h-5" /> };
+      default: return { bg: 'bg-slate-50', text: 'text-slate-400', icon: null };
     }
   };
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
       
-      {/* قسم النفحة الربانية */}
-      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-[2rem] p-6 border border-emerald-100 shadow-sm text-center relative overflow-hidden group">
-        <Quote className="absolute -top-1 -right-1 w-12 h-12 text-emerald-200/30 -rotate-12" />
-        <p className="text-xl font-bold quran-font text-emerald-900 leading-relaxed mb-1 relative z-10">"{currentQuote.text}"</p>
-        <span className="text-[10px] font-black text-emerald-600/50 header-font uppercase tracking-widest">{currentQuote.source}</span>
+      {/* آية اليوم */}
+      <div className="bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-[2rem] p-6 border border-emerald-100/40 text-center relative overflow-hidden group">
+        <Quote className="absolute -top-2 -right-2 w-16 h-16 text-emerald-200/20 -rotate-12" />
+        <p className="text-2xl font-bold quran-font text-emerald-950 leading-relaxed mb-1 relative z-10">"{currentQuote.text}"</p>
+        <span className="text-[10px] font-black text-emerald-600/50 header-font uppercase tracking-[0.3em]">{currentQuote.source}</span>
       </div>
 
-      {/* هيدر الترتيب الملكي المحدث */}
-      <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 rounded-[3rem] p-8 text-white shadow-2xl relative overflow-hidden border border-white/10">
-        <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+      {/* هيدر الترتيب الملكي - رقم عملاق */}
+      <div className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden border border-white/5">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] opacity-20"></div>
         <div className="relative z-10 flex flex-col items-center">
-          <h2 className="text-2xl font-black header-font mb-1 tracking-tight">فرسان السباق اليوم</h2>
-          <p className="text-emerald-100/40 text-[10px] font-bold header-font uppercase tracking-[0.3em] mb-8">حسب التوقيت الجغرافي الفعلي</p>
+          <div className="flex items-center gap-3 mb-6 bg-white/5 px-6 py-2 rounded-full border border-white/10 backdrop-blur-sm">
+             <Trophy className="w-4 h-4 text-yellow-400" />
+             <h2 className="text-sm font-black header-font uppercase tracking-widest">فرسان المحراب اليوم</h2>
+          </div>
           
-          <div className="bg-white/10 backdrop-blur-xl rounded-[3rem] p-2 w-full max-w-[280px] border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] scale-110">
-            <div className="bg-emerald-950/60 rounded-[2.8rem] py-10 px-4 flex flex-col items-center border border-white/5">
-               <div className="flex items-center gap-1 dir-ltr mb-1">
-                 <span className="text-8xl font-black font-mono text-yellow-400 tracking-tighter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">{userRank || "---"}</span>
-                 <span className="text-3xl font-black text-yellow-400/40 mt-6">#</span>
-               </div>
-               <div className="flex items-center gap-2">
-                 <Sparkles className="w-4 h-4 text-emerald-400" />
-                 <span className="text-[12px] font-black text-emerald-100/80 uppercase tracking-widest header-font">رتبتك في الخيرات</span>
+          <div className="relative mb-8 group">
+            <div className="absolute inset-0 bg-yellow-400/20 blur-[60px] rounded-full scale-150 group-hover:bg-yellow-400/30 transition-all duration-1000"></div>
+            <div className="relative flex items-center justify-center">
+               <span className="text-[12rem] font-black font-mono leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-amber-600 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
+                 {userRank || "---"}
+               </span>
+               <div className="absolute -bottom-2 flex flex-col items-center">
+                 <span className="text-xs font-black text-white/40 header-font uppercase tracking-[0.5em] mb-1">ترتيبك الحالي</span>
+                 <Sparkles className="w-6 h-6 text-yellow-400 animate-pulse" />
                </div>
             </div>
           </div>
+          
+          <p className="text-emerald-200/40 text-[9px] font-bold header-font uppercase tracking-[0.4em]">حسب توقيتك الجغرافي الفعلي</p>
         </div>
       </div>
 
       {/* نبض المحراب - جلسات نشطة */}
-      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-5 px-2">
-          <div className="flex items-center gap-3">
-             <div className="p-2 bg-emerald-50 rounded-xl relative">
-                <Zap className="w-5 h-5 text-emerald-600 fill-emerald-600" />
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-ping"></span>
+      <div className="bg-white rounded-[2.8rem] p-8 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-8 px-2">
+          <div className="flex items-center gap-4">
+             <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center relative">
+                <Zap className="w-6 h-6 text-emerald-600 fill-emerald-600 animate-google" />
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-[3px] border-white animate-ping"></span>
              </div>
              <div>
-                <h3 className="font-black text-slate-800 header-font text-sm uppercase">جلسات نشطة الآن</h3>
-                <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">نبض المحراب العالمي</p>
+                <h3 className="font-black text-slate-900 header-font text-base leading-none mb-1.5 uppercase">المرابطون الآن</h3>
+                <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">نبض العبادة في هذه اللحظة</p>
              </div>
           </div>
-          <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-3 rounded-2xl bg-slate-50 transition-all active:scale-90 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-300'}`}>
-            <RefreshCw className="w-4 h-4" />
+          <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-all hover:bg-white active:scale-90 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-300'}`}>
+            <RefreshCw className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar px-1">
+        <div className="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar px-1">
           {[
-            { label: 'قيام', val: liveStats.qiyam, icon: <Moon className="w-3 h-3" />, color: 'text-indigo-500' },
-            { label: 'ضحى', val: liveStats.duha, icon: <Sun className="w-3 h-3" />, color: 'text-amber-500' },
-            { label: 'علم', val: liveStats.knowledge, icon: <GraduationCap className="w-3 h-3" />, color: 'text-emerald-500' },
-            { label: 'ذكر', val: liveStats.athkar, icon: <Activity className="w-3 h-3" />, color: 'text-rose-500' }
+            { label: 'قيام', val: liveStats.qiyam, icon: <Moon className="w-4 h-4" />, color: 'text-indigo-500' },
+            { label: 'ضحى', val: liveStats.duha, icon: <Sun className="w-4 h-4" />, color: 'text-amber-500' },
+            { label: 'علم', val: liveStats.knowledge, icon: <GraduationCap className="w-4 h-4" />, color: 'text-emerald-500' },
+            { label: 'ذكر', val: liveStats.athkar, icon: <Activity className="w-4 h-4" />, color: 'text-rose-500' }
           ].map((s, i) => (
-            <div key={i} className="flex flex-col items-center bg-slate-50/80 min-w-[5rem] py-3 rounded-2xl border border-slate-100 group hover:bg-white hover:border-emerald-100 transition-all">
-              <span className={`p-2 rounded-xl bg-white shadow-sm ${s.color} mb-1.5 group-hover:scale-110 transition-transform`}>{s.icon}</span>
-              <span className="text-base font-black text-slate-800 font-mono leading-none tracking-tighter">{s.val}</span>
-              <span className="text-[9px] font-bold text-slate-400 header-font mt-1 uppercase">{s.label}</span>
+            <div key={i} className="flex flex-col items-center bg-slate-50/50 min-w-[5.5rem] py-4 rounded-[1.8rem] border border-slate-100 group hover:bg-white hover:border-emerald-100 transition-all duration-300">
+              <span className={`p-2.5 rounded-xl bg-white shadow-xs ${s.color} mb-2 group-hover:scale-110 transition-transform`}>{s.icon}</span>
+              <span className="text-lg font-black text-slate-900 font-mono tracking-tighter">{s.val}</span>
+              <span className="text-[10px] font-bold text-slate-400 header-font mt-1 uppercase">{s.label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* قائمة الفرسان - تصميم موسع ومبسط */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3 px-4 mb-2">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <h3 className="text-sm font-black text-slate-700 header-font uppercase tracking-widest">المتسابقون اليوم</h3>
+      {/* قائمة الفرسان - تصميم موسع ومحكم */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 px-6 mb-2">
+            <div className="w-1.5 h-6 bg-amber-400 rounded-full"></div>
+            <h3 className="text-sm font-black text-slate-800 header-font uppercase tracking-[0.2em]">فرسان الخيرات اليوم</h3>
         </div>
 
         {globalTop.length > 0 ? (
@@ -201,28 +205,27 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             const rank = getRankConfig(index);
 
             return (
-              <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-5 md:p-6 rounded-[2rem] transition-all duration-500 relative gap-4 group ${isMe ? 'bg-gradient-to-l from-emerald-700 to-emerald-900 text-white shadow-2xl shadow-emerald-200 scale-[1.03] border-none ring-4 ring-emerald-500/10' : 'bg-white border border-slate-100 hover:border-emerald-200 hover:shadow-xl hover:shadow-slate-100 hover:-translate-y-1'}`}>
+              <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-6 md:p-8 rounded-[2.8rem] transition-all duration-500 relative gap-5 group ${isMe ? 'bg-gradient-to-r from-emerald-800 to-emerald-950 text-white shadow-[0_20px_40px_rgba(6,95,70,0.3)] scale-[1.04] z-10 border-none ring-4 ring-emerald-400/20' : 'bg-white border border-slate-100 hover:border-emerald-200 hover:shadow-2xl hover:shadow-slate-100 hover:-translate-y-1.5'}`}>
                 
-                {/* الرتبة - مصغرة وأنيقة */}
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 font-mono font-black text-sm shadow-sm transition-transform group-hover:rotate-3 ${isMe ? 'bg-white/20 text-white' : `${rank.bg} ${rank.text} border-2 border-white`}`}>
+                {/* الرتبة - مصغرة ولا تزدحم */}
+                <div className={`w-10 h-10 rounded-[1.2rem] flex items-center justify-center shrink-0 font-mono font-black text-sm shadow-sm border-2 ${isMe ? 'bg-white/10 text-white border-white/20' : `${rank.bg} ${rank.text} border-white`}`}>
                   {rank.icon ? rank.icon : index + 1}
                 </div>
 
-                {/* الاسم - هو المركز البصري */}
+                {/* الاسم - فسيح وواضح */}
                 <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-lg md:text-xl font-black header-font truncate tracking-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xl md:text-2xl font-black header-font truncate tracking-tight leading-none ${isMe ? 'text-white' : 'text-slate-900'}`}>
                       {player.name}
                     </span>
-                    {isMe && <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse shrink-0" />}
-                    {index < 3 && !isMe && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>}
+                    {isMe && <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse shrink-0" />}
                   </div>
                 </div>
 
-                {/* النقاط - كبسولة احترافية */}
+                {/* النقاط - كبسولة احترافية فخمة */}
                 <div className="flex flex-col items-end shrink-0">
-                   <div className={`px-5 py-2.5 rounded-[1.5rem] flex items-center gap-2 border shadow-inner transition-colors ${isMe ? 'bg-white/10 border-white/10' : 'bg-emerald-50 border-emerald-100 group-hover:bg-emerald-100'}`}>
-                      <span className={`text-xl md:text-3xl font-black font-mono tracking-tighter tabular-nums ${isMe ? 'text-white' : 'text-emerald-800'}`}>
+                   <div className={`px-6 py-3 rounded-[1.8rem] flex items-center gap-2 border shadow-inner transition-all group-hover:scale-105 ${isMe ? 'bg-white/10 border-white/10' : 'bg-emerald-50/50 border-emerald-100 group-hover:bg-emerald-100'}`}>
+                      <span className={`text-2xl md:text-4xl font-black font-mono tracking-tighter tabular-nums leading-none ${isMe ? 'text-white' : 'text-emerald-900'}`}>
                         {player.score.toLocaleString()}
                       </span>
                       <ArrowUpRight className={`w-4 h-4 ${isMe ? 'text-white/40' : 'text-emerald-300'}`} />
@@ -233,25 +236,25 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             )
           })
         ) : (
-          <div className="text-center py-20 flex flex-col items-center">
+          <div className="text-center py-24 flex flex-col items-center">
             {isLoading ? (
-              <div className="p-10 bg-white rounded-[3rem] shadow-sm flex flex-col items-center gap-4">
-                 <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
-                 <p className="text-xs font-bold text-slate-400 header-font">جاري استحضار الفرسان..</p>
+              <div className="p-12 bg-white rounded-[3.5rem] shadow-sm flex flex-col items-center gap-6 border border-slate-50">
+                 <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
+                 <p className="text-xs font-black text-slate-500 header-font uppercase tracking-widest">جاري استحضار الفرسان..</p>
               </div>
             ) : (
-              <div className="p-10 bg-slate-50 rounded-[3rem] text-slate-400 flex flex-col items-center gap-4 border-2 border-dashed border-slate-200">
-                  <WifiOff className="w-12 h-12 opacity-20" />
-                  <p className="text-[11px] font-bold header-font">لم ينطلق أي فارس في رحلته اليوم بعد..</p>
+              <div className="p-12 bg-slate-50 rounded-[3.5rem] text-slate-400 flex flex-col items-center gap-6 border-2 border-dashed border-slate-100">
+                  <WifiOff className="w-16 h-16 opacity-20" />
+                  <p className="text-[11px] font-black header-font uppercase tracking-widest text-center leading-relaxed">لم ينطلق أي فارس في رحلته اليوم بعد..<br/>كن أنت الأول!</p>
               </div>
             )}
           </div>
         )}
       </div>
 
-      <div className="p-6 bg-slate-900 rounded-[2.5rem] text-white text-center shadow-xl relative overflow-hidden group mt-6">
-        <div className="absolute top-0 left-0 w-full h-full bg-emerald-500/5"></div>
-        <p className="text-xs font-bold header-font opacity-70 italic relative z-10">
+      <div className="p-8 bg-emerald-950 rounded-[3rem] text-white text-center shadow-2xl relative overflow-hidden group mt-10">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.05)_0%,_transparent_100%)]"></div>
+        <p className="text-sm font-bold header-font opacity-60 italic relative z-10 leading-relaxed">
           "إنما تُقطع المسافات بعزائم القلوب.. فاستعن بالله ولا تعجز"
         </p>
       </div>
