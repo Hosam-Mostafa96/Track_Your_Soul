@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, TrendingUp } from 'lucide-react';
+import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, ChevronLeft } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -19,17 +19,27 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const checkIfIsToday = (entry: any) => {
+  const getCairoDateStr = () => {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Cairo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  };
+
+  const checkIfIsTodayCairo = (entry: any) => {
+    const todayCairo = getCairoDateStr();
     if (entry.isToday === true || entry.isToday === "true") return true;
     if (!entry.date) return false;
     
     try {
       const entryDateStr = String(entry.date).trim();
-      const now = new Date();
-      const d = now.getDate();
-      const m = now.getMonth() + 1;
+      if (entryDateStr.startsWith(todayCairo)) return true;
       const dateParts = entryDateStr.split(/[-/.]/);
-      return dateParts.some(p => parseInt(p) === d) && dateParts.some(p => parseInt(p) === m);
+      const cairoParts = todayCairo.split('-'); 
+      return dateParts.some(p => parseInt(p) === parseInt(cairoParts[2])) && 
+             dateParts.some(p => parseInt(p) === parseInt(cairoParts[1]));
     } catch (e) {
       return false;
     }
@@ -49,7 +59,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           email: user.email.toLowerCase().trim(),
           name: user.name || "مصلٍ مجهول",
           score: currentScore,
-          includeYesterday: true 
+          includeYesterday: false 
         })
       });
 
@@ -62,34 +72,17 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             if (!emailKey) return;
             const score = parseInt(entry.score) || 0;
             if (score <= 0) return;
-
-            const isToday = checkIfIsToday(entry);
-            const record = { ...entry, score, isToday };
-
-            if (!uniqueMap.has(emailKey)) {
+            if (!checkIfIsTodayCairo(entry)) return;
+            const record = { ...entry, score, isToday: true };
+            if (!uniqueMap.has(emailKey) || score > uniqueMap.get(emailKey).score) {
               uniqueMap.set(emailKey, record);
-            } else {
-              const existing = uniqueMap.get(emailKey);
-              if (isToday && !existing.isToday) {
-                uniqueMap.set(emailKey, record);
-              } else if (isToday === existing.isToday && score > existing.score) {
-                uniqueMap.set(emailKey, record);
-              }
             }
           });
-
-          const allPlayers = Array.from(uniqueMap.values());
-          const sorted = allPlayers.sort((a, b) => {
-            if (a.isToday !== b.isToday) return a.isToday ? -1 : 1;
-            return b.score - a.score;
-          });
-
+          const sorted = Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score);
           setGlobalTop(sorted.slice(0, 100));
-          
           const myEmail = user.email.toLowerCase().trim();
           const myIdx = sorted.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
-          if (myIdx !== -1) setUserRank(myIdx + 1);
-          
+          setUserRank(myIdx !== -1 ? myIdx + 1 : null);
           if (data.stats) setLiveStats(data.stats);
         }
       }
@@ -107,13 +100,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
-  const getRankBadge = (index: number, isToday: boolean) => {
-    if (!isToday) return { bg: 'bg-slate-100', text: 'text-slate-400', border: 'border-slate-200', icon: null };
+  const getRankBadge = (index: number) => {
     switch(index) {
-      case 0: return { bg: 'bg-amber-400 shadow-amber-200', text: 'text-amber-900', border: 'border-amber-300', icon: <Trophy className="w-3 h-3 fill-current" /> };
-      case 1: return { bg: 'bg-slate-300 shadow-slate-100', text: 'text-slate-700', border: 'border-slate-400', icon: <Medal className="w-3 h-3" /> };
-      case 2: return { bg: 'bg-orange-300 shadow-orange-100', text: 'text-orange-900', border: 'border-orange-400', icon: <Star className="w-3 h-3 fill-current" /> };
-      default: return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: null };
+      case 0: return { bg: 'bg-amber-400', text: 'text-amber-900', border: 'border-amber-300', icon: <Trophy className="w-4 h-4" /> };
+      case 1: return { bg: 'bg-slate-200', text: 'text-slate-700', border: 'border-slate-300', icon: <Medal className="w-4 h-4" /> };
+      case 2: return { bg: 'bg-orange-200', text: 'text-orange-900', border: 'border-orange-300', icon: <Star className="w-4 h-4" /> };
+      default: return { bg: 'bg-slate-50', text: 'text-slate-500', border: 'border-slate-100', icon: null };
     }
   };
 
@@ -129,7 +121,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             <Crown className="w-12 h-12 text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
           </div>
           <h2 className="text-3xl font-black header-font mb-2 tracking-tight">سباق الأبرار اليوم</h2>
-          <p className="text-emerald-100/70 text-[10px] font-bold header-font uppercase tracking-[0.3em] mb-8">المحراب العالمي الموحد</p>
+          <p className="text-emerald-100/70 text-[10px] font-bold header-font uppercase tracking-[0.3em] mb-8">بتوقيت القاهرة • المحراب العالمي</p>
           
           <div className="bg-white/10 backdrop-blur-md rounded-[2.5rem] p-1 w-full max-w-[240px] border border-white/10 shadow-2xl">
             <div className="bg-emerald-950/50 rounded-[2.2rem] py-6 px-4 flex flex-col items-center">
@@ -139,14 +131,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                </div>
                <div className="flex items-center gap-2">
                  <Sparkles className="w-3 h-3 text-emerald-400" />
-                 <span className="text-[10px] font-black text-emerald-100/60 uppercase tracking-widest header-font">ترتيبك العالمي الآن</span>
+                 <span className="text-[10px] font-black text-emerald-100/60 uppercase tracking-widest header-font">ترتيبك الآن</span>
                </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* نبض المحراب - إحصائيات حية */}
+      {/* نبض المحراب */}
       <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 relative overflow-hidden">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -156,7 +148,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             </div>
             <div>
               <h3 className="font-bold text-slate-800 header-font text-base">نبض المحراب الآن</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">نشاط الأمة في هذه اللحظة</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">نشاط اليوم القاهري</p>
             </div>
           </div>
           <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-3 rounded-2xl bg-slate-50 border border-slate-100 transition-all ${isRefreshing ? 'animate-spin text-emerald-600' : 'text-slate-400 hover:text-emerald-500'}`}>
@@ -166,13 +158,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
         <div className="grid grid-cols-2 gap-4">
           {[
-            { label: 'يقيمون الليل', val: liveStats.qiyam, icon: <Moon className="w-4 h-4" />, color: 'indigo' },
-            { label: 'يصلون الضحى', val: liveStats.duha, icon: <Sun className="w-4 h-4" />, color: 'amber' },
-            { label: 'طلاب علم', val: liveStats.knowledge, icon: <GraduationCap className="w-4 h-4" />, color: 'emerald' },
-            { label: 'ذاكرون لله', val: liveStats.athkar, icon: <Activity className="w-4 h-4" />, color: 'rose' }
+            { label: 'يقيمون الليل', val: liveStats.qiyam, icon: <Moon className="w-4 h-4" /> },
+            { label: 'يصلون الضحى', val: liveStats.duha, icon: <Sun className="w-4 h-4" /> },
+            { label: 'طلاب علم', val: liveStats.knowledge, icon: <GraduationCap className="w-4 h-4" /> },
+            { label: 'ذاكرون لله', val: liveStats.athkar, icon: <Activity className="w-4 h-4" /> }
           ].map((s, i) => (
-            <div key={i} className="group relative bg-slate-50/50 p-5 rounded-3xl border border-transparent hover:border-slate-200 hover:bg-white transition-all duration-300 text-center">
-              <div className={`inline-flex p-2.5 rounded-xl bg-${s.color}-50 text-${s.color}-600 mb-3 group-hover:scale-110 transition-transform`}>
+            <div key={i} className="group bg-slate-50/70 p-5 rounded-3xl border border-transparent hover:border-slate-100 hover:bg-white transition-all text-center">
+              <div className="inline-flex p-3 rounded-xl bg-white shadow-sm text-slate-400 mb-3 group-hover:text-emerald-500 transition-colors">
                 {s.icon}
               </div>
               <div className="flex flex-col items-center">
@@ -184,18 +176,18 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         </div>
       </div>
 
-      {/* قائمة الفرسان المتصدرين */}
-      <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-8">
+      {/* قائمة الفرسان المحدثة */}
+      <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-amber-50 rounded-2xl">
               <Trophy className="w-5 h-5 text-amber-500" />
             </div>
-            <h3 className="font-black text-slate-800 header-font text-base uppercase tracking-wider">فرسان التنافس</h3>
+            <h3 className="font-black text-slate-800 header-font text-base uppercase tracking-wider">فرسان اليوم</h3>
           </div>
           <div className="bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100 flex items-center gap-2">
             <Users className="w-4 h-4 text-emerald-600" />
-            <span className="text-[10px] font-black text-emerald-700 font-mono">{liveStats.totalUsers || globalTop.length} نشط</span>
+            <span className="text-[10px] font-black text-emerald-700 font-mono">{globalTop.length} نشط</span>
           </div>
         </div>
         
@@ -204,55 +196,45 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             <>
               {globalTop.map((player, index) => {
                 const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
-                const badge = getRankBadge(index, player.isToday);
-                const isFirstYesterday = index > 0 && globalTop[index-1].isToday && !player.isToday;
+                const badge = getRankBadge(index);
 
                 return (
-                  <React.Fragment key={`${player.email || player.name}-${index}`}>
-                    {isFirstYesterday && (
-                      <div className="flex items-center gap-4 py-8">
-                        <div className="h-px bg-slate-100 flex-1"></div>
-                        <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50 rounded-full border border-slate-100">
-                          <TrendingUp className="w-3 h-3 text-slate-300" />
-                          <span className="text-[9px] font-black text-slate-400 header-font uppercase tracking-widest">المجاهدات السابقة</span>
-                        </div>
-                        <div className="h-px bg-slate-100 flex-1"></div>
-                      </div>
-                    )}
+                  <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-4 md:p-6 rounded-[2.2rem] transition-all duration-300 relative ${isMe ? 'bg-gradient-to-l from-emerald-600 to-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.02] border-none' : 'bg-white border border-slate-50 hover:border-emerald-100 hover:shadow-lg'}`}>
                     
-                    <div className={`group flex items-center justify-between p-5 rounded-[2rem] transition-all duration-500 relative overflow-hidden ${isMe ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xl scale-[1.03] z-10 border-none' : player.isToday ? 'bg-white border border-slate-100 hover:border-emerald-200 hover:shadow-lg' : 'bg-slate-50/50 border border-transparent opacity-80'}`}>
-                      {isMe && <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>}
-                      
-                      <div className="flex items-center gap-5 relative z-10">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border-2 transition-transform group-hover:rotate-6 ${badge.bg} ${badge.text} ${badge.border} shadow-sm`}>
-                          {badge.icon ? badge.icon : index + 1}
-                        </div>
-                        
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm font-bold header-font truncate max-w-[140px] ${isMe ? 'text-white' : 'text-slate-800'}`}>
-                              {player.name}
-                            </span>
-                            {isMe && <span className="text-[8px] bg-white/20 px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter">أنت</span>}
-                          </div>
-                          <span className={`text-[9px] font-bold header-font ${isMe ? 'text-emerald-100/70' : 'text-slate-400'}`}>
-                            {player.isToday ? 'والسابقون السابقون' : ''}
-                          </span>
-                        </div>
+                    {/* الجانب الأيمن: الرتبة والاسم */}
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shrink-0 border-2 font-mono font-black text-sm md:text-base ${isMe ? 'bg-white/20 border-white/30 text-white' : `${badge.bg} ${badge.border} ${badge.text}`}`}>
+                        {badge.icon ? badge.icon : index + 1}
                       </div>
-                      
-                      <div className="flex flex-col items-end relative z-10">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xl font-black font-mono tracking-tighter tabular-nums ${isMe ? 'text-white' : player.isToday ? 'text-emerald-700' : 'text-slate-500'}`}>
-                            {player.score.toLocaleString()}
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm md:text-base font-bold header-font truncate max-w-[120px] md:max-w-[200px] ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                            {player.name}
                           </span>
+                          {isMe && <Sparkles className="w-3 h-3 text-yellow-300 shrink-0" />}
                         </div>
-                        <span className={`text-[8px] font-black uppercase tracking-wider ${isMe ? 'text-emerald-200' : player.isToday ? 'text-emerald-400' : 'text-slate-300'}`}>
-                          {player.isToday ? 'رصيد اليوم' : ''}
+                        <span className={`text-[9px] md:text-[10px] font-bold header-font ${isMe ? 'text-emerald-100/70' : 'text-slate-400'}`}>
+                          والسابقون السابقون
                         </span>
                       </div>
                     </div>
-                  </React.Fragment>
+
+                    {/* الفاصل البصري عند الحاجة (للموبايل الصغير) */}
+                    <div className="w-4"></div>
+
+                    {/* الجانب الأيسر: النقاط */}
+                    <div className="flex flex-col items-end shrink-0 pl-1">
+                      <div className={`px-4 py-1.5 rounded-2xl flex items-center gap-1.5 ${isMe ? 'bg-white/10' : 'bg-emerald-50/50'}`}>
+                        <span className={`text-lg md:text-2xl font-black font-mono tracking-tighter tabular-nums ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                          {player.score.toLocaleString()}
+                        </span>
+                      </div>
+                      <p className={`text-[8px] md:text-[9px] font-black uppercase tracking-wider mt-1 px-1 ${isMe ? 'text-emerald-200' : 'text-emerald-400'}`}>
+                        رصيد اليوم
+                      </p>
+                    </div>
+
+                  </div>
                 )
               })}
             </>
@@ -266,7 +248,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               ) : (
                 <div className="p-8 bg-slate-50 rounded-[3rem] text-slate-400 flex flex-col items-center gap-4 border-2 border-dashed border-slate-100">
                     <WifiOff className="w-12 h-12 opacity-20" />
-                    <p className="text-xs font-bold header-font">بانتظار التحاق الفرسان بالمحراب...</p>
+                    <p className="text-xs font-bold header-font leading-relaxed">دخلنا يوماً جديداً بتوقيت القاهرة..<br/>بانتظار الفرسان لتسجيل أورادهم الأولى.</p>
                 </div>
               )}
             </div>
