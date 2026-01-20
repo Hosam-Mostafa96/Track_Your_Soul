@@ -33,15 +33,16 @@ import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
 import BookLibrary from './components/BookLibrary';
 
-// دالة للحصول على تاريخ القاهرة الحالي بصيغة YYYY-MM-DD
-const getCairoDate = () => {
+// دالة للحصول على التاريخ المحلي الفعلي للمستخدم بصيغة YYYY-MM-DD
+const getLocalDate = () => {
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Africa/Cairo',
+    timeZone: userTimeZone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   });
-  return formatter.format(new Date()); // سيعطي YYYY-MM-DD
+  return formatter.format(new Date()); 
 };
 
 const INITIAL_LOG = (date: string): DailyLog => ({
@@ -76,14 +77,13 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
-  const [currentDate, setCurrentDate] = useState(getCairoDate());
+  const [currentDate, setCurrentDate] = useState(getLocalDate());
   const [targetScore, setTargetScore] = useState(5000);
   const [user, setUser] = useState<User | null>(null);
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
 
-  // منطق المؤقت
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
@@ -103,15 +103,14 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // تحديث منتصف الليل بتوقيت القاهرة
   useEffect(() => {
     const checkMidnight = () => {
-      const nowCairo = getCairoDate();
-      if (nowCairo !== currentDate) {
-        setCurrentDate(nowCairo);
+      const nowLocal = getLocalDate();
+      if (nowLocal !== currentDate) {
+        setCurrentDate(nowLocal);
       }
     };
-    const timerId = setInterval(checkMidnight, 60000); // تحقق كل دقيقة
+    const timerId = setInterval(checkMidnight, 60000);
     return () => clearInterval(timerId);
   }, [currentDate]);
 

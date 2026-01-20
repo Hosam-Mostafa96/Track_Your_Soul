@@ -19,20 +19,21 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // دالة الحصول على تاريخ القاهرة الحالي بتنسيق YYYY-MM-DD
-  const getCairoDateStr = () => {
+  // دالة الحصول على التاريخ المحلي الحالي للمستخدم
+  const getLocalDateStr = () => {
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     return new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Africa/Cairo',
+      timeZone: userTimeZone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     }).format(new Date());
   };
 
-  // دالة ذكية للتحقق من أن السجل ينتمي لليوم الحالي في القاهرة
-  const checkIfIsTodayCairo = (entry: any) => {
-    const todayCairo = getCairoDateStr(); // الناتج: YYYY-MM-DD
-    const [cYear, cMonth, cDay] = todayCairo.split('-').map(Number);
+  // دالة ذكية للتحقق من أن السجل ينتمي لليوم الحالي في موقع المستخدم
+  const checkIfIsTodayLocal = (entry: any) => {
+    const todayLocal = getLocalDateStr(); // الناتج: YYYY-MM-DD
+    const [cYear, cMonth, cDay] = todayLocal.split('-').map(Number);
 
     if (entry.isToday === true || entry.isToday === "true") return true;
     if (!entry.date) return false;
@@ -41,15 +42,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       const entryStr = String(entry.date).trim();
       
       // الحالة 1: يبدأ بـ YYYY-MM-DD
-      if (entryStr.startsWith(todayCairo)) return true;
+      if (entryStr.startsWith(todayLocal)) return true;
 
-      // الحالة 2: تحليل الأرقام يدوياً (DD/MM/YYYY أو MM/DD/YYYY)
+      // الحالة 2: تحليل الأرقام يدوياً
       const digits = entryStr.match(/\d+/g);
       if (digits && digits.length >= 2) {
-        // نبحث عن تطابق اليوم والشهر في أجزاء التاريخ
         const hasDay = digits.some(d => parseInt(d) === cDay);
         const hasMonth = digits.some(d => parseInt(d) === cMonth);
-        // نتحقق أيضاً من عدم قدم السنة إذا وجدت
         const hasOldYear = digits.some(d => d.length === 4 && parseInt(d) < cYear);
         
         return hasDay && hasMonth && !hasOldYear;
@@ -89,8 +88,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             const score = parseInt(entry.score) || 0;
             if (score <= 0) return;
 
-            // تطبيق الفلترة الصارمة لتوقيت القاهرة
-            if (!checkIfIsTodayCairo(entry)) return;
+            // تطبيق الفلترة حسب توقيت المستخدم المحلي
+            if (!checkIfIsTodayLocal(entry)) return;
 
             const record = { ...entry, score, isToday: true };
             if (!uniqueMap.has(emailKey) || score > uniqueMap.get(emailKey).score) {
@@ -143,7 +142,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             <Crown className="w-12 h-12 text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
           </div>
           <h2 className="text-3xl font-black header-font mb-2 tracking-tight">سباق الأبرار اليوم</h2>
-          <p className="text-emerald-100/70 text-[10px] font-bold header-font uppercase tracking-[0.3em] mb-8">بتوقيت القاهرة • المحراب العالمي</p>
+          <p className="text-emerald-100/70 text-[10px] font-bold header-font uppercase tracking-[0.3em] mb-8">حسب توقيتك المحلي • المحراب العالمي</p>
           
           <div className="bg-white/10 backdrop-blur-md rounded-[2.5rem] p-1 w-full max-w-[240px] border border-white/10 shadow-2xl">
             <div className="bg-emerald-950/50 rounded-[2.2rem] py-6 px-4 flex flex-col items-center">
@@ -170,7 +169,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             </div>
             <div>
               <h3 className="font-bold text-slate-800 header-font text-base">نبض المحراب الآن</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">نشاط اليوم القاهري</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">نشاطك الحالي وموقعك</p>
             </div>
           </div>
           <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-3 rounded-2xl bg-slate-50 border border-slate-100 transition-all ${isRefreshing ? 'animate-spin text-emerald-600' : 'text-slate-400 hover:text-emerald-500'}`}>
@@ -198,7 +197,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         </div>
       </div>
 
-      {/* قائمة الفرسان - تصميم محسن للفصل بين الاسم والنقاط */}
       <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center gap-3">
@@ -223,7 +221,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                 return (
                   <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-4 md:p-6 rounded-[2.2rem] transition-all duration-300 relative gap-4 ${isMe ? 'bg-gradient-to-l from-emerald-600 to-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.02] border-none' : 'bg-white border border-slate-50 hover:border-emerald-100 hover:shadow-lg'}`}>
                     
-                    {/* الكتلة اليمنى: الهوية */}
                     <div className="flex items-center gap-4 flex-grow min-w-0">
                       <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shrink-0 border-2 font-mono font-black text-sm md:text-base ${isMe ? 'bg-white/20 border-white/30 text-white' : `${badge.bg} ${badge.border} ${badge.text}`}`}>
                         {badge.icon ? badge.icon : index + 1}
@@ -241,7 +238,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                       </div>
                     </div>
 
-                    {/* الكتلة اليسرى: الأداء الرقمي */}
                     <div className="flex flex-col items-end shrink-0 min-w-fit">
                       <div className={`px-4 py-1.5 rounded-2xl flex items-center gap-1.5 ${isMe ? 'bg-white/10' : 'bg-emerald-50/50'}`}>
                         <span className={`text-lg md:text-2xl font-black font-mono tracking-tighter tabular-nums ${isMe ? 'text-white' : 'text-emerald-700'}`}>
@@ -267,7 +263,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               ) : (
                 <div className="p-8 bg-slate-50 rounded-[3rem] text-slate-400 flex flex-col items-center gap-4 border-2 border-dashed border-slate-100">
                     <WifiOff className="w-12 h-12 opacity-20" />
-                    <p className="text-xs font-bold header-font leading-relaxed">دخلنا يوماً جديداً بتوقيت القاهرة..<br/>بانتظار الفرسان لتسجيل أورادهم الأولى.</p>
+                    <p className="text-xs font-bold header-font leading-relaxed">دخلت يوماً جديداً حسب موقعك الجغرافي..<br/>بانتظار تسجيل أورادك الأولى لتبدأ المنافسة.</p>
                 </div>
               )}
             </div>
