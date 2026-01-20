@@ -9,13 +9,10 @@ import {
   GraduationCap, 
   Moon, 
   Sun, 
-  Radio, 
-  Globe, 
   Wifi, 
   WifiOff,
   History,
   Clock,
-  ArrowRight,
   Zap,
   Timer as PomodoroIcon
 } from 'lucide-react';
@@ -58,6 +55,26 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   
   const heartbeatIntervalRef = useRef<number | null>(null);
   const lastHeartbeatTimeRef = useRef<number>(0);
+  const wakeLockRef = useRef<any>(null);
+
+  // وظيفة منع قفل الشاشة
+  const requestWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+      } catch (err) {
+        console.error('Wake Lock error:', err);
+      }
+    }
+  };
+
+  const releaseWakeLock = () => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release().then(() => {
+        wakeLockRef.current = null;
+      });
+    }
+  };
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -67,6 +84,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      releaseWakeLock(); // التأكد من التحرير عند الخروج
     };
   }, []);
 
@@ -100,17 +118,13 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     onApplyTime(selectedActivity, mins);
   };
 
-  // نبضة المحراب - تم تحسينها لتكون أكثر صموداً
   const sendHeartbeat = async () => {
     if (!isSync || !isRunning || !userEmail || !navigator.onLine) return;
-    
-    // منع الطلبات المتداخلة جداً
     const now = Date.now();
     if (now - lastHeartbeatTimeRef.current < 1200) return; 
     lastHeartbeatTimeRef.current = now;
 
     try {
-        // استخدام keepalive يضمن إكمال الطلب حتى لو حدث Render أو انتقل المستخدم لتبويب آخر
         await fetch(GOOGLE_STATS_API, { 
             method: 'POST', 
             mode: 'no-cors',
@@ -123,9 +137,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
               timestamp: now 
             }) 
         });
-    } catch (e) {
-        console.debug("Silent heartbeat skip");
-    }
+    } catch (e) {}
   };
 
   const sendStopSignal = async () => {
@@ -141,14 +153,15 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     } catch (e) {}
   };
 
-  // إدارة الإنترفال بشكل مستقل عن رندر المكون
   useEffect(() => {
-    if (isRunning && isSync && userEmail) {
-      // إرسال أول نبضة فوراً
-      sendHeartbeat();
-      // نبضة كل 1.5 ثانية لضمان الدقة العالية في المحراب العالمي
-      heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 1500);
+    if (isRunning) {
+      requestWakeLock(); // تفعيل منع القفل عند البدء
+      if (isSync && userEmail) {
+        sendHeartbeat();
+        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 1500);
+      }
     } else {
+      releaseWakeLock(); // تحرير القفل عند التوقف
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
@@ -156,10 +169,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
       }
     }
     return () => {
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-        heartbeatIntervalRef.current = null;
-      }
+      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
     };
   }, [isRunning, isSync, selectedActivity, userEmail]);
 
@@ -171,6 +181,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const handleReset = () => {
     sendStopSignal();
     onReset();
+    releaseWakeLock();
   };
 
   const formatDisplayTime = () => {
@@ -189,19 +200,16 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 text-right" dir="rtl">
-      {/* اختيار الوضع */}
       <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-100">
         <button onClick={() => { onTimerModeChange('stopwatch'); onReset(); }} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold header-font transition-all ${timerMode === 'stopwatch' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}><Clock className="w-4 h-4" /> عداد مفتوح</button>
         <button onClick={() => { onTimerModeChange('pomodoro'); onReset(); }} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold header-font transition-all ${timerMode === 'pomodoro' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}><PomodoroIcon className="w-4 h-4" /> برومودورو</button>
       </div>
 
       <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
-        {/* شريط التقدم */}
         <div className="absolute top-0 left-0 w-full h-1 bg-slate-50">
           <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: timerMode === 'pomodoro' ? `${Math.min(100, (seconds / pomodoroGoal) * 100)}%` : isRunning ? `${(seconds % 60) * 1.66}%` : '0%' }} />
         </div>
         
-        {/* مؤشر Live Pulse البصري - مستمر ما دام العداد يعمل */}
         {isRunning && (
           <div className="absolute top-6 right-6 flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
             <div className="relative flex h-2 w-2">
@@ -215,7 +223,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
         <div className="absolute top-6 left-6">
           <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold ${!isSync ? 'text-slate-400 bg-slate-50' : isOnline ? 'text-emerald-600 bg-emerald-50' : 'text-rose-500 bg-rose-50'}`}>
             {isSync ? (isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />) : <WifiOff className="w-3 h-3" />}
-            {!isSync ? 'مزامنة معطلة' : isOnline ? 'متصل بالمحراب' : 'أنت غير متصل'}
+            {isSync && isOnline && 'متصل بالمحراب'}
           </div>
         </div>
 
@@ -227,7 +235,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
           {timerMode === 'pomodoro' ? (isRunning ? 'وقت التركيز والعبادة' : 'اضبط الوقت ثم ابدأ وردك') : (isRunning ? 'العداد يسجل وردك الآن' : 'المؤقت متوقف')}
         </p>
 
-        {/* خيارات البرومودورو */}
         {timerMode === 'pomodoro' && !isRunning && (
           <div className="flex flex-wrap justify-center gap-2 mb-8 animate-in slide-in-from-top-2">
             {[15, 25, 45, 60].map(m => (
@@ -261,7 +268,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
       </div>
 
       <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><History className="w-5 h-5 text-slate-400" /><h3 className="text-sm font-black text-slate-800 header-font">جلساتك في هذا المحراب</h3></div><span className="text-[10px] text-slate-400 font-bold uppercase header-font">آخر ٣٠ يوماً</span></div>
+        <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><History className="w-5 h-5 text-slate-400" /><h3 className="text-sm font-black text-slate-800 header-font">جلساتك الأخيرة</h3></div></div>
         {sessions.length > 0 ? (
           <div className="space-y-3 max-h-[400px] overflow-y-auto no-scrollbar">
             {sessions.map((session) => (
@@ -281,7 +288,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
             ))}
           </div>
         ) : (
-          <div className="text-center py-10 px-4 border-2 border-dashed border-slate-100 rounded-3xl"><p className="text-xs text-slate-300 font-bold header-font">لم تسجل أي جلسة في هذا الشهر بعد</p></div>
+          <div className="text-center py-10 px-4 border-2 border-dashed border-slate-100 rounded-3xl"><p className="text-xs text-slate-300 font-bold header-font">لا توجد جلسات مسجلة مؤخراً</p></div>
         )}
       </div>
     </div>
