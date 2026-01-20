@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, ChevronDown } from 'lucide-react';
+import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw } from 'lucide-react';
 import { DailyLog, AppWeights, User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -36,7 +36,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           email: user.email.toLowerCase().trim(),
           name: user.name || "مصلٍ مجهول",
           score: currentScore,
-          includeYesterday: true // نطلب من السيرفر تضمين بيانات الأمس أيضاً
+          includeYesterday: true 
         })
       });
 
@@ -44,32 +44,47 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         const data = await res.json();
         if (data && data.leaderboard) {
           const uniqueMap = new Map();
+          
           data.leaderboard.forEach((entry: any) => {
             const emailKey = (entry.email || entry.name || "").toLowerCase().trim();
             if (!emailKey) return;
+            
             const score = parseInt(entry.score) || 0;
             if (score <= 0) return;
 
-            // تحديد ما إذا كانت النقاط تخص اليوم أم الأمس (بناءً على حقل isToday من السيرفر)
             const isToday = entry.isToday === true || entry.isToday === "true";
-
-            if (!uniqueMap.has(emailKey) || uniqueMap.get(emailKey).score < score) {
+            
+            // منطق الدمج المطور: 
+            // 1. إذا لم يكن المستخدم موجوداً، نضيفه.
+            // 2. إذا كان موجوداً وكان الإدخال الجديد "اليوم" والقديم "أمس"، نستبدله فوراً (حتى لو سكور اليوم أقل).
+            // 3. إذا تساوت الحالة الزمنية، نأخذ السكور الأعلى.
+            if (!uniqueMap.has(emailKey)) {
               uniqueMap.set(emailKey, { ...entry, score, isToday });
+            } else {
+              const existing = uniqueMap.get(emailKey);
+              if (isToday && !existing.isToday) {
+                // الأولوية لليوم دائماً
+                uniqueMap.set(emailKey, { ...entry, score, isToday });
+              } else if (isToday === existing.isToday) {
+                // إذا تساوى الزمن، نأخذ الأعلى
+                if (score > existing.score) {
+                  uniqueMap.set(emailKey, { ...entry, score, isToday });
+                }
+              }
             }
           });
 
+          // تقسيم القائمة لضمان الفرز الصحيح
           const allPlayers = Array.from(uniqueMap.values());
-          
-          // الفرز: أصحاب نقاط اليوم أولاً، ثم أصحاب نقاط الأمس، ثم حسب السكور
-          const sorted = allPlayers.sort((a, b) => {
-            if (a.isToday !== b.isToday) return a.isToday ? -1 : 1;
-            return b.score - a.score;
-          });
+          const todayPlayers = allPlayers.filter(p => p.isToday).sort((a, b) => b.score - a.score);
+          const yesterdayPlayers = allPlayers.filter(p => !p.isToday).sort((a, b) => b.score - a.score);
 
-          setGlobalTop(sorted.slice(0, 100)); // عرض حتى 100 متسابق لضمان امتلاء القائمة
+          // الدمج النهائي: فرسان اليوم أولاً ثم الأمس
+          const combined = [...todayPlayers, ...yesterdayPlayers];
+          setGlobalTop(combined.slice(0, 100));
           
           const myEmail = user.email.toLowerCase().trim();
-          const myIdx = sorted.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
+          const myIdx = combined.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
           if (myIdx !== -1) setUserRank(myIdx + 1);
           else setUserRank(null);
           
@@ -149,20 +164,22 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         <div className="space-y-4">
           {globalTop.length > 0 ? (
             <>
-              {/* عرض المتسابقين */}
               {globalTop.map((player, index) => {
                 const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
                 const rank = getRankStyle(index, player.isToday);
                 
-                // إضافة فاصل بسيط عند الانتقال لبيانات الأمس
+                // إضافة فاصل "فرسان الأمس"
                 const isFirstYesterday = index > 0 && globalTop[index-1].isToday && !player.isToday;
 
                 return (
                   <React.Fragment key={player.email || index}>
                     {isFirstYesterday && (
-                      <div className="flex items-center gap-4 py-4">
+                      <div className="flex items-center gap-4 py-6">
                         <div className="h-px bg-slate-100 flex-1"></div>
-                        <span className="text-[10px] font-black text-slate-300 header-font uppercase tracking-widest">فرسان الأمس</span>
+                        <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50 rounded-full border border-slate-100">
+                          <History className="w-3 h-3 text-slate-400" />
+                          <span className="text-[10px] font-black text-slate-400 header-font uppercase tracking-widest">مجاهدو الأمس</span>
+                        </div>
                         <div className="h-px bg-slate-100 flex-1"></div>
                       </div>
                     )}
@@ -210,12 +227,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             </div>
           )}
         </div>
-        
-        {globalTop.length > 0 && globalTop.length < 25 && (
-          <div className="mt-8 p-6 text-center border-2 border-dashed border-slate-100 rounded-3xl animate-pulse">
-            <p className="text-[10px] text-slate-300 font-bold header-font">بانتظار التحاق المزيد من الفرسان اليوم..</p>
-          </div>
-        )}
       </div>
       <p className="text-center text-[9px] text-slate-400 font-bold header-font opacity-60">"سارعوا إلى مغفرة من ربكم وجنة عرضها السموات والأرض"</p>
     </div>
