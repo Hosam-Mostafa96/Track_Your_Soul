@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, Quote, Heart, ArrowUpRight, Flame, ShieldCheck } from 'lucide-react';
+import { Trophy, Crown, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, Quote, ArrowUpRight, Zap } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -41,18 +41,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   };
 
   const checkIfIsTodayLocal = (entry: any) => {
-    const today = new Date();
     const todayStr = getLocalDateStr();
     if (entry.isToday === true || entry.isToday === "true") return true;
     if (entry.date) {
       const entryStr = String(entry.date);
       if (entryStr.includes(todayStr)) return true;
-      const digits = entryStr.match(/\d+/g);
-      if (digits && digits.length >= 2) {
-        const hasDay = digits.some(d => parseInt(d) === today.getDate());
-        const hasMonth = digits.some(d => parseInt(d) === (today.getMonth() + 1));
-        if (hasDay && hasMonth) return true;
-      }
     }
     return entry.score > 0 && (!entry.date || entry.date === "undefined");
   };
@@ -115,15 +108,15 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   const getRankConfig = (index: number) => {
     switch(index) {
-      case 0: return { bg: 'bg-amber-400', text: 'text-white', icon: <Crown className="w-3 h-3" />, label: 'الأول' };
-      case 1: return { bg: 'bg-slate-400', text: 'text-white', icon: <Medal className="w-3 h-3" />, label: 'الثاني' };
-      case 2: return { bg: 'bg-orange-500', text: 'text-white', icon: <Star className="w-3 h-3" />, label: 'الثالث' };
-      default: return { bg: 'bg-slate-100', text: 'text-slate-500', icon: null, label: `#${index + 1}` };
+      case 0: return { bg: 'bg-amber-400', text: 'text-white', icon: <Crown className="w-3 h-3" /> };
+      case 1: return { bg: 'bg-slate-400', text: 'text-white', icon: <Medal className="w-3 h-3" /> };
+      case 2: return { bg: 'bg-orange-500', text: 'text-white', icon: <Star className="w-3 h-3" /> };
+      default: return { bg: 'bg-slate-100', text: 'text-slate-500', icon: null };
     }
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-4 animate-in fade-in duration-700 pb-24">
       
       {/* قسم النفحة الربانية */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-3xl p-5 border border-emerald-100/50 shadow-sm text-center relative overflow-hidden group">
@@ -132,102 +125,126 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         <span className="text-[9px] font-black text-emerald-600/50 header-font uppercase tracking-widest">{currentQuote.source}</span>
       </div>
 
-      {/* هيدر الترتيب مدمج */}
-      <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden border border-white/10">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
-        <div className="relative z-10 flex flex-col items-center">
-          <h2 className="text-xl font-black header-font mb-1">فرسان اليوم</h2>
-          <p className="text-emerald-100/40 text-[9px] font-bold header-font uppercase tracking-[0.2em] mb-4">حسب توقيتك المحلي الفعلي</p>
+      {/* الهيدر المطور - إبراز الترتيب */}
+      <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden border border-white/10 text-center">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent"></div>
+        
+        <div className="relative z-10 space-y-3">
+          <h2 className="text-sm font-black header-font opacity-80 uppercase tracking-widest">موقعك في سباق الأبرار</h2>
           
-          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-4 flex items-center gap-4 border border-white/10 shadow-lg">
-             <div className="flex flex-col items-center px-4 border-l border-white/10">
-                <span className="text-4xl font-black font-mono text-yellow-400 tracking-tighter leading-none">{userRank || "---"}</span>
-                <span className="text-[9px] font-black text-emerald-100/60 uppercase mt-1">ترتيبك</span>
-             </div>
-             <div className="flex flex-col items-center px-2">
-                <Users className="w-5 h-5 text-emerald-300 mb-1" />
-                <span className="text-[9px] font-black text-emerald-100/60 uppercase">{globalTop.length} مجاهد</span>
-             </div>
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-yellow-400/20 blur-2xl rounded-full scale-150 animate-pulse"></div>
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2.5rem] p-6 min-w-[140px] shadow-2xl relative">
+              <span className="text-[10px] font-black text-emerald-200 block mb-1 uppercase">الترتيب الحالي</span>
+              <div className="flex items-baseline justify-center gap-1">
+                <span className="text-6xl font-black font-mono text-yellow-400 tracking-tighter drop-shadow-lg leading-none">
+                  {userRank || "---"}
+                </span>
+                <span className="text-2xl font-black text-yellow-400/50">#</span>
+              </div>
+            </div>
           </div>
+          
+          <p className="text-[10px] font-bold text-emerald-100/40 header-font italic">تحديث حيّ ومباشر</p>
         </div>
       </div>
 
-      {/* نبض المحراب - مدمج جداً */}
-      <div className="bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
-        {[
-          { label: 'قيام', val: liveStats.qiyam, icon: <Moon className="w-3 h-3" />, color: 'text-indigo-500' },
-          { label: 'ضحى', val: liveStats.duha, icon: <Sun className="w-3 h-3" />, color: 'text-amber-500' },
-          { label: 'علم', val: liveStats.knowledge, icon: <GraduationCap className="w-3 h-3" />, color: 'text-emerald-500' },
-          { label: 'ذكر', val: liveStats.athkar, icon: <Activity className="w-3 h-3" />, color: 'text-rose-500' }
-        ].map((s, i) => (
-          <div key={i} className="flex flex-col items-center bg-slate-50 min-w-[4.5rem] py-2 rounded-2xl border border-slate-100/50">
-            <span className={`p-1.5 rounded-lg bg-white shadow-xs ${s.color} mb-1`}>{s.icon}</span>
-            <span className="text-sm font-black text-slate-800 font-mono leading-none">{s.val}</span>
-            <span className="text-[8px] font-bold text-slate-400 header-font mt-0.5">{s.label}</span>
-          </div>
-        ))}
-        <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-3 rounded-2xl ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-300'}`}>
-          <RefreshCw className="w-4 h-4" />
-        </button>
+      {/* الجلسات النشطة - نبض المحراب */}
+      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-4 px-2">
+           <div className="flex items-center gap-2">
+             <div className="w-2 h-2 bg-rose-500 rounded-full animate-ping"></div>
+             <h3 className="text-sm font-black text-slate-800 header-font">الجلسات النشطة حالياً</h3>
+           </div>
+           <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-2 rounded-xl bg-slate-50 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-300'}`}>
+             <RefreshCw className="w-4 h-4" />
+           </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'يقيمون الليل', val: liveStats.qiyam, icon: <Moon className="w-3 h-3" />, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+            { label: 'يصلون الضحى', val: liveStats.duha, icon: <Sun className="w-3 h-3" />, color: 'text-amber-500', bg: 'bg-amber-50' },
+            { label: 'في طلب علم', val: liveStats.knowledge, icon: <GraduationCap className="w-3 h-3" />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+            { label: 'ذاكرون لله', val: liveStats.athkar, icon: <Activity className="w-3 h-3" />, color: 'text-rose-500', bg: 'bg-rose-50' }
+          ].map((s, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-50 bg-slate-50/30">
+              <div className={`p-2 rounded-xl ${s.bg} ${s.color} shrink-0`}>{s.icon}</div>
+              <div className="flex flex-col">
+                <span className="text-sm font-black text-slate-800 font-mono leading-none">{s.val}</span>
+                <span className="text-[9px] font-bold text-slate-400 header-font mt-0.5">{s.label}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* قائمة الفرسان - تصميم جديد ومركز على الاسم */}
-      <div className="space-y-2">
-        {globalTop.length > 0 ? (
-          globalTop.map((player, index) => {
-            const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
-            const rank = getRankConfig(index);
-
-            return (
-              <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-3.5 rounded-2xl transition-all relative gap-3 group ${isMe ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100 ring-2 ring-emerald-400' : 'bg-white border border-slate-100 hover:border-emerald-200'}`}>
-                
-                {/* الرتبة - مصغرة جداً */}
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-mono font-black text-xs ${isMe ? 'bg-white/20 text-white' : `${rank.bg} ${rank.text} shadow-sm`}`}>
-                  {rank.icon ? rank.icon : index + 1}
-                </div>
-
-                {/* الاسم - هو المركز الآن */}
-                <div className="flex-grow min-w-0 flex flex-col">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className={`text-sm md:text-base font-black header-font truncate tracking-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
-                      {player.name}
-                    </span>
-                    {isMe && <Sparkles className="w-3 h-3 text-yellow-300 animate-pulse shrink-0" />}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className={`w-1 h-1 rounded-full ${isMe ? 'bg-emerald-300' : 'bg-emerald-400'}`}></div>
-                    <span className={`text-[8px] font-bold header-font uppercase tracking-widest ${isMe ? 'text-emerald-100/60' : 'text-slate-400'}`}>
-                      {rank.label}
-                    </span>
-                  </div>
-                </div>
-
-                {/* النقاط - في كبسولة أنيقة */}
-                <div className={`px-3 py-1.5 rounded-xl flex items-center gap-1 border shrink-0 ${isMe ? 'bg-white/10 border-white/10' : 'bg-emerald-50 border-emerald-100'}`}>
-                  <span className={`text-sm md:text-base font-black font-mono tracking-tighter tabular-nums ${isMe ? 'text-white' : 'text-emerald-700'}`}>
-                    {player.score.toLocaleString()}
-                  </span>
-                  <ArrowUpRight className={`w-3 h-3 ${isMe ? 'text-white/40' : 'text-emerald-300'}`} />
-                </div>
-
-              </div>
-            )
-          })
-        ) : (
-          <div className="text-center py-20 flex flex-col items-center">
-            {isLoading ? (
-              <Loader2 className="w-10 h-10 text-emerald-200 animate-spin" />
-            ) : (
-              <div className="p-8 bg-slate-50 rounded-[2rem] text-slate-400 flex flex-col items-center gap-3 border-2 border-dashed border-slate-100">
-                  <WifiOff className="w-10 h-10 opacity-20" />
-                  <p className="text-[10px] font-bold header-font">بانتظار أول فارس في منطقتك..</p>
-              </div>
-            )}
+      {/* قائمة الفرسان */}
+      <div className="space-y-4 px-1">
+        <div className="flex items-center justify-between px-3 mb-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-black header-font text-slate-800">فرسان اليوم</h2>
+            <Trophy className="w-5 h-5 text-yellow-500" />
           </div>
-        )}
+          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full border border-emerald-100">
+             <Users className="w-3 h-3" />
+             <span className="text-[10px] font-black header-font">{globalTop.length} مجاهد يتنافسون</span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {globalTop.length > 0 ? (
+            globalTop.map((player, index) => {
+              const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
+              const rank = getRankConfig(index);
+
+              return (
+                <div key={`${player.email || player.name}-${index}`} className={`flex items-center justify-between p-4 rounded-3xl transition-all relative gap-3 group ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.02] z-10' : 'bg-white border border-slate-100'}`}>
+                  
+                  {/* الرتبة - يسار */}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-mono font-black text-sm border-2 ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-transparent shadow-sm`}`}>
+                    {rank.icon ? rank.icon : index + 1}
+                  </div>
+
+                  {/* النقاط - منتصف */}
+                  <div className={`flex flex-col items-center px-2 shrink-0 border-x border-slate-100/50 ${isMe ? 'border-white/10' : ''}`}>
+                    <span className={`text-lg font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                      {player.score.toLocaleString()}
+                    </span>
+                    <span className={`text-[8px] font-bold header-font mt-1 ${isMe ? 'text-emerald-200/60' : 'text-slate-400'}`}>
+                      نقطة
+                    </span>
+                  </div>
+
+                  {/* الاسم - يمين */}
+                  <div className="flex-grow text-right min-w-0">
+                    <div className="flex items-center justify-end gap-2">
+                      <span className={`text-lg font-black header-font truncate ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                        {player.name}
+                      </span>
+                      {isMe && <Sparkles className="w-3 h-3 text-yellow-300 shrink-0" />}
+                    </div>
+                  </div>
+
+                </div>
+              )
+            })
+          ) : (
+            <div className="text-center py-20 flex flex-col items-center">
+              {isLoading ? (
+                <Loader2 className="w-10 h-10 text-emerald-200 animate-spin" />
+              ) : (
+                <div className="p-8 bg-slate-50 rounded-[2rem] text-slate-400 flex flex-col items-center gap-3 border-2 border-dashed border-slate-100">
+                    <WifiOff className="w-10 h-10 opacity-20" />
+                    <p className="text-[10px] font-bold header-font">في انتظار ظهور المتسابقين..</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="p-4 bg-slate-900 rounded-3xl text-white text-center shadow-lg relative overflow-hidden">
+      <div className="p-4 bg-slate-900 rounded-3xl text-white text-center shadow-lg mx-1">
         <p className="text-[10px] font-bold header-font opacity-60 italic">
           "ميزانك هو ما استقر في قلبك وصدقه عملك"
         </p>
