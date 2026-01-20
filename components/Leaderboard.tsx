@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, Crown, Globe, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, History } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
-import { format } from 'date-fns';
 
 interface LeaderboardProps {
   user: User | null;
@@ -22,11 +21,62 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   
   const lastSuccessTimeRef = useRef<number>(Date.now());
 
-  // دالة لتنظيف وتوحيد صيغة التاريخ للمقارنة
-  const normalizeDate = (dateStr: string) => {
-    if (!dateStr) return "";
-    // إزالة أي فواصل وتحويلها لشرطات لتوحيد الصيغة YYYY-MM-DD
-    return dateStr.replace(/\//g, '-').split('T')[0]; 
+  /**
+   * دالة متطورة للتحقق مما إذا كان التاريخ القادم من جوجل شيت يوافق "اليوم"
+   * تتعامل مع صيغ مثل: "1/20/2025 8:34:32" أو "2025-01-20"
+   */
+  const checkIfIsToday = (entryDateStr: string) => {
+    if (!entryDateStr) return false;
+
+    try {
+      // 1. إزالة جزء الوقت إذا وجد (Split by space)
+      const datePart = entryDateStr.split(' ')[0];
+      
+      // 2. تقسيم التاريخ بناءً على الفواصل الممكنة (- أو /)
+      const parts = datePart.split(/[-/]/);
+      if (parts.length !== 3) return false;
+
+      // 3. الحصول على تاريخ اليوم من جهاز المستخدم
+      const now = new Date();
+      const currentDay = now.getDate();
+      const currentMonth = now.getMonth() + 1; // JS months are 0-11
+      const currentYear = now.getFullYear();
+
+      let entryDay, entryMonth, entryYear;
+
+      // تحديد اليوم والشهر والسنة بناءً على شكل المصفوفة
+      if (parts[0].length === 4) {
+        // صيغة YYYY-MM-DD
+        entryYear = parseInt(parts[0]);
+        entryMonth = parseInt(parts[1]);
+        entryDay = parseInt(parts[2]);
+      } else {
+        // صيغ M/D/YYYY أو D/M/YYYY
+        // بما أننا نعرف أن اليوم هو 20 والشهر 1، سنبحث عن هذه القيم
+        const p0 = parseInt(parts[0]);
+        const p1 = parseInt(parts[1]);
+        const p2 = parseInt(parts[2]);
+
+        // السنة عادة تكون الجزء الأخير المكون من 4 أرقام أو رقم كبير
+        entryYear = p2 > 100 ? p2 : p0; 
+        
+        // محاولة ذكية لمعرفة اليوم والشهر
+        if ((p0 === currentMonth && p1 === currentDay) || (p0 === currentDay && p1 === currentMonth)) {
+          entryMonth = currentMonth;
+          entryDay = currentDay;
+        } else {
+          // إذا لم تتطابق، نأخذ الترتيب الافتراضي M/D
+          entryMonth = p0;
+          entryDay = p1;
+        }
+      }
+
+      // المقارنة النهائية
+      return entryDay === currentDay && entryMonth === currentMonth;
+    } catch (e) {
+      console.error("Date parsing error", e);
+      return false;
+    }
   };
 
   const fetchGlobalData = async (isSilent = false) => {
@@ -36,9 +86,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     if (!isSilent && globalTop.length === 0) setIsLoading(true);
     
     try {
-      const todayDate = new Date();
-      const todayStr = format(todayDate, 'yyyy-MM-dd'); 
-
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' }, 
@@ -63,37 +110,24 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             const score = parseInt(entry.score) || 0;
             if (score <= 0) return;
 
-            // منطق تحديد "اليوم" المطور:
-            // 1. تنظيف تاريخ الإدخال من الشيت
-            const entryDateNormalized = normalizeDate(entry.date);
-            // 2. التحقق مما إذا كان التاريخ يطابق اليوم محلياً (20 يناير مثلاً)
-            const matchesLocalToday = entryDateNormalized === todayStr;
-            // 3. التحقق من العلامة القادمة من السيرفر كخيار احتياطي
-            const serverSaysToday = entry.isToday === true || entry.isToday === "true";
-            
-            const isToday = matchesLocalToday || serverSaysToday;
+            // استخدام الدالة الجديدة لفحص التاريخ
+            const isToday = checkIfIsToday(entry.date) || entry.isToday === true || entry.isToday === "true";
             
             if (!uniqueMap.has(emailKey)) {
-              uniqueMap.set(emailKey, { ...entry, score, isToday, entryDateNormalized });
+              uniqueMap.set(emailKey, { ...entry, score, isToday });
             } else {
               const existing = uniqueMap.get(emailKey);
-              
-              // إذا كان الإدخال الحالي هو "اليوم" والقديم لا، نحدث فوراً
               if (isToday && !existing.isToday) {
-                uniqueMap.set(emailKey, { ...entry, score, isToday, entryDateNormalized });
-              } 
-              // إذا تساويا في الحالة الزمنية، نأخذ السكور الأعلى
-              else if (isToday === existing.isToday) {
+                uniqueMap.set(emailKey, { ...entry, score, isToday });
+              } else if (isToday === existing.isToday) {
                 if (score > existing.score) {
-                  uniqueMap.set(emailKey, { ...entry, score, isToday, entryDateNormalized });
+                  uniqueMap.set(emailKey, { ...entry, score, isToday });
                 }
               }
             }
           });
 
           const allPlayers = Array.from(uniqueMap.values());
-          
-          // الفرز: فرسان اليوم أولاً ثم مجاهدو الأمس
           const todayPlayers = allPlayers.filter(p => p.isToday).sort((a, b) => b.score - a.score);
           const yesterdayPlayers = allPlayers.filter(p => !p.isToday).sort((a, b) => b.score - a.score);
 
@@ -105,10 +139,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           if (myIdx !== -1) setUserRank(myIdx + 1);
           else setUserRank(null);
           
-          if (data.stats) {
-            setLiveStats(data.stats);
-            lastSuccessTimeRef.current = Date.now();
-          }
+          if (data.stats) setLiveStats(data.stats);
         }
       }
     } catch (e) {
@@ -121,7 +152,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 8000); 
+    const interval = setInterval(() => fetchGlobalData(true), 10000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
@@ -184,46 +215,33 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               {globalTop.map((player, index) => {
                 const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
                 const rank = getRankStyle(index, player.isToday);
-                
-                // إضافة فاصل "مجاهدو الأمس"
                 const isFirstYesterday = index > 0 && globalTop[index-1].isToday && !player.isToday;
 
                 return (
-                  <React.Fragment key={`${player.email}-${player.date}-${index}`}>
+                  <React.Fragment key={`${player.email}-${index}`}>
                     {isFirstYesterday && (
                       <div className="flex items-center gap-4 py-8">
                         <div className="h-px bg-slate-100 flex-1"></div>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm animate-in fade-in zoom-in duration-500">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
                           <History className="w-3.5 h-3.5 text-slate-400" />
                           <span className="text-[10px] font-black text-slate-500 header-font uppercase tracking-widest">مجاهدو الأمس</span>
                         </div>
                         <div className="h-px bg-slate-100 flex-1"></div>
                       </div>
                     )}
-                    <div className={`group flex items-center justify-between p-4 rounded-3xl transition-all duration-500 ${isMe ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xl shadow-emerald-100 scale-[1.02] border-none' : player.isToday ? 'bg-white border border-slate-100 hover:border-emerald-200 hover:shadow-lg' : 'bg-slate-50/50 border border-transparent opacity-80'}`}>
+                    <div className={`group flex items-center justify-between p-4 rounded-3xl transition-all duration-500 ${isMe ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xl scale-[1.02] border-none' : player.isToday ? 'bg-white border border-slate-100 hover:border-emerald-200' : 'bg-slate-50/50 border border-transparent opacity-80'}`}>
                       <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black relative overflow-hidden ${rank.bg} ${rank.text} ${rank.shadow} border-2 ${rank.border}`}>
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black relative overflow-hidden ${rank.bg} ${rank.text} border-2 ${rank.border}`}>
                           <span className="relative z-10">{index + 1}</span>
-                          {rank.icon && <div className="absolute -bottom-1 -right-1 opacity-20 rotate-12">{rank.icon}</div>}
                         </div>
                         <div className="flex flex-col">
-                          <span className={`text-sm font-bold header-font truncate max-w-[140px] ${isMe ? 'text-white' : 'text-slate-800'}`}>
-                            {player.name} {isMe && <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-lg mr-1">أنت</span>}
-                          </span>
-                          <span className={`text-[9px] font-bold header-font ${isMe ? 'text-emerald-100 opacity-70' : 'text-slate-400'}`}>
-                            {player.isToday ? 'والسابقون السابقون' : 'جاهد فأصاب بالأمس'}
-                          </span>
+                          <span className={`text-sm font-bold header-font truncate max-w-[140px] ${isMe ? 'text-white' : 'text-slate-800'}`}>{player.name} {isMe && <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-lg mr-1">أنت</span>}</span>
+                          <span className={`text-[9px] font-bold header-font ${isMe ? 'text-emerald-100 opacity-70' : 'text-slate-400'}`}>{player.isToday ? 'والسابقون السابقون' : 'جاهد فأصاب بالأمس'}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-1">
-                          <span className={`text-base font-black font-mono tabular-nums ${isMe ? 'text-white' : player.isToday ? 'text-emerald-700' : 'text-slate-500'}`}>
-                            {player.score.toLocaleString()}
-                          </span>
-                        </div>
-                        <span className={`text-[8px] font-black uppercase tracking-tighter ${isMe ? 'text-emerald-200' : player.isToday ? 'text-emerald-500' : 'text-slate-300'}`}>
-                          {player.isToday ? 'نقاط اليوم' : 'نقاط الأمس'}
-                        </span>
+                        <span className={`text-base font-black font-mono ${isMe ? 'text-white' : player.isToday ? 'text-emerald-700' : 'text-slate-500'}`}>{player.score.toLocaleString()}</span>
+                        <span className={`text-[8px] font-black uppercase ${isMe ? 'text-emerald-200' : 'text-slate-400'}`}>{player.isToday ? 'نقاط اليوم' : 'نقاط الأمس'}</span>
                       </div>
                     </div>
                   </React.Fragment>
@@ -232,20 +250,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             </>
           ) : (
             <div className="text-center py-20 flex flex-col items-center">
-              {isLoading ? (
-                <div className="relative mb-4"><Loader2 className="w-12 h-12 text-emerald-100 animate-spin" /><Globe className="w-6 h-6 text-emerald-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" /></div>
-              ) : (
-                <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 flex flex-col items-center gap-3">
-                    <WifiOff className="w-10 h-10 opacity-20" />
-                    <p className="text-xs font-bold header-font">لا يوجد متسابقون نشطون حالياً</p>
-                    <p className="text-[10px] opacity-60">كن أنت أول من يفتتح سباق الخير!</p>
-                </div>
-              )}
+              {isLoading ? <Loader2 className="w-12 h-12 text-emerald-100 animate-spin" /> : <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 flex flex-col items-center gap-3"><WifiOff className="w-10 h-10 opacity-20" /><p className="text-xs font-bold header-font">لا يوجد متسابقون نشطون حالياً</p></div>}
             </div>
           )}
         </div>
       </div>
-      <p className="text-center text-[9px] text-slate-400 font-bold header-font opacity-60">"سارعوا إلى مغفرة من ربكم وجنة عرضها السموات والأرض"</p>
     </div>
   );
 };
