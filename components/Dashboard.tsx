@@ -127,12 +127,10 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const askAi = async (forcedQuery?: string) => {
     if (isAiLoading) return;
-    
     setIsAiLoading(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const queryToUse = forcedQuery || userQuery.trim() || `أعطني نصيحة مشجعة قصيرة جداً بناءً على أدائي (نقاطي ${currentTotalScore} من ${targetScore})`;
-
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: queryToUse,
@@ -164,11 +162,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [logs, weights]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* المستشار الروحي المطور - تم تعديل الحواف والتباعد ليكون أوضح */}
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+      {/* المستشار الروحي الذكي */}
       <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[2.5rem] p-6 pt-8 shadow-xl relative overflow-hidden border border-white/10">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none"><Sparkles className="w-full h-full" /></div>
-        
         <div className="relative z-10 space-y-4">
           <div className="flex items-center justify-between text-white mb-2">
             <div className="flex items-center gap-3">
@@ -177,10 +174,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
               <div>
                 <h4 className="text-sm font-black header-font">المستشار الروحي الذكي</h4>
-                <p className="text-[10px] text-emerald-100 font-bold opacity-80">اسأل عن التطبيق أو اطلب نصيحة</p>
+                <p className="text-[10px] text-emerald-100 font-bold opacity-80">اطلب نصيحة أو تحليل لأدائك</p>
               </div>
             </div>
-            {isAiLoading ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <HelpCircle className="w-5 h-5 text-emerald-200 opacity-50" />}
+            {isAiLoading && <Loader2 className="w-5 h-5 animate-spin text-white" />}
           </div>
 
           <form onSubmit={(e) => { e.preventDefault(); askAi(); }} className="relative">
@@ -188,40 +185,32 @@ const Dashboard: React.FC<DashboardProps> = ({
               type="text"
               value={userQuery}
               onChange={(e) => setUserQuery(e.target.value)}
-              placeholder="كيف أسجل ورد القراءة؟ / أعطني نصيحة.."
+              placeholder="كيف كان أدائي اليوم؟ / أعطني نصيحة.."
               className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 py-3.5 text-xs font-bold text-white placeholder:text-emerald-200/50 outline-none focus:bg-white/15 transition-all pr-12"
             />
-            <button type="submit" disabled={isAiLoading} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-emerald-500 text-white rounded-xl shadow-lg active:scale-90 transition-all disabled:opacity-50">
+            <button type="submit" disabled={isAiLoading} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-emerald-500 text-white rounded-xl shadow-lg active:scale-90 transition-all">
               <Send className="w-4 h-4 rotate-180" />
             </button>
           </form>
 
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => askAi("كيف أستخدم التطبيق؟ اشرح لي التبويبات باختصار")} className="text-[9px] text-emerald-200 font-black bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors flex items-center gap-1.5">
-              <HelpCircle className="w-3 h-3" /> كيف أستخدم التطبيق؟
-            </button>
-            <button onClick={() => askAi()} className="text-[9px] text-white font-black bg-emerald-500/30 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-emerald-500/50 transition-colors flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3" /> حلل أدائي اليوم
-            </button>
-          </div>
-
           {aiAdvice && (
             <div className="bg-white/95 backdrop-blur-md border border-white p-5 rounded-[2rem] relative animate-in zoom-in duration-300 shadow-2xl mt-4">
-              <button onClick={() => setAiAdvice(null)} className="absolute top-3 left-3 text-slate-400 p-1 hover:bg-slate-100 rounded-full transition-colors"><X className="w-3 h-3" /></button>
-              <p className="text-sm text-slate-800 quran-font text-center leading-relaxed px-2 font-medium">"{aiAdvice}"</p>
+              <button onClick={() => setAiAdvice(null)} className="absolute top-3 left-3 text-slate-400 p-1 hover:bg-slate-100 rounded-full"><X className="w-3 h-3" /></button>
+              <p className="text-sm text-slate-800 quran-font text-center leading-relaxed font-medium">"{aiAdvice}"</p>
             </div>
           )}
         </div>
       </div>
 
+      {/* الهدف والتقدم اليومي */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2"><Target className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-sm">الهدف اليومي</h3></div>
           <div className="flex items-center gap-2">
             {isEditingTarget ? (
-              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200 animate-in zoom-in duration-200">
-                <input type="number" value={tempTarget} onChange={(e) => setTempTarget(e.target.value)} className="w-16 bg-transparent border-none opacity-100 outline-none text-xs font-bold text-emerald-700 text-center" autoFocus />
-                <button onClick={handleSaveTarget} className="p-1 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"><Check className="w-3 h-3" /></button>
+              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                <input type="number" value={tempTarget} onChange={(e) => setTempTarget(e.target.value)} className="w-16 bg-transparent border-none outline-none text-xs font-bold text-emerald-700 text-center" autoFocus />
+                <button onClick={handleSaveTarget} className="p-1 bg-emerald-500 text-white rounded-lg"><Check className="w-3 h-3" /></button>
               </div>
             ) : (
               <button onClick={() => { setTempTarget(targetScore.toString()); setIsEditingTarget(true); }} className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl transition-all border border-transparent hover:border-slate-200"><span className="text-xs font-bold header-font">{targetScore.toLocaleString()}</span><Edit2 className="w-3 h-3" /></button>
@@ -234,18 +223,113 @@ const Dashboard: React.FC<DashboardProps> = ({
             style={{ width: `${Math.min(progressPercent, 100)}%` }} 
           />
         </div>
-        <div className="flex justify-between text-[10px] font-bold text-slate-400 px-1 header-font uppercase tracking-wider">
-          <span>{Math.round(progressPercent)}% تم إنجازه</span>
-          <span>
-            {currentTotalScore > targetScore 
-              ? `فائض: ${(currentTotalScore - targetScore).toLocaleString()}` 
-              : `المتبقي: ${(targetScore - currentTotalScore).toLocaleString()}`
-            }
-          </span>
+        <div className="flex justify-between text-[10px] font-bold text-slate-400 px-1 header-font uppercase">
+          <span>{Math.round(progressPercent)}% إنجاز</span>
+          <span>{currentTotalScore.toLocaleString()} / {targetScore.toLocaleString()}</span>
         </div>
       </div>
-      
-      {/* بقية محتوى Dashboard يتبع... */}
+
+      {/* إحصائيات الارتقاء والأوسمة */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+           <div className="flex items-center gap-2 mb-2"><Activity className="w-4 h-4 text-emerald-500" /><span className="text-[10px] font-bold text-slate-400 header-font uppercase">معامل الارتقاء</span></div>
+           <div>
+             <span className={`text-2xl font-black font-mono ${momentumInfo.color}`}>{momentumInfo.percent}%</span>
+             <p className="text-[10px] text-slate-400 font-bold header-font">مقارنة بالمتوسط الأسبوعي</p>
+           </div>
+        </div>
+        <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+           <div className="flex items-center gap-2 mb-2"><Award className="w-4 h-4 text-amber-500" /><span className="text-[10px] font-bold text-slate-400 header-font uppercase">الأوسمة المكتسبة</span></div>
+           <div>
+             <span className="text-2xl font-black font-mono text-amber-500">{badges.filter(b => b.active).length} / {badges.length}</span>
+             <p className="text-[10px] text-slate-400 font-bold header-font">إنجازات ورد اليوم</p>
+           </div>
+        </div>
+      </div>
+
+      {/* قسم الأوسمة والكرامات */}
+      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-amber-400" /><h3 className="font-bold text-slate-800 header-font text-sm">أوسمة وكرامات اليوم</h3></div>
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          {badges.map((badge) => (
+            <div key={badge.id} className={`flex items-center p-4 rounded-2xl border transition-all ${badge.active ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-50 opacity-40 grayscale'}`}>
+              <div className={`p-3 rounded-xl bg-gradient-to-br ${badge.color} text-white shadow-lg shrink-0`}>{badge.icon}</div>
+              <div className="mr-4">
+                <h4 className="text-xs font-black text-slate-800 header-font">{badge.title}</h4>
+                <p className="text-[10px] text-slate-500 font-bold mt-1">{badge.desc}</p>
+              </div>
+              {badge.active && <div className="mr-auto"><CheckCircle2 className="w-5 h-5 text-emerald-500" /></div>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* تتبع قراءة الكتاب اليومي */}
+      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2"><BookMarked className="w-5 h-5 text-blue-500" /><h3 className="font-bold text-slate-800 header-font text-sm">تتبع القراءة اليومية</h3></div>
+          <button onClick={() => onSwitchTab('library')} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 transition-all"><Library className="w-4 h-4" /></button>
+        </div>
+
+        {activeBook ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-bold text-slate-700 header-font">{activeBook.title}</h4>
+                <p className="text-[10px] text-slate-400 font-bold mt-1">المتبقي: {activeBook.totalPages - activeBook.currentPages} صفحة</p>
+              </div>
+              <div className="text-right">
+                <span className="text-sm font-black text-emerald-600 font-mono">{Math.round((activeBook.currentPages / activeBook.totalPages) * 100)}%</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input 
+                type="number" 
+                value={readingInput}
+                onChange={(e) => setReadingInput(e.target.value)}
+                placeholder="كم صفحة قرأت اليوم؟"
+                className="flex-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-emerald-500"
+              />
+              <button 
+                onClick={handleUpdateReading}
+                className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs header-font shadow-lg shadow-emerald-100 active:scale-95"
+              >
+                تحديث
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+            <p className="text-xs text-slate-400 font-bold header-font">لا يوجد كتاب نشط حالياً</p>
+            <button onClick={() => onSwitchTab('library')} className="text-[10px] text-emerald-600 font-bold underline mt-2">اختر كتاباً من المكتبة</button>
+          </div>
+        )}
+      </div>
+
+      {/* مخطط التقدم الأسبوعي */}
+      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-2 mb-6"><History className="w-5 h-5 text-slate-400" /><h3 className="font-bold text-slate-800 header-font text-sm">مخطط الاستمرارية (آخر ٧ أيام)</h3></div>
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={last7Days}>
+              <defs>
+                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700, fontFamily: 'Cairo' }} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo' }}
+              />
+              <Area type="monotone" dataKey="score" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 };
