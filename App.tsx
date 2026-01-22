@@ -13,7 +13,8 @@ import {
   Loader2,
   BarChart3,
   Library,
-  Orbit 
+  Orbit,
+  Disc
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -260,6 +261,14 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right transition-colors duration-300" dir="rtl">
+      {/* السبحة تظهر كـ Overlay فوق كل شيء - تم وضعها في البداية لضمان الطبقة */}
+      <Subha 
+        isOpen={isSubhaOpen} 
+        onClose={() => setIsSubhaOpen(false)} 
+        log={currentLog} 
+        onUpdateLog={updateLog} 
+      />
+
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -270,11 +279,11 @@ const App: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-bold header-font self-center truncate">إدارة العبادات والأوراد</h1>
             <div className="flex gap-1 items-center">
               <button 
-                onClick={(e) => { e.stopPropagation(); setIsSubhaOpen(true); }}
-                className="p-3 bg-yellow-400/10 hover:bg-yellow-400/20 rounded-full transition-all flex-shrink-0 relative active:scale-95"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsSubhaOpen(true); }}
+                className="p-3 bg-yellow-400/20 hover:bg-yellow-400/30 rounded-full transition-all flex-shrink-0 relative active:scale-95 z-50 cursor-pointer border border-yellow-400/30"
                 aria-label="السبحة"
               >
-                <Orbit className="w-6 h-6 text-yellow-400 animate-spin-slow" />
+                <Orbit className="w-6 h-6 text-yellow-300 animate-spin-slow" />
                 <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
@@ -306,6 +315,14 @@ const App: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* زر عائم للسبحة لضمان الوصول السهل في الهاتف */}
+      <button 
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsSubhaOpen(true); }}
+        className="fixed bottom-24 left-6 z-[100] w-14 h-14 bg-emerald-600 text-white rounded-full shadow-2xl flex items-center justify-center animate-bounce-slow active:scale-90 transition-all border-4 border-white md:hidden"
+      >
+        <Disc className="w-8 h-8 animate-spin-slow text-yellow-300" />
+      </button>
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
         {activeTab === 'dashboard' && (
@@ -380,14 +397,6 @@ const App: React.FC = () => {
           </button>
         ))}
       </nav>
-
-      {/* السبحة تظهر كـ Overlay فوق كل شيء */}
-      <Subha 
-        isOpen={isSubhaOpen} 
-        onClose={() => setIsSubhaOpen(false)} 
-        log={currentLog} 
-        onUpdateLog={updateLog} 
-      />
     </div>
   );
 };

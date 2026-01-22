@@ -47,6 +47,12 @@
         }
         .animate-spin-slow { animation: spin-slow 8s linear infinite; }
 
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .animate-bounce-slow { animation: bounce-slow 3s infinite ease-in-out; }
+
         @media all and (display-mode: standalone) {
           body { padding-top: env(safe-area-inset-top); }
         }
