@@ -38,11 +38,11 @@ import Subha from './components/Subha';
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
   prayers: {
-    [PrayerName.FAJR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'basic', surroundingSunnahIds: [] },
-    [PrayerName.DHUHR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'basic', surroundingSunnahIds: [] },
-    [PrayerName.ASR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'basic', surroundingSunnahIds: [] },
-    [PrayerName.MAGHRIB]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'basic', surroundingSunnahIds: [] },
-    [PrayerName.ISHA]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'basic', surroundingSunnahIds: [] },
+    [PrayerName.FAJR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
+    [PrayerName.DHUHR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
+    [PrayerName.ASR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
+    [PrayerName.MAGHRIB]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
+    [PrayerName.ISHA]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
   },
   quran: { hifzRub: 0, revisionRub: 0 },
   knowledge: { shariDuration: 0, readingDuration: 0, readingPages: 0 },
@@ -85,12 +85,22 @@ const App: React.FC = () => {
   const startTimeRef = useRef<number | null>(null);
   const accumulatedSecondsRef = useRef<number>(0);
 
-  // تحميل البيانات مع معالجة الأخطاء
+  // تحميل البيانات مع معالجة الأخطاء وإصلاح البيانات القديمة
   useEffect(() => {
     const safeLoad = (key: string, fallback: any) => {
       try {
         const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : fallback;
+        if (!item) return fallback;
+        const parsed = JSON.parse(item);
+        
+        // إصلاح السجلات المفقودة للحقول الجديدة (مثل السبحة)
+        if (key === 'worship_logs') {
+          Object.keys(parsed).forEach(date => {
+            if (!parsed[date].athkar) parsed[date].athkar = INITIAL_LOG(date).athkar;
+            if (!parsed[date].athkar.counters) parsed[date].athkar.counters = INITIAL_LOG(date).athkar.counters;
+          });
+        }
+        return parsed;
       } catch (e) {
         console.error(`Error loading ${key}:`, e);
         return fallback;

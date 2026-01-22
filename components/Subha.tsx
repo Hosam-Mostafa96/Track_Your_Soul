@@ -30,33 +30,38 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
   const [absoluteCount, setAbsoluteCount] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // التأكد من أن حقل الأذكار موجود لمنع الأخطاء
+  const safeCounters = log?.athkar?.counters || {
+    salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0
+  };
+
   const currentCount = selectedType.key 
-    ? (log.athkar.counters as any)[selectedType.key] || 0
+    ? (safeCounters as any)[selectedType.key] || 0
     : absoluteCount;
 
   const handleIncrement = (e: React.MouseEvent | React.TouchEvent) => {
-    // منع التمرير والضغطات المتعددة غير المرغوبة
+    // منع السلوكيات الافتراضية المزعجة في المتصفحات
     if (e.type === 'touchstart') e.preventDefault();
     e.stopPropagation();
     
-    // اهتزاز خفيف عند كل ضغطة
+    // اهتزاز خفيف للهواتف التي تدعم ذلك
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try { navigator.vibrate(15); } catch(err) {}
+      try { navigator.vibrate(10); } catch(err) {}
     }
 
     const nextCount = currentCount + 1;
 
-    // اهتزاز مميز كل 100 عدة
+    // اهتزاز مميز عند كل ١٠٠
     if (nextCount > 0 && nextCount % 100 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate([100, 50, 100]); } catch(err) {}
     }
 
     if (selectedType.key) {
-      const newLog = { ...log };
-      newLog.athkar.counters = {
-        ...newLog.athkar.counters,
-        [selectedType.key]: nextCount
-      };
+      const newLog = JSON.parse(JSON.stringify(log)); // Deep clone
+      if (!newLog.athkar) newLog.athkar = { counters: {}, checklists: {} };
+      if (!newLog.athkar.counters) newLog.athkar.counters = {};
+      
+      newLog.athkar.counters[selectedType.key] = nextCount;
       onUpdateLog(newLog);
     } else {
       setAbsoluteCount(nextCount);
@@ -67,11 +72,8 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     e.stopPropagation();
     if (window.confirm('هل تريد تصفير العداد؟')) {
       if (selectedType.key) {
-        const newLog = { ...log };
-        newLog.athkar.counters = {
-          ...newLog.athkar.counters,
-          [selectedType.key]: 0
-        };
+        const newLog = JSON.parse(JSON.stringify(log));
+        newLog.athkar.counters[selectedType.key] = 0;
         onUpdateLog(newLog);
       } else {
         setAbsoluteCount(0);
@@ -81,7 +83,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 max-w-md mx-auto">
-      {/* هيدر السبحة */}
+      {/* هيدر الصفحة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-xl">
@@ -89,15 +91,15 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-800 header-font leading-tight">المسبحة الإلكترونية</h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase header-font">تتبع أورادك بلمسة واحدة</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase header-font">وردك محفوظ تلقائياً</p>
           </div>
         </div>
-        <button onClick={handleReset} className="p-3 bg-rose-50 rounded-full text-rose-500 hover:bg-rose-100 transition-colors active:scale-90 shadow-sm">
+        <button onClick={handleReset} className="p-3 bg-rose-50 rounded-full text-rose-500 active:scale-90 transition-all shadow-sm">
           <RotateCcw className="w-5 h-5" />
         </button>
       </div>
 
-      {/* اختيار نوع الذكر */}
+      {/* قائمة اختيار الذكر */}
       <div className="relative">
         <button 
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -117,7 +119,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
                 <button
                   key={type.id}
                   onClick={() => { setSelectedType(type); setIsDropdownOpen(false); }}
-                  className={`w-full text-right px-6 py-5 text-xs font-black header-font transition-colors border-b border-slate-50 last:border-none ${selectedType.id === type.id ? 'bg-emerald-600 text-white' : 'hover:bg-emerald-50 text-slate-600 active:bg-emerald-50'}`}
+                  className={`w-full text-right px-6 py-5 text-xs font-black header-font transition-colors border-b border-slate-50 last:border-none ${selectedType.id === type.id ? 'bg-emerald-600 text-white' : 'hover:bg-emerald-50 text-slate-600'}`}
                 >
                   {type.label}
                 </button>
@@ -127,13 +129,12 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         )}
       </div>
 
-      {/* مساحة العداد والضغط العملاقة */}
+      {/* منطقة اللمس العملاقة */}
       <div 
         onMouseDown={handleIncrement}
         onTouchStart={handleIncrement}
         className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-[0.98] transition-all group cursor-pointer overflow-hidden touch-none shadow-inner"
       >
-        {/* تأثير نبضي عند الضغط */}
         <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-active:opacity-100 transition-opacity" />
         
         <div className="relative z-10 flex flex-col items-center select-none pointer-events-none">
@@ -142,12 +143,12 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
           </span>
           <div className="mt-8 flex items-center gap-3">
             <Sparkles className="w-6 h-6 text-emerald-400 animate-pulse" />
-            <span className="text-sm font-black text-emerald-400/80 uppercase tracking-[0.2em] header-font">اضغط في أي مكان</span>
+            <span className="text-sm font-black text-emerald-400/80 uppercase tracking-[0.2em] header-font">المس للتسبيح</span>
             <Sparkles className="w-6 h-6 text-emerald-400 animate-pulse" />
           </div>
         </div>
 
-        {/* دوائر النبض عند كل 100 */}
+        {/* تنبيه الـ ١٠٠ */}
         {currentCount > 0 && currentCount % 100 === 0 && (
            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
              <div className="w-64 h-64 border-8 border-emerald-400 rounded-full animate-ping opacity-20"></div>
@@ -155,20 +156,20 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         )}
       </div>
 
-      {/* معلومات إضافية */}
+      {/* أدوات المساعدة */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-rose-50 rounded-xl"><Target className="w-5 h-5 text-rose-500" /></div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold header-font">اهتزاز المائة</p>
+            <p className="text-[10px] text-slate-400 font-bold header-font">اهتزاز الـ ١٠٠</p>
             <span className="text-xs font-black text-slate-700 header-font">مفعل</span>
           </div>
         </div>
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-yellow-50 rounded-xl"><Zap className="w-5 h-5 text-yellow-600" /></div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold header-font">حفظ تلقائي</p>
-            <span className="text-xs font-black text-slate-700 header-font">فوري</span>
+            <p className="text-[10px] text-slate-400 font-bold header-font">المزامنة</p>
+            <span className="text-xs font-black text-slate-700 header-font">فورية</span>
           </div>
         </div>
       </div>
