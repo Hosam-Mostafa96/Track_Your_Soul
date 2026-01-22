@@ -25,7 +25,10 @@ export const calculatePrayerScore = (entry: PrayerEntry, hasBurden: boolean, wei
 export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT_WEIGHTS) => {
   const prayers = Object.values(log.prayers).reduce((sum, p) => sum + calculatePrayerScore(p as PrayerEntry, log.hasBurden, weights), 0);
   
-  const quran = (log.quran.hifzRub * weights.quranHifz) + (log.quran.revisionRub * weights.quranRevision);
+  const quranHifzPoints = (log.quran.hifzRub * weights.quranHifz) + (log.quran.revisionRub * weights.quranRevision);
+  
+  // إضافة نقاط مقابل كل مهمة قرآنية مكتملة (تكرار، تسجيل، إلخ)
+  const quranTasksPoints = (log.quran.tasksCompleted || []).length * 50; 
   
   const knowledge = (log.knowledge.shariDuration * weights.knowledgeShari) + 
                     (log.knowledge.readingDuration * weights.knowledgeGeneral) +
@@ -44,7 +47,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   
   const deductionMultiplier = 1 - (weights.burdenDeduction / 100);
   
-  const total = (prayers + quran + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
+  const total = (prayers + quranHifzPoints + quranTasksPoints + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
 
   return Math.round(total);
 };

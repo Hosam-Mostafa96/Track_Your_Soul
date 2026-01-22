@@ -53,18 +53,6 @@ export interface SurroundingSunnah {
   label: string;
 }
 
-export interface LeaderboardEntry {
-  name: string;
-  score: number;
-  rank?: number;
-}
-
-export interface ActiveActivity {
-  id: string;
-  label: string;
-  count: number;
-}
-
 export interface ReflectionNote {
   id: string;
   text: string;
@@ -73,8 +61,8 @@ export interface ReflectionNote {
 
 export interface SleepSession {
   id: string;
-  start: string; // HH:mm
-  end: string;   // HH:mm
+  start: string;
+  end: string;
 }
 
 export interface AppWeights {
@@ -98,7 +86,12 @@ export interface AppWeights {
 export interface DailyLog {
   date: string;
   prayers: Record<string, PrayerEntry>;
-  quran: { hifzRub: number; revisionRub: number };
+  quran: { 
+    hifzRub: number; 
+    revisionRub: number;
+    todayPortion?: string; // اسم الوجه أو السورة
+    tasksCompleted?: string[]; // قائمة المهام المنجزة
+  };
   knowledge: { shariDuration: number; readingDuration: number; readingPages?: number };
   athkar: {
     checklists: { morning: boolean; evening: boolean; sleep: boolean; travel: boolean };

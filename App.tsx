@@ -13,7 +13,8 @@ import {
   Loader2,
   BarChart3,
   Library,
-  Orbit 
+  Orbit,
+  BookOpen
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -34,6 +35,7 @@ import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
 import BookLibrary from './components/BookLibrary';
 import Subha from './components/Subha';
+import QuranPage from './components/QuranPage';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -44,7 +46,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
     [PrayerName.MAGHRIB]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
     [PrayerName.ISHA]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
   },
-  quran: { hifzRub: 0, revisionRub: 0 },
+  quran: { hifzRub: 0, revisionRub: 0, todayPortion: '', tasksCompleted: [] },
   knowledge: { shariDuration: 0, readingDuration: 0, readingPages: 0 },
   athkar: {
     checklists: { morning: false, evening: false, sleep: false, travel: false },
@@ -64,7 +66,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'subha' | 'leaderboard' | 'timer' | 'library' | 'stats' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
+  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
@@ -85,26 +87,24 @@ const App: React.FC = () => {
   const startTimeRef = useRef<number | null>(null);
   const accumulatedSecondsRef = useRef<number>(0);
 
-  // تحميل البيانات مع معالجة الأخطاء وإصلاح البيانات القديمة
+  // Quran Plan State
+  const [quranPlan, setQuranPlan] = useState<'new_1' | 'new_2' | 'itqan_3' | 'itqan_4'>('new_1');
+
   useEffect(() => {
     const safeLoad = (key: string, fallback: any) => {
       try {
         const item = localStorage.getItem(key);
         if (!item) return fallback;
         const parsed = JSON.parse(item);
-        
-        // إصلاح السجلات المفقودة للحقول الجديدة (مثل السبحة)
         if (key === 'worship_logs') {
           Object.keys(parsed).forEach(date => {
+            if (!parsed[date].quran) parsed[date].quran = INITIAL_LOG(date).quran;
+            if (parsed[date].quran && !parsed[date].quran.tasksCompleted) parsed[date].quran.tasksCompleted = [];
             if (!parsed[date].athkar) parsed[date].athkar = INITIAL_LOG(date).athkar;
-            if (!parsed[date].athkar.counters) parsed[date].athkar.counters = INITIAL_LOG(date).athkar.counters;
           });
         }
         return parsed;
-      } catch (e) {
-        console.error(`Error loading ${key}:`, e);
-        return fallback;
-      }
+      } catch (e) { return fallback; }
     };
 
     setLogs(safeLoad('worship_logs', {}));
@@ -113,8 +113,8 @@ const App: React.FC = () => {
     setUser(safeLoad('worship_user', null));
     setIsGlobalSyncEnabled(safeLoad('worship_global_sync', false));
     setWeights(safeLoad('worship_weights', DEFAULT_WEIGHTS));
+    setQuranPlan(localStorage.getItem('worship_quran_plan') as any || 'new_1');
     setPomodoroGoal(safeLoad('worship_pomodoro_goal', 25 * 60));
-    
     setIsAppReady(true);
   }, []);
 
@@ -167,92 +167,16 @@ const App: React.FC = () => {
     localStorage.setItem('worship_logs', JSON.stringify(newLogs));
   };
 
-  const addBook = (title: string, totalPages: number) => {
-    const newBook: Book = {
-      id: Math.random().toString(36).substring(7),
-      title,
-      totalPages,
-      currentPages: 0,
-      startDate: new Date().toISOString(),
-      isFinished: false
-    };
-    const newBooks = [newBook, ...books];
-    setBooks(newBooks);
-    localStorage.setItem('worship_books', JSON.stringify(newBooks));
-  };
-
-  const deleteBook = (id: string) => {
-    if (window.confirm('هل تريد حذف هذا الكتاب من سجلاتك؟')) {
-      const newBooks = books.filter(b => b.id !== id);
-      setBooks(newBooks);
-      localStorage.setItem('worship_books', JSON.stringify(newBooks));
-    }
-  };
-
-  const updateBookProgress = (book: Book, pagesReadToday: number) => {
-    const newCurrent = Math.min(book.currentPages + pagesReadToday, book.totalPages);
-    const isFinished = newCurrent >= book.totalPages;
-    
-    const updatedBooks = books.map(b => 
-      b.id === book.id 
-      ? { ...b, currentPages: newCurrent, isFinished, finishDate: isFinished ? new Date().toISOString() : b.finishDate } 
-      : b
-    );
-    
-    setBooks(updatedBooks);
-    localStorage.setItem('worship_books', JSON.stringify(updatedBooks));
-
-    const newLog = { ...currentLog };
-    newLog.knowledge = { 
-      ...newLog.knowledge, 
-      readingPages: (newLog.knowledge.readingPages || 0) + pagesReadToday 
-    };
-    updateLog(newLog);
-  };
-
-  const handleUpdateWeights = (newWeights: AppWeights) => {
-    setWeights(newWeights);
-    localStorage.setItem('worship_weights', JSON.stringify(newWeights));
-  };
-
-  if (!isAppReady) {
-    return (
-      <div className="min-h-screen bg-emerald-900 flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Onboarding 
-        installPrompt={null}
-        onComplete={(userData, restoredLogs, restoredBooks) => {
-          setUser(userData);
-          localStorage.setItem('worship_user', JSON.stringify(userData));
-          if (restoredLogs) {
-            setLogs(JSON.parse(restoredLogs));
-            localStorage.setItem('worship_logs', restoredLogs);
-          }
-          if (restoredBooks) {
-            setBooks(JSON.parse(restoredBooks));
-            localStorage.setItem('worship_books', restoredBooks);
-          }
-          setIsGlobalSyncEnabled(true);
-          localStorage.setItem('worship_global_sync', JSON.stringify(true));
-        }} 
-      />
-    );
-  }
-
   const navItems = [
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
     {id: 'entry', icon: PenLine, label: 'تسجيل'},
-    {id: 'subha', icon: Orbit, label: 'السبحة'},
     {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
     {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
+    {id: 'subha', icon: Orbit, label: 'السبحة'},
+    {id: 'quran', icon: BookOpen, label: 'القرآن'},
     {id: 'library', icon: Library, label: 'المكتبة'},
-    {id: 'stats', icon: BarChart3, label: 'إحصائيات'}
+    {id: 'stats', icon: BarChart3, label: 'الإحصائيات'},
+    {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
   ];
 
   const renderContent = () => {
@@ -267,35 +191,52 @@ const App: React.FC = () => {
           onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('worship_target', s.toString()); }} 
           onOpenSettings={() => setActiveTab('profile')}
           books={books}
-          onUpdateBook={updateBookProgress}
+          onUpdateBook={(b, p) => { 
+            const newCurrent = Math.min(b.currentPages + p, b.totalPages);
+            const isFinished = newCurrent >= b.totalPages;
+            const updatedBooks = books.map(book => 
+              book.id === b.id ? { ...book, currentPages: newCurrent, isFinished, finishDate: isFinished ? new Date().toISOString() : b.finishDate } : book
+            );
+            setBooks(updatedBooks);
+            localStorage.setItem('worship_books', JSON.stringify(updatedBooks));
+            const newLog = { ...currentLog };
+            newLog.knowledge = { ...newLog.knowledge, readingPages: (newLog.knowledge.readingPages || 0) + p };
+            updateLog(newLog);
+          }}
           onSwitchTab={setActiveTab}
         />;
       case 'entry':
-        return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={handleUpdateWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
-      case 'subha':
-        return <Subha log={currentLog} onUpdateLog={updateLog} />;
-      case 'library':
-        return <BookLibrary books={books} onAddBook={addBook} onDeleteBook={deleteBook} onUpdateProgress={(id, p) => { const b = books.find(book => book.id === id); if (b) updateBookProgress(b, p); }} />;
+        return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={(w) => { setWeights(w); localStorage.setItem('worship_weights', JSON.stringify(w)); }} currentDate={currentDate} onDateChange={setCurrentDate} />;
       case 'leaderboard':
         return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
       case 'timer':
         return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={resetTimer} onActivityChange={setActiveActivity} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={(g) => { setPomodoroGoal(g); localStorage.setItem('worship_pomodoro_goal', g.toString()); }} onApplyTime={(field, mins) => { const newLog = { ...currentLog }; if (field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = { ...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins }; } else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] || 0) + mins }; } updateLog(newLog); resetTimer(); }} />;
+      case 'subha':
+        return <Subha log={currentLog} onUpdateLog={updateLog} />;
+      case 'quran':
+        return <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />;
+      case 'library':
+        return <BookLibrary books={books} onAddBook={(t, p) => { const nb = { id: Math.random().toString(36).substring(7), title: t, totalPages: p, currentPages: 0, startDate: new Date().toISOString(), isFinished: false }; setBooks([nb, ...books]); localStorage.setItem('worship_books', JSON.stringify([nb, ...books])); }} onDeleteBook={(id) => { if (window.confirm('حذف؟')) { const nb = books.filter(b => b.id !== id); setBooks(nb); localStorage.setItem('worship_books', JSON.stringify(nb)); } }} onUpdateProgress={() => {}} />;
       case 'stats':
         return <Statistics user={user} logs={logs} weights={weights} books={books} />;
       case 'notes':
         return <Reflections log={currentLog} onUpdate={updateLog} />;
-      case 'guide':
-        return <WorshipGuide />;
+      case 'profile':
+        return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} />;
       case 'history':
         return <WorshipHistory logs={logs} weights={weights} />;
+      case 'guide':
+        return <WorshipGuide />;
       case 'contact':
         return <ContactUs />;
-      case 'profile':
-        return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />;
       default:
         return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={() => {}} onOpenSettings={() => {}} books={[]} onUpdateBook={() => {}} onSwitchTab={() => {}} />;
     }
   };
+
+  if (!isAppReady) return <div className="min-h-screen bg-emerald-900 flex items-center justify-center"><Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /></div>;
+
+  if (!user) return <Onboarding installPrompt={null} onComplete={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} />;
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right transition-colors duration-300" dir="rtl">
@@ -308,19 +249,12 @@ const App: React.FC = () => {
             </button>
             <h1 className="text-xl md:text-2xl font-bold header-font self-center truncate">إدارة العبادات والأوراد</h1>
             <div className="flex gap-1 items-center">
-              <button 
-                onClick={() => setActiveTab('subha')}
-                className={`p-3 rounded-full transition-all flex-shrink-0 relative active:scale-95 z-50 cursor-pointer border ${activeTab === 'subha' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-yellow-400/20 text-yellow-300 border-yellow-400/30'}`}
-                aria-label="السبحة"
-              >
-                <Orbit className={`w-6 h-6 ${activeTab === 'subha' ? '' : 'animate-spin-slow'}`} />
+              <button onClick={() => setActiveTab('contact')} className="p-3 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative active:scale-95">
+                <Mail className={`w-6 h-6 ${activeTab === 'contact' ? 'text-yellow-400' : 'text-white/70'}`} />
+                <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-emerald-800"></div>
               </button>
-              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative active:scale-95">
-                <Mail className="w-6 h-6 text-white/70" />
-                <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-emerald-800"></div>
-              </button>
-              <button onClick={() => setActiveTab('guide')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 active:scale-95">
-                <Info className="w-6 h-6 text-white/70" />
+              <button onClick={() => setActiveTab('guide')} className="p-3 hover:bg-white/10 rounded-full transition-all flex-shrink-0 active:scale-95">
+                <Info className={`w-6 h-6 ${activeTab === 'guide' ? 'text-yellow-400' : 'text-white/70'}`} />
               </button>
             </div>
           </div>
@@ -346,12 +280,12 @@ const App: React.FC = () => {
         {renderContent()}
       </main>
 
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[98vw] no-scrollbar">
         {navItems.map((tab) => (
           <button 
             key={tab.id} 
             onClick={() => setActiveTab(tab.id as Tab)} 
-            className={`flex flex-col items-center min-w-[3.4rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex flex-col items-center min-w-[3.6rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <div className="relative">
               <tab.icon className="w-5 h-5" />
