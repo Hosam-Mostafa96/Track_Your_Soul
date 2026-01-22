@@ -92,8 +92,6 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
   const hifzSteps = [
     { id: 'listen', label: 'الاستماع لمجود مع النظر', desc: 'للتأكد من سلامة النطق' },
-    { id: 'focus', label: 'التركيز على الوقف والابتداء', desc: 'فهم المعاني من خلال الوقوف' },
-    { id: 'link_next', label: 'ربط السطر الأول من الوجه التالي', desc: 'لضمان تسلسل الأوجه' },
     { id: 'record', label: 'التسجيل الصوتي والمطابقة', desc: 'قراءة غيبية ومطابقتها' },
     { id: 'repeat', label: plan.includes('new') ? 'تكرار الوجه ٤٠ مرة' : 'تكرار الوجه ٣٠ مرة', desc: 'تثبيت الحفظ في الذاكرة العميقة' },
   ];
