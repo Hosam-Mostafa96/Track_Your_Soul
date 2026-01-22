@@ -156,7 +156,8 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
-      <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden z-30">
+      {/* تم تقليل z-index هنا ليكون z-10 */}
+      <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden z-10">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="w-full flex justify-between items-start mb-4 gap-2">
@@ -189,7 +190,8 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
+      {/* تم رفع z-index هنا ليكون z-20 ليطفو فوق الهيدر، وتم تعديل الهامش ليكون -mt-10 بدلاً من -mt-12 لراحة العين */}
+      <main className="px-4 -mt-10 relative z-20 max-w-2xl mx-auto">
         {renderContent()}
       </main>
 
