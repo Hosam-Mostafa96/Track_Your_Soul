@@ -83,7 +83,6 @@ const App: React.FC = () => {
   const [timerMode, setTimerMode] = useState<'stopwatch' | 'pomodoro'>('stopwatch');
   const [pomodoroGoal, setPomodoroGoal] = useState(25 * 60);
 
-  // Quran Plan State
   const [quranPlan, setQuranPlan] = useState<'new_1' | 'new_2' | 'itqan_3' | 'itqan_4'>('new_1');
 
   useEffect(() => {
@@ -121,7 +120,6 @@ const App: React.FC = () => {
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
 
-  // الترتيب المطلوب: الرئيسية، تسجيل، المنافسة، المؤقت، السبحة، القرآن، المكتبة، الإحصائيات، اليوميات
   const navItems = [
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
     {id: 'entry', icon: PenLine, label: 'تسجيل'},
@@ -134,8 +132,26 @@ const App: React.FC = () => {
     {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
   ];
 
-  if (!isAppReady) return <div className="min-h-screen bg-emerald-900 flex items-center justify-center"><Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /></div>;
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={setTargetScore} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={(b, p) => { const updated = books.map(book => book.id === b.id ? {...book, currentPages: Math.min(book.currentPages + p, book.totalPages)} : book); setBooks(updated); localStorage.setItem('worship_books', JSON.stringify(updated)); }} onSwitchTab={setActiveTab} />;
+      case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
+      case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
+      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { const newLog = {...currentLog}; if(field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = {...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins}; } updateLog(newLog); }} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />;
+      case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
+      case 'quran': return <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />;
+      case 'library': return <BookLibrary books={books} onAddBook={(t, p) => { const nb = {id: Math.random().toString(36).substring(7), title: t, totalPages: p, currentPages: 0, startDate: new Date().toISOString(), isFinished: false}; setBooks([nb, ...books]); localStorage.setItem('worship_books', JSON.stringify([nb, ...books])); }} onDeleteBook={(id) => setBooks(books.filter(b => b.id !== id))} onUpdateProgress={() => {}} />;
+      case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} />;
+      case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
+      case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} />;
+      case 'history': return <WorshipHistory logs={logs} weights={weights} />;
+      case 'guide': return <WorshipGuide />;
+      case 'contact': return <ContactUs />;
+      default: return null;
+    }
+  };
 
+  if (!isAppReady) return <div className="min-h-screen bg-emerald-900 flex items-center justify-center"><Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /></div>;
   if (!user) return <Onboarding installPrompt={null} onComplete={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} />;
 
   return (
@@ -174,19 +190,7 @@ const App: React.FC = () => {
       </header>
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
-        {activeTab === 'dashboard' && <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(s) => setTargetScore(s)} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={(b, p) => { const updated = books.map(book => book.id === b.id ? {...book, currentPages: Math.min(book.currentPages + p, book.totalPages)} : book); setBooks(updated); localStorage.setItem('worship_books', JSON.stringify(updated)); }} onSwitchTab={setActiveTab} />}
-        {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={() => {}} currentDate={currentDate} onDateChange={setCurrentDate} />}
-        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />}
-        {activeTab === 'timer' && <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { const newLog = {...currentLog}; if(field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = {...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins}; } updateLog(newLog); }} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />}
-        {activeTab === 'subha' && <Subha log={currentLog} onUpdateLog={updateLog} />}
-        {activeTab === 'quran' && <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />}
-        {activeTab === 'library' && <BookLibrary books={books} onAddBook={(t, p) => { const nb = {id: Math.random().toString(36).substring(7), title: t, totalPages: p, currentPages: 0, startDate: new Date().toISOString(), isFinished: false}; setBooks([nb, ...books]); localStorage.setItem('worship_books', JSON.stringify([nb, ...books])); }} onDeleteBook={(id) => setBooks(books.filter(b => b.id !== id))} onUpdateProgress={() => {}} />}
-        {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} books={books} />}
-        {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} />}
-        {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
-        {activeTab === 'guide' && <WorshipGuide />}
-        {activeTab === 'contact' && <ContactUs />}
+        {renderContent()}
       </main>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[98vw] no-scrollbar">
