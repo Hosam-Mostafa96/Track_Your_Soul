@@ -41,6 +41,12 @@
         }
         .animate-google { animation: google-pulse 2s infinite ease-in-out; }
 
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+
         @media all and (display-mode: standalone) {
           body { padding-top: env(safe-area-inset-top); }
         }

@@ -12,7 +12,8 @@ import {
   Info,
   Loader2,
   BarChart3,
-  Library
+  Library,
+  Disc 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -32,6 +33,7 @@ import ContactUs from './components/ContactUs';
 import Onboarding from './components/Onboarding';
 import Statistics from './components/Statistics';
 import BookLibrary from './components/BookLibrary';
+import Subha from './components/Subha';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -72,6 +74,7 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [isSubhaOpen, setIsSubhaOpen] = useState(false);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -266,6 +269,16 @@ const App: React.FC = () => {
             </button>
             <h1 className="text-xl md:text-2xl font-bold header-font">إدارة العبادات والأوراد</h1>
             <div className="flex gap-2">
+              <button 
+                onClick={() => setIsSubhaOpen(true)}
+                className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative"
+              >
+                <Disc className="w-6 h-6 text-yellow-400 animate-spin-slow" />
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
+                </span>
+              </button>
               <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative">
                 <Mail className="w-6 h-6 text-white/70" />
                 <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-emerald-800"></div>
@@ -354,6 +367,13 @@ const App: React.FC = () => {
         {activeTab === 'contact' && <ContactUs />}
         {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
+
+      <Subha 
+        isOpen={isSubhaOpen} 
+        onClose={() => setIsSubhaOpen(false)} 
+        log={currentLog} 
+        onUpdateLog={updateLog} 
+      />
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
         {navItems.map((tab) => (
