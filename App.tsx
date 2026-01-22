@@ -13,7 +13,7 @@ import {
   Loader2,
   BarChart3,
   Library,
-  Disc 
+  Orbit 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -273,7 +273,7 @@ const App: React.FC = () => {
                 onClick={() => setIsSubhaOpen(true)}
                 className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative"
               >
-                <Disc className="w-6 h-6 text-yellow-400 animate-spin-slow" />
+                <Orbit className="w-6 h-6 text-yellow-400 animate-spin-slow" />
                 <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
