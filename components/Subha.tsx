@@ -40,28 +40,36 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     : absoluteCount;
 
   const handleIncrement = (e: React.MouseEvent | React.TouchEvent) => {
-    // منع السلوكيات الافتراضية المزعجة في المتصفحات
-    if (e.type === 'touchstart') e.preventDefault();
+    // نستخدم onClick لضمان حدوث زيادة واحدة فقط في كل تفاعل
     e.stopPropagation();
     
-    // اهتزاز خفيف للهواتف التي تدعم ذلك
+    // اهتزاز خفيف للهواتف التي تدعم ذلك لزيادة الواقعية
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try { navigator.vibrate(10); } catch(err) {}
+      try { navigator.vibrate(15); } catch(err) {}
     }
 
     const nextCount = currentCount + 1;
 
-    // اهتزاز مميز عند كل ١٠٠
+    // اهتزاز مميز عند كل ١٠٠ لتنبيه المستخدم
     if (nextCount > 0 && nextCount % 100 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate([100, 50, 100]); } catch(err) {}
     }
 
     if (selectedType.key) {
-      const newLog = JSON.parse(JSON.stringify(log)); // Deep clone
-      if (!newLog.athkar) newLog.athkar = { counters: {}, checklists: {} };
-      if (!newLog.athkar.counters) newLog.athkar.counters = {};
+      // تحديث السجل الأصلي مع الحفاظ على البيانات الأخرى
+      const newLog = { ...log };
+      // Fix: Ensure counters object is fully initialized with all required properties to satisfy DailyLog type
+      if (!newLog.athkar) newLog.athkar = { 
+        counters: { salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0 }, 
+        checklists: { morning: false, evening: false, sleep: false, travel: false } 
+      };
+      if (!newLog.athkar.counters) newLog.athkar.counters = { salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0 };
       
-      newLog.athkar.counters[selectedType.key] = nextCount;
+      newLog.athkar.counters = {
+        ...newLog.athkar.counters,
+        [selectedType.key]: nextCount
+      };
+      
       onUpdateLog(newLog);
     } else {
       setAbsoluteCount(nextCount);
@@ -72,8 +80,11 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     e.stopPropagation();
     if (window.confirm('هل تريد تصفير العداد؟')) {
       if (selectedType.key) {
-        const newLog = JSON.parse(JSON.stringify(log));
-        newLog.athkar.counters[selectedType.key] = 0;
+        const newLog = { ...log };
+        newLog.athkar.counters = {
+          ...newLog.athkar.counters,
+          [selectedType.key]: 0
+        };
         onUpdateLog(newLog);
       } else {
         setAbsoluteCount(0);
@@ -94,7 +105,10 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
             <p className="text-[10px] text-slate-400 font-bold uppercase header-font">وردك محفوظ تلقائياً</p>
           </div>
         </div>
-        <button onClick={handleReset} className="p-3 bg-rose-50 rounded-full text-rose-500 active:scale-90 transition-all shadow-sm">
+        <button 
+          onClick={handleReset} 
+          className="p-3 bg-rose-50 rounded-full text-rose-500 active:scale-90 transition-all shadow-sm hover:bg-rose-100"
+        >
           <RotateCcw className="w-5 h-5" />
         </button>
       </div>
@@ -107,7 +121,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         >
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-emerald-500" />
-            <span>{selectedType.label}</span>
+            <span className="truncate">{selectedType.label}</span>
           </div>
           {isDropdownOpen ? <ChevronUp className="w-5 h-5 text-slate-300" /> : <ChevronDown className="w-5 h-5 text-slate-300" />}
         </button>
@@ -129,13 +143,12 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         )}
       </div>
 
-      {/* منطقة اللمس العملاقة */}
+      {/* منطقة اللمس العملاقة - تم تغيير الحدث لـ onClick لمنع التكرار */}
       <div 
-        onMouseDown={handleIncrement}
-        onTouchStart={handleIncrement}
-        className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-[0.98] transition-all group cursor-pointer overflow-hidden touch-none shadow-inner"
+        onClick={handleIncrement}
+        className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-95 transition-all duration-75 group cursor-pointer overflow-hidden touch-none shadow-inner"
       >
-        <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-active:opacity-100 transition-opacity" />
+        <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-active:opacity-100 transition-opacity" />
         
         <div className="relative z-10 flex flex-col items-center select-none pointer-events-none">
           <span className="text-[10rem] md:text-[12rem] font-black font-mono text-emerald-950 tracking-tighter tabular-nums drop-shadow-2xl leading-none">
@@ -148,7 +161,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
           </div>
         </div>
 
-        {/* تنبيه الـ ١٠٠ */}
+        {/* تنبيه بصري عند الوصول لكل ١٠٠ */}
         {currentCount > 0 && currentCount % 100 === 0 && (
            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
              <div className="w-64 h-64 border-8 border-emerald-400 rounded-full animate-ping opacity-20"></div>
@@ -161,15 +174,15 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-rose-50 rounded-xl"><Target className="w-5 h-5 text-rose-500" /></div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold header-font">اهتزاز الـ ١٠٠</p>
+            <p className="text-[10px] text-slate-400 font-bold header-font">اهتزاز اللمس</p>
             <span className="text-xs font-black text-slate-700 header-font">مفعل</span>
           </div>
         </div>
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-yellow-50 rounded-xl"><Zap className="w-5 h-5 text-yellow-600" /></div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold header-font">المزامنة</p>
-            <span className="text-xs font-black text-slate-700 header-font">فورية</span>
+            <p className="text-[10px] text-slate-400 font-bold header-font">حفظ السحاب</p>
+            <span className="text-xs font-black text-slate-700 header-font">تلقائي</span>
           </div>
         </div>
       </div>

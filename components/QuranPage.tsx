@@ -15,7 +15,8 @@ import {
   Info,
   ChevronLeft,
   Settings,
-  MessageSquareText
+  MessageSquareText,
+  Clock
 } from 'lucide-react';
 import { DailyLog } from '../types';
 import { format, subDays, startOfDay } from 'date-fns';
@@ -74,20 +75,16 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
   // Logic for Murajaa (Old portions > 32 days, divided by 6)
   const murajaaPortions = useMemo(() => {
-    // Cast Object.values to DailyLog[] to resolve "type unknown" errors in property access
     const allPortions = (Object.values(logs) as DailyLog[])
       .filter(l => l.quran?.todayPortion)
       .sort((a, b) => a.date.localeCompare(b.date));
     
-    // We only take portions older than roughly 32 days
     const oldPortions = allPortions.filter(l => {
       const daysDiff = (new Date().getTime() - new Date(l.date).getTime()) / (1000 * 3600 * 24);
       return daysDiff >= 32;
     });
 
-    // Divide them into 6 groups based on day of week for cycle
-    const dayOfWeek = new Date().getDay(); // 0-6
-    // Fix: Map to objects with 'portion' property to match the JSX component expectation and resolve property access error.
+    const dayOfWeek = new Date().getDay(); 
     return oldPortions
       .filter((_, idx) => idx % 6 === dayOfWeek % 6)
       .map(l => ({ portion: l.quran.todayPortion as string }));
@@ -248,35 +245,17 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
         </div>
       ) : (
         <div className="space-y-6 animate-in slide-in-from-left duration-500">
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-4 opacity-5"><MessageSquareText className="w-20 h-20" /></div>
-             <div className="relative z-10">
-               <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                 <Sparkles className="w-8 h-8 text-emerald-600" />
+          <div className="bg-white rounded-[2.5rem] p-12 shadow-sm border border-slate-100 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[40vh]">
+             <div className="absolute top-0 right-0 p-4 opacity-5"><MessageSquareText className="w-24 h-24" /></div>
+             <div className="relative z-10 flex flex-col items-center">
+               <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                 <Clock className="w-10 h-10 text-emerald-600" />
                </div>
-               <h2 className="text-xl font-bold text-slate-800 header-font mb-2">مدونة التدبر والتفكر</h2>
-               <p className="text-xs text-slate-500 leading-relaxed font-bold header-font">
-                 "أَفَلَا يَتَدَبَّرُونَ الْقُرْآنَ أَمْ عَلَى قُلُوبٍ أَقْفَالُهَا"<br/>
-                 سيتم تفعيل الخطوات المنهجية للتدبر قريباً بناءً على مسارك المختار.
+               <h2 className="text-3xl font-black text-slate-800 header-font mb-4">قريباً...</h2>
+               <p className="text-sm text-slate-500 leading-relaxed font-bold header-font max-w-xs mx-auto">
+                 نعمل حالياً على بناء محراب التدبر بمنهجية متكاملة تعينك على فهم كتاب الله وتطبيقه في حياتك اليومية.
                </p>
              </div>
-          </div>
-
-          {/* Placeholder for Tadabbur steps */}
-          <div className="space-y-4">
-            {[
-              { id: 1, label: 'فهم السياق وأسباب النزول', desc: 'لماذا وكيف نزلت هذه الآيات؟' },
-              { id: 2, label: 'معاني المفردات الغريبة', desc: 'تفكيك الكلمات لتعميق الفهم' },
-              { id: 3, label: 'استخراج الهدايات العملية', desc: 'كيف أطبق هذه الآية في حياتي اليوم؟' },
-            ].map(step => (
-              <div key={step.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4 opacity-50 grayscale">
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-400 font-mono">{step.id}</div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-700 header-font">{step.label}</h4>
-                  <p className="text-[10px] text-slate-400 font-bold">{step.desc}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
