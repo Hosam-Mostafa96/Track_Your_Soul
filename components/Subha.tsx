@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   RotateCcw, 
   ChevronUp, 
@@ -31,23 +31,24 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const currentCount = selectedType.key 
-    ? (log.athkar.counters as any)[selectedType.key] 
+    ? (log.athkar.counters as any)[selectedType.key] || 0
     : absoluteCount;
 
   const handleIncrement = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
+    // منع التمرير والضغطات المتعددة غير المرغوبة
+    if (e.type === 'touchstart') e.preventDefault();
     e.stopPropagation();
     
     // اهتزاز خفيف عند كل ضغطة
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try { navigator.vibrate(15); } catch(e) {}
+      try { navigator.vibrate(15); } catch(err) {}
     }
 
     const nextCount = currentCount + 1;
 
     // اهتزاز مميز كل 100 عدة
     if (nextCount > 0 && nextCount % 100 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
-      try { navigator.vibrate([100, 50, 100]); } catch(e) {}
+      try { navigator.vibrate([100, 50, 100]); } catch(err) {}
     }
 
     if (selectedType.key) {
@@ -79,15 +80,15 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-24 max-w-md mx-auto">
       {/* هيدر السبحة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-xl">
-            <Disc className="w-6 h-6 text-emerald-600" />
+            <Disc className="w-6 h-6 text-emerald-600 animate-spin-slow" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800 header-font">المسبحة الإلكترونية</h2>
+            <h2 className="text-xl font-bold text-slate-800 header-font leading-tight">المسبحة الإلكترونية</h2>
             <p className="text-[10px] text-slate-400 font-bold uppercase header-font">تتبع أورادك بلمسة واحدة</p>
           </div>
         </div>
@@ -104,7 +105,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         >
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-emerald-500" />
-            <span>نوع الذكر: {selectedType.label}</span>
+            <span>{selectedType.label}</span>
           </div>
           {isDropdownOpen ? <ChevronUp className="w-5 h-5 text-slate-300" /> : <ChevronDown className="w-5 h-5 text-slate-300" />}
         </button>
@@ -128,7 +129,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
 
       {/* مساحة العداد والضغط العملاقة */}
       <div 
-        onClick={handleIncrement}
+        onMouseDown={handleIncrement}
         onTouchStart={handleIncrement}
         className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-[0.98] transition-all group cursor-pointer overflow-hidden touch-none shadow-inner"
       >
@@ -136,7 +137,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-active:opacity-100 transition-opacity" />
         
         <div className="relative z-10 flex flex-col items-center select-none pointer-events-none">
-          <span className="text-[12rem] font-black font-mono text-emerald-950 tracking-tighter tabular-nums drop-shadow-2xl leading-none">
+          <span className="text-[10rem] md:text-[12rem] font-black font-mono text-emerald-950 tracking-tighter tabular-nums drop-shadow-2xl leading-none">
             {currentCount.toLocaleString()}
           </span>
           <div className="mt-8 flex items-center gap-3">

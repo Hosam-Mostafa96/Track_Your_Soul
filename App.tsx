@@ -13,15 +13,14 @@ import {
   Loader2,
   BarChart3,
   Library,
-  Orbit,
-  Disc
+  Orbit 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User, Book } from './types';
 import { calculateTotalScore } from './utils/scoring';
-import { DEFAULT_WEIGHTS, GOOGLE_STATS_API } from './constants';
+import { DEFAULT_WEIGHTS } from './constants';
 import Dashboard from './components/Dashboard';
 import DailyEntry from './DailyEntry';
 import WorshipHistory from './components/WorshipHistory';
@@ -86,6 +85,29 @@ const App: React.FC = () => {
   const startTimeRef = useRef<number | null>(null);
   const accumulatedSecondsRef = useRef<number>(0);
 
+  // تحميل البيانات مع معالجة الأخطاء
+  useEffect(() => {
+    const safeLoad = (key: string, fallback: any) => {
+      try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : fallback;
+      } catch (e) {
+        console.error(`Error loading ${key}:`, e);
+        return fallback;
+      }
+    };
+
+    setLogs(safeLoad('worship_logs', {}));
+    setBooks(safeLoad('worship_books', []));
+    setTargetScore(safeLoad('worship_target', 5000));
+    setUser(safeLoad('worship_user', null));
+    setIsGlobalSyncEnabled(safeLoad('worship_global_sync', false));
+    setWeights(safeLoad('worship_weights', DEFAULT_WEIGHTS));
+    setPomodoroGoal(safeLoad('worship_pomodoro_goal', 25 * 60));
+    
+    setIsAppReady(true);
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab') as Tab;
@@ -93,21 +115,6 @@ const App: React.FC = () => {
       setActiveTab(tabParam);
       window.history.replaceState({}, '', '/');
     }
-  }, []);
-
-  useEffect(() => {
-    const scheduleMidnightUpdate = () => {
-      const now = new Date();
-      const nextMidnight = new Date();
-      nextMidnight.setHours(24, 0, 0, 0);
-      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
-      return setTimeout(() => {
-        setCurrentDate(format(new Date(), 'yyyy-MM-dd'));
-        scheduleMidnightUpdate();
-      }, msUntilMidnight);
-    };
-    const timerId = scheduleMidnightUpdate();
-    return () => clearTimeout(timerId);
   }, []);
 
   useEffect(() => {
@@ -134,26 +141,6 @@ const App: React.FC = () => {
     startTimeRef.current = null;
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
   };
-
-  useEffect(() => {
-    const savedLogs = localStorage.getItem('worship_logs');
-    const savedBooks = localStorage.getItem('worship_books');
-    const savedTarget = localStorage.getItem('worship_target');
-    const savedUser = localStorage.getItem('worship_user');
-    const savedSync = localStorage.getItem('worship_global_sync');
-    const savedWeights = localStorage.getItem('worship_weights');
-    const savedPomodoro = localStorage.getItem('worship_pomodoro_goal');
-    
-    if (savedLogs) setLogs(JSON.parse(savedLogs));
-    if (savedBooks) setBooks(JSON.parse(savedBooks));
-    if (savedTarget) setTargetScore(parseInt(savedTarget));
-    if (savedUser) setUser(JSON.parse(savedUser));
-    if (savedSync) setIsGlobalSyncEnabled(JSON.parse(savedSync));
-    if (savedWeights) setWeights(JSON.parse(savedWeights));
-    if (savedPomodoro) setPomodoroGoal(parseInt(savedPomodoro));
-    
-    setIsAppReady(true);
-  }, []);
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
@@ -252,15 +239,57 @@ const App: React.FC = () => {
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
     {id: 'entry', icon: PenLine, label: 'تسجيل'},
     {id: 'subha', icon: Orbit, label: 'السبحة'},
-    {id: 'leaderboard', icon: Medal, label: 'إنجازاتى'},
+    {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
     {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
     {id: 'library', icon: Library, label: 'المكتبة'},
-    {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
+    {id: 'stats', icon: BarChart3, label: 'إحصائيات'}
   ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard 
+          log={currentLog} 
+          logs={logs} 
+          weights={weights} 
+          onDateChange={setCurrentDate} 
+          targetScore={targetScore} 
+          onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('worship_target', s.toString()); }} 
+          onOpenSettings={() => setActiveTab('profile')}
+          books={books}
+          onUpdateBook={updateBookProgress}
+          onSwitchTab={setActiveTab}
+        />;
+      case 'entry':
+        return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={handleUpdateWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
+      case 'subha':
+        return <Subha log={currentLog} onUpdateLog={updateLog} />;
+      case 'library':
+        return <BookLibrary books={books} onAddBook={addBook} onDeleteBook={deleteBook} onUpdateProgress={(id, p) => { const b = books.find(book => book.id === id); if (b) updateBookProgress(b, p); }} />;
+      case 'leaderboard':
+        return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
+      case 'timer':
+        return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={resetTimer} onActivityChange={setActiveActivity} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={(g) => { setPomodoroGoal(g); localStorage.setItem('worship_pomodoro_goal', g.toString()); }} onApplyTime={(field, mins) => { const newLog = { ...currentLog }; if (field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = { ...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins }; } else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] || 0) + mins }; } updateLog(newLog); resetTimer(); }} />;
+      case 'stats':
+        return <Statistics user={user} logs={logs} weights={weights} books={books} />;
+      case 'notes':
+        return <Reflections log={currentLog} onUpdate={updateLog} />;
+      case 'guide':
+        return <WorshipGuide />;
+      case 'history':
+        return <WorshipHistory logs={logs} weights={weights} />;
+      case 'contact':
+        return <ContactUs />;
+      case 'profile':
+        return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />;
+      default:
+        return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={() => {}} onOpenSettings={() => {}} books={[]} onUpdateBook={() => {}} onSwitchTab={() => {}} />;
+    }
+  };
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right transition-colors duration-300" dir="rtl">
-      <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
+      <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden z-30">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="w-full flex justify-between items-start mb-4 gap-2">
@@ -304,71 +333,16 @@ const App: React.FC = () => {
       </header>
 
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
-        {activeTab === 'dashboard' && (
-          <Dashboard 
-            log={currentLog} 
-            logs={logs} 
-            weights={weights} 
-            onDateChange={setCurrentDate} 
-            targetScore={targetScore} 
-            onTargetChange={(s) => { setTargetScore(s); localStorage.setItem('worship_target', s.toString()); }} 
-            onOpenSettings={() => setActiveTab('profile')}
-            books={books}
-            onUpdateBook={updateBookProgress}
-            onSwitchTab={setActiveTab}
-          />
-        )}
-        {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={handleUpdateWeights} currentDate={currentDate} onDateChange={setCurrentDate} />}
-        {activeTab === 'subha' && <Subha log={currentLog} onUpdateLog={updateLog} />}
-        {activeTab === 'library' && (
-          <BookLibrary 
-            books={books} 
-            onAddBook={addBook} 
-            onDeleteBook={deleteBook} 
-            onUpdateProgress={(id, pages) => {
-              const b = books.find(book => book.id === id);
-              if (b) updateBookProgress(b, pages);
-            }} 
-          />
-        )}
-        {activeTab === 'leaderboard' && <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />}
-        {activeTab === 'timer' && (
-          <WorshipTimer 
-            isSync={isGlobalSyncEnabled} 
-            seconds={timerSeconds} 
-            isRunning={isTimerRunning} 
-            selectedActivity={activeActivity} 
-            onToggle={() => setIsTimerRunning(!isTimerRunning)} 
-            onReset={resetTimer} 
-            onActivityChange={setActiveActivity} 
-            userEmail={user?.email} 
-            timerMode={timerMode}
-            onTimerModeChange={setTimerMode}
-            pomodoroGoal={pomodoroGoal}
-            onPomodoroGoalChange={(g) => { setPomodoroGoal(g); localStorage.setItem('worship_pomodoro_goal', g.toString()); }}
-            onApplyTime={(field, mins) => {
-              const newLog = { ...currentLog };
-              if (field === 'shariDuration' || field === 'readingDuration') { 
-                newLog.knowledge = { ...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins }; 
-              } 
-              else if (field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { 
-                newLog.nawafil = { ...newLog.nawafil, [field]: (newLog.nawafil[field] || 0) + mins }; 
-              }
-              updateLog(newLog); 
-              resetTimer();
-          }} />
-        )}
-        {activeTab === 'stats' && <Statistics user={user} logs={logs} weights={weights} books={books} />}
-        {activeTab === 'notes' && <Reflections log={currentLog} onUpdate={updateLog} />}
-        {activeTab === 'guide' && <WorshipGuide />}
-        {activeTab === 'history' && <WorshipHistory logs={logs} weights={weights} />}
-        {activeTab === 'contact' && <ContactUs />}
-        {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
+        {renderContent()}
       </main>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
         {navItems.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
+          <button 
+            key={tab.id} 
+            onClick={() => setActiveTab(tab.id as Tab)} 
+            className={`flex flex-col items-center min-w-[3.4rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}
+          >
             <div className="relative">
               <tab.icon className="w-5 h-5" />
               {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
