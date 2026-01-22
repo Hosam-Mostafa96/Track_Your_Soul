@@ -263,27 +263,28 @@ const App: React.FC = () => {
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-full flex justify-between items-start mb-4 gap-4">
-            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
+          <div className="w-full flex justify-between items-start mb-4 gap-2">
+            <button onClick={() => setActiveTab('profile')} className="p-3 hover:bg-white/10 rounded-full transition-all flex-shrink-0 active:scale-95">
               <UserCircle className={`w-7 h-7 ${user ? 'text-yellow-400' : 'text-white/50'}`} />
             </button>
-            <h1 className="text-xl md:text-2xl font-bold header-font">إدارة العبادات والأوراد</h1>
-            <div className="flex gap-2">
+            <h1 className="text-xl md:text-2xl font-bold header-font self-center truncate">إدارة العبادات والأوراد</h1>
+            <div className="flex gap-1 items-center">
               <button 
-                onClick={() => setIsSubhaOpen(true)}
-                className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative"
+                onClick={(e) => { e.stopPropagation(); setIsSubhaOpen(true); }}
+                className="p-3 bg-yellow-400/10 hover:bg-yellow-400/20 rounded-full transition-all flex-shrink-0 relative active:scale-95"
+                aria-label="السبحة"
               >
                 <Orbit className="w-6 h-6 text-yellow-400 animate-spin-slow" />
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
                 </span>
               </button>
-              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative">
+              <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative active:scale-95">
                 <Mail className="w-6 h-6 text-white/70" />
                 <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-emerald-800"></div>
               </button>
-              <button onClick={() => setActiveTab('guide')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0">
+              <button onClick={() => setActiveTab('guide')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 active:scale-95">
                 <Info className="w-6 h-6 text-white/70" />
               </button>
             </div>
@@ -368,13 +369,6 @@ const App: React.FC = () => {
         {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
-      <Subha 
-        isOpen={isSubhaOpen} 
-        onClose={() => setIsSubhaOpen(false)} 
-        log={currentLog} 
-        onUpdateLog={updateLog} 
-      />
-
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
         {navItems.map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.6rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
@@ -386,6 +380,14 @@ const App: React.FC = () => {
           </button>
         ))}
       </nav>
+
+      {/* السبحة تظهر كـ Overlay فوق كل شيء */}
+      <Subha 
+        isOpen={isSubhaOpen} 
+        onClose={() => setIsSubhaOpen(false)} 
+        log={currentLog} 
+        onUpdateLog={updateLog} 
+      />
     </div>
   );
 };
