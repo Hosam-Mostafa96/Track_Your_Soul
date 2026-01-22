@@ -65,7 +65,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'library' | 'stats' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
+  type Tab = 'dashboard' | 'entry' | 'subha' | 'leaderboard' | 'timer' | 'library' | 'stats' | 'notes' | 'guide' | 'history' | 'profile' | 'contact';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
@@ -75,7 +75,6 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
-  const [isSubhaOpen, setIsSubhaOpen] = useState(false);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -252,23 +251,15 @@ const App: React.FC = () => {
   const navItems = [
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
     {id: 'entry', icon: PenLine, label: 'تسجيل'},
+    {id: 'subha', icon: Orbit, label: 'السبحة'},
     {id: 'leaderboard', icon: Medal, label: 'إنجازاتى'},
     {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
     {id: 'library', icon: Library, label: 'المكتبة'},
     {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-    {id: 'notes', icon: NotebookPen, label: 'يوميات'}
   ];
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right transition-colors duration-300" dir="rtl">
-      {/* السبحة تظهر كـ Overlay فوق كل شيء - تم وضعها في البداية لضمان الطبقة */}
-      <Subha 
-        isOpen={isSubhaOpen} 
-        onClose={() => setIsSubhaOpen(false)} 
-        log={currentLog} 
-        onUpdateLog={updateLog} 
-      />
-
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -279,15 +270,11 @@ const App: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-bold header-font self-center truncate">إدارة العبادات والأوراد</h1>
             <div className="flex gap-1 items-center">
               <button 
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsSubhaOpen(true); }}
-                className="p-3 bg-yellow-400/20 hover:bg-yellow-400/30 rounded-full transition-all flex-shrink-0 relative active:scale-95 z-50 cursor-pointer border border-yellow-400/30"
+                onClick={() => setActiveTab('subha')}
+                className={`p-3 rounded-full transition-all flex-shrink-0 relative active:scale-95 z-50 cursor-pointer border ${activeTab === 'subha' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-yellow-400/20 text-yellow-300 border-yellow-400/30'}`}
                 aria-label="السبحة"
               >
-                <Orbit className="w-6 h-6 text-yellow-300 animate-spin-slow" />
-                <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
-                </span>
+                <Orbit className={`w-6 h-6 ${activeTab === 'subha' ? '' : 'animate-spin-slow'}`} />
               </button>
               <button onClick={() => setActiveTab('contact')} className="p-2 hover:bg-white/10 rounded-full transition-all flex-shrink-0 relative active:scale-95">
                 <Mail className="w-6 h-6 text-white/70" />
@@ -316,14 +303,6 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* زر عائم للسبحة لضمان الوصول السهل في الهاتف */}
-      <button 
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsSubhaOpen(true); }}
-        className="fixed bottom-24 left-6 z-[100] w-14 h-14 bg-emerald-600 text-white rounded-full shadow-2xl flex items-center justify-center animate-bounce-slow active:scale-90 transition-all border-4 border-white md:hidden"
-      >
-        <Disc className="w-8 h-8 animate-spin-slow text-yellow-300" />
-      </button>
-
       <main className="px-4 -mt-12 relative z-20 max-w-2xl mx-auto">
         {activeTab === 'dashboard' && (
           <Dashboard 
@@ -340,6 +319,7 @@ const App: React.FC = () => {
           />
         )}
         {activeTab === 'entry' && <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={handleUpdateWeights} currentDate={currentDate} onDateChange={setCurrentDate} />}
+        {activeTab === 'subha' && <Subha log={currentLog} onUpdateLog={updateLog} />}
         {activeTab === 'library' && (
           <BookLibrary 
             books={books} 
@@ -386,14 +366,14 @@ const App: React.FC = () => {
         {activeTab === 'profile' && <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={(enabled) => { setIsGlobalSyncEnabled(enabled); localStorage.setItem('worship_global_sync', JSON.stringify(enabled)); }} onUpdateUser={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} onUpdateWeights={handleUpdateWeights} />}
       </main>
 
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-2 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[95vw] no-scrollbar">
         {navItems.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.6rem] transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.2rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
             <div className="relative">
               <tab.icon className="w-5 h-5" />
               {tab.id === 'timer' && isTimerRunning && <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
             </div>
-            <span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span>
+            <span className="text-[7px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span>
           </button>
         ))}
       </nav>
