@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'mizan-worship-v3';
+const CACHE_NAME = 'mizan-worship-v4-final'; // تم تحديث الإصدار
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -14,6 +14,7 @@ self.addEventListener('install', (event) => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
+  self.skipWaiting(); // إجبار التحديث الفوري
 });
 
 self.addEventListener('activate', (event) => {
@@ -28,6 +29,7 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  self.clients.claim(); // السيطرة الفورية على جميع التبويبات المفتوحة
 });
 
 self.addEventListener('fetch', (event) => {
@@ -35,7 +37,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((response) => {
       return response || fetch(event.request).then((fetchResponse) => {
         return caches.open(CACHE_NAME).then((cache) => {
-          if (event.request.url.startsWith('http')) {
+          if (event.request.url.startsWith('http') && event.request.method === 'GET') {
              cache.put(event.request, fetchResponse.clone());
           }
           return fetchResponse;
