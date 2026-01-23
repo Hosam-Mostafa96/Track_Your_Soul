@@ -17,7 +17,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [globalTopToday, setGlobalTopToday] = useState<any[]>([]);
   const [globalTopYesterday, setGlobalTopYesterday] = useState<any[]>([]);
   const [userRankToday, setUserRankToday] = useState<number | null>(null);
-  const [userRankYesterday, setUserRankYesterday] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [networkError, setNetworkError] = useState(false);
@@ -34,20 +33,17 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
+  // دالة للحصول على التاريخ بتنسيق YYYY-MM-DD
   const getLocalDateStr = (offset = 0) => {
-    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const date = new Date();
     date.setDate(date.getDate() + offset);
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: userTimeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(date);
+    return date.toISOString().split('T')[0];
   };
 
-  const processLeaderboard = (data: any[], dateStr: string, isTodayFlag: boolean) => {
-    const uniqueMap = new Map();
+  const processLeaderboard = (data: any[], todayStr: string, yesterdayStr: string) => {
+    const todayMap = new Map();
+    const yesterdayMap = new Map();
+
     data.forEach((entry: any) => {
       const emailKey = (entry.email || entry.name || "").toLowerCase().trim();
       if (!emailKey) return;
@@ -55,26 +51,28 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       const score = parseInt(entry.score) || 0;
       if (score <= 0) return;
 
-      let matchesDate = false;
-      // منطق الفرز: التحقق من علامة اليوم أو مطابقة التاريخ النصي
-      if (isTodayFlag && (entry.isToday === true || entry.isToday === "true")) matchesDate = true;
-      if (entry.date) {
-        const entryStr = String(entry.date);
-        if (entryStr.includes(dateStr)) matchesDate = true;
-      }
-      
-      // إذا لم يكن هناك تاريخ وكان الهدف هو قائمة اليوم، نعتبرها اليوم افتراضياً إذا سجلت نقاطاً
-      if (!matchesDate && isTodayFlag && (!entry.date || entry.date === "undefined" || entry.date === "")) matchesDate = true;
+      const entryDateFull = String(entry.date || ""); // قد يحتوي على "2023-10-27 00:50:00"
+      const entryDateOnly = entryDateFull.split(' ')[0]; // استخراج "2023-10-27"
 
-      if (matchesDate) {
-        const record = { ...entry, score };
-        if (!uniqueMap.has(emailKey) || score > uniqueMap.get(emailKey).score) {
-          uniqueMap.set(emailKey, record);
+      // التحقق هل السجل يخص اليوم أم الأمس
+      const isToday = entryDateOnly === todayStr || entry.isToday === true || entry.isToday === "true";
+      const isYesterday = entryDateOnly === yesterdayStr;
+
+      if (isToday) {
+        if (!todayMap.has(emailKey) || score > todayMap.get(emailKey).score) {
+          todayMap.set(emailKey, { ...entry, score });
+        }
+      } else if (isYesterday) {
+        if (!yesterdayMap.has(emailKey) || score > yesterdayMap.get(emailKey).score) {
+          yesterdayMap.set(emailKey, { ...entry, score });
         }
       }
     });
 
-    return Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score);
+    const sortedToday = Array.from(todayMap.values()).sort((a, b) => b.score - a.score);
+    const sortedYesterday = Array.from(yesterdayMap.values()).sort((a, b) => b.score - a.score);
+
+    return { sortedToday, sortedYesterday };
   };
 
   const fetchGlobalData = async (isSilent = false) => {
@@ -83,9 +81,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     if (!isSilent && globalTopToday.length === 0) setIsLoading(true);
     
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
@@ -95,11 +90,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           name: user.name || "مصلٍ مجهول",
           score: currentScore,
           includeYesterday: true 
-        }),
-        signal: controller.signal
+        })
       });
-
-      clearTimeout(timeoutId);
 
       if (res.ok) {
         const data = await res.json();
@@ -108,19 +100,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           const todayStr = getLocalDateStr(0);
           const yesterdayStr = getLocalDateStr(-1);
 
-          const sortedToday = processLeaderboard(data.leaderboard, todayStr, true);
-          const sortedYesterday = processLeaderboard(data.leaderboard, yesterdayStr, false);
+          const { sortedToday, sortedYesterday } = processLeaderboard(data.leaderboard, todayStr, yesterdayStr);
 
           setGlobalTopToday(sortedToday.slice(0, 50));
           setGlobalTopYesterday(sortedYesterday.slice(0, 50));
 
           const myEmail = user.email.toLowerCase().trim();
-          
           const myIdxToday = sortedToday.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
           setUserRankToday(myIdxToday !== -1 ? myIdxToday + 1 : null);
-
-          const myIdxYesterday = sortedYesterday.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
-          setUserRankYesterday(myIdxYesterday !== -1 ? myIdxYesterday + 1 : null);
 
           if (data.stats) setLiveStats(data.stats);
         }
@@ -151,43 +138,59 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     }
   };
 
-  const renderPlayerList = (list: any[], showRankIcons: boolean) => (
-    <div className="space-y-3">
-      {list.map((player, index) => {
-        const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
-        const rank = getRankConfig(index);
+  const renderPlayerList = (list: any[], showRankIcons: boolean, title: string, icon: React.ReactNode) => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-3">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h2 className="text-xl font-black header-font text-slate-800">{title}</h2>
+        </div>
+        <span className="text-[10px] font-black header-font bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">{list.length} فرسان</span>
+      </div>
+      
+      {list.length > 0 ? (
+        <div className="space-y-3">
+          {list.map((player, index) => {
+            const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
+            const rank = getRankConfig(index);
 
-        return (
-          <div key={`${player.email || player.name}-${index}`} className={`flex items-center p-3 rounded-[2.2rem] transition-all relative gap-2.5 shadow-sm group border ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.01] z-10 border-transparent' : 'bg-white border-slate-50 hover:border-emerald-100'}`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-transform shadow-sm ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-inner`}`}>
-              {(showRankIcons && rank.icon) ? rank.icon : <span className="text-xs font-black font-mono">{index + 1}</span>}
-            </div>
-            <div className="flex-grow text-right min-w-0 pr-1">
-              <div className="flex items-center gap-1 overflow-hidden">
-                <span className={`text-[13px] font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
-                  {player.name}
-                </span>
-                {isMe && <Sparkles className="w-2.5 h-2.5 text-yellow-300 shrink-0" />}
+            return (
+              <div key={`${player.email || player.name}-${index}`} className={`flex items-center p-3 rounded-[2.2rem] transition-all relative gap-2.5 shadow-sm group border ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.01] z-10 border-transparent' : 'bg-white border-slate-50 hover:border-emerald-100'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-transform shadow-sm ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-inner`}`}>
+                  {(showRankIcons && rank.icon) ? rank.icon : <span className="text-xs font-black font-mono">{index + 1}</span>}
+                </div>
+                <div className="flex-grow text-right min-w-0 pr-1">
+                  <div className="flex items-center gap-1 overflow-hidden">
+                    <span className={`text-[13px] font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                      {player.name}
+                    </span>
+                    {isMe && <Sparkles className="w-2.5 h-2.5 text-yellow-300 shrink-0" />}
+                  </div>
+                </div>
+                <div className={`flex flex-col items-center px-3 shrink-0 border-r border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
+                  <span className={`text-lg font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                    {player.score.toLocaleString()}
+                  </span>
+                  <span className={`text-[7px] font-black header-font mt-1 uppercase opacity-60 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>
+                    نقطة
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className={`flex flex-col items-center px-3 shrink-0 border-r border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
-              <span className={`text-lg font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
-                {player.score.toLocaleString()}
-              </span>
-              <span className={`text-[7px] font-black header-font mt-1 uppercase opacity-60 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>
-                نقطة
-              </span>
-            </div>
-          </div>
-        )
-      })}
+            )
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-slate-200">
+           {isLoading ? <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-300" /> : <p className="text-[10px] text-slate-400 font-bold header-font">لا يوجد فرسان مسجلون في هذه القائمة حالياً</p>}
+        </div>
+      )}
     </div>
   );
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-24 text-right" dir="rtl">
       
-      {/* قسم النفحة الربانية */}
+      {/* النفحة الربانية */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-3xl p-5 border border-emerald-100/50 shadow-sm text-center relative overflow-hidden group">
         <Quote className="absolute -top-1 -right-1 w-12 h-12 text-emerald-200/30 -rotate-12" />
         <p className="text-lg font-bold quran-font text-emerald-900 leading-relaxed mb-1 relative z-10">"{currentQuote.text}"</p>
@@ -195,10 +198,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       </div>
 
       {/* الترتيب اليومي والنبض */}
-      <section className="space-y-4">
+      <section className="space-y-6">
         <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden border border-white/10 text-center">
           <div className="relative z-10 space-y-3">
-            <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">رتبتك اليوم (منذ منتصف الليل)</h2>
+            <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">رتبتك بين فرسان اليوم</h2>
             <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.2rem] py-5 px-8 inline-block shadow-2xl">
               <span className="text-5xl font-black font-mono text-yellow-400 tracking-tighter drop-shadow-[0_0_10px_rgba(250,204,21,0.4)] leading-none">
                 {userRankToday || "---"}
@@ -239,45 +242,28 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           </div>
         </div>
 
-        {/* قائمة فرسان اليوم */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-3">
+        {/* فرسان اليوم */}
+        {renderPlayerList(globalTopToday, true, "فرسان اليوم", <Sun className="w-5 h-5 text-amber-500" />)}
+
+        {/* أرشيف الأمس (أسفل قائمة اليوم) */}
+        <section className="space-y-4 pt-6 border-t border-slate-100">
+          <button 
+            onClick={() => setShowYesterday(!showYesterday)}
+            className="w-full flex items-center justify-between px-3 py-3 bg-slate-50 rounded-2xl border border-slate-100"
+          >
             <div className="flex items-center gap-2">
-              <Sun className="w-5 h-5 text-amber-500" />
-              <h2 className="text-xl font-black header-font text-slate-800">فرسان اليوم</h2>
+              <CalendarDays className="w-5 h-5 text-slate-400" />
+              <h2 className="text-lg font-black header-font text-slate-700">أرشيف الأمس</h2>
             </div>
-            <span className="text-[10px] font-black header-font bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">{globalTopToday.length} مجاهد</span>
-          </div>
-          {globalTopToday.length > 0 ? renderPlayerList(globalTopToday, true) : (
-            <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-slate-200">
-               {isLoading ? <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-300" /> : <p className="text-[10px] text-slate-400 font-bold header-font">بانتظار تسجيل فرسان اليوم..</p>}
+            {showYesterday ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+          </button>
+
+          {showYesterday && (
+            <div className="animate-in slide-in-from-top duration-300">
+              {renderPlayerList(globalTopYesterday, false, "سجل شرف الأمس", <Moon className="w-5 h-5 text-slate-400" />)}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* أرشيف الأمس */}
-      <section className="space-y-4 pt-4 border-t border-slate-100">
-        <button 
-          onClick={() => setShowYesterday(!showYesterday)}
-          className="w-full flex items-center justify-between px-3 py-2 bg-slate-100/50 rounded-2xl"
-        >
-          <div className="flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-slate-400" />
-            <h2 className="text-lg font-black header-font text-slate-700">سجل الشرف (الأمس)</h2>
-          </div>
-          {showYesterday ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
-        </button>
-
-        {showYesterday && (
-          <div className="animate-in slide-in-from-top duration-300">
-            {globalTopYesterday.length > 0 ? renderPlayerList(globalTopYesterday, false) : (
-              <div className="text-center py-12 bg-slate-50 rounded-[2rem] border border-dashed border-slate-100">
-                <p className="text-[10px] text-slate-400 font-bold header-font">لا يوجد سجلات محفوظة للأمس في السحابة</p>
-              </div>
-            )}
-          </div>
-        )}
+        </section>
       </section>
 
       <div className="p-5 bg-slate-900 rounded-[2.2rem] text-white text-center shadow-lg mx-1">
