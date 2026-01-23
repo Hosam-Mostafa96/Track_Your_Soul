@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, Quote } from 'lucide-react';
+import { Trophy, Crown, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, Quote, CalendarDays } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -11,11 +11,14 @@ interface LeaderboardProps {
 }
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync }) => {
+  const [activeList, setActiveList] = useState<'today' | 'yesterday'>('today');
   const [liveStats, setLiveStats] = useState({
     qiyam: 0, duha: 0, knowledge: 0, athkar: 0, totalUsers: 0
   });
-  const [globalTop, setGlobalTop] = useState<any[]>([]);
-  const [userRank, setUserRank] = useState<number | null>(null);
+  const [globalTopToday, setGlobalTopToday] = useState<any[]>([]);
+  const [globalTopYesterday, setGlobalTopYesterday] = useState<any[]>([]);
+  const [userRankToday, setUserRankToday] = useState<number | null>(null);
+  const [userRankYesterday, setUserRankYesterday] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [networkError, setNetworkError] = useState(false);
@@ -31,34 +34,57 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
-  const getLocalDateStr = () => {
+  const getLocalDateStr = (offset = 0) => {
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: userTimeZone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    }).format(new Date());
+    }).format(date);
   };
 
-  const checkIfIsTodayLocal = (entry: any) => {
-    const todayStr = getLocalDateStr();
-    if (entry.isToday === true || entry.isToday === "true") return true;
-    if (entry.date) {
-      const entryStr = String(entry.date);
-      if (entryStr.includes(todayStr)) return true;
-    }
-    return entry.score > 0 && (!entry.date || entry.date === "undefined");
+  const processLeaderboard = (data: any[], dateStr: string, isTodayFlag: boolean) => {
+    const uniqueMap = new Map();
+    data.forEach((entry: any) => {
+      const emailKey = (entry.email || entry.name || "").toLowerCase().trim();
+      if (!emailKey) return;
+      
+      const score = parseInt(entry.score) || 0;
+      if (score <= 0) return;
+
+      // منطق الفلترة للتاريخ
+      let matchesDate = false;
+      if (isTodayFlag && (entry.isToday === true || entry.isToday === "true")) matchesDate = true;
+      if (entry.date) {
+        const entryStr = String(entry.date);
+        if (entryStr.includes(dateStr)) matchesDate = true;
+      }
+      
+      // إذا لم يكن هناك تاريخ وكان اليوم، نعتبرها اليوم افتراضياً إذا كانت النقاط > 0
+      if (!matchesDate && isTodayFlag && (!entry.date || entry.date === "undefined")) matchesDate = true;
+
+      if (matchesDate) {
+        const record = { ...entry, score };
+        if (!uniqueMap.has(emailKey) || score > uniqueMap.get(emailKey).score) {
+          uniqueMap.set(emailKey, record);
+        }
+      }
+    });
+
+    return Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score);
   };
 
   const fetchGlobalData = async (isSilent = false) => {
     if (!isSync || !user?.email || !navigator.onLine) return;
     if (!isSilent) setIsRefreshing(true);
-    if (!isSilent && globalTop.length === 0) setIsLoading(true);
+    if (!isSilent && globalTopToday.length === 0) setIsLoading(true);
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
@@ -68,7 +94,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           email: user.email.toLowerCase().trim(),
           name: user.name || "مصلٍ مجهول",
           score: currentScore,
-          includeYesterday: false 
+          includeYesterday: true // تفعيل جلب بيانات الأمس من السيرفر
         }),
         signal: controller.signal
       });
@@ -79,24 +105,23 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         const data = await res.json();
         setNetworkError(false);
         if (data && data.leaderboard) {
-          const uniqueMap = new Map();
-          data.leaderboard.forEach((entry: any) => {
-            const emailKey = (entry.email || entry.name || "").toLowerCase().trim();
-            if (!emailKey) return;
-            const score = parseInt(entry.score) || 0;
-            if (score <= 0) return;
-            if (!checkIfIsTodayLocal(entry)) return;
-            const record = { ...entry, score };
-            if (!uniqueMap.has(emailKey) || score > uniqueMap.get(emailKey).score) {
-              uniqueMap.set(emailKey, record);
-            }
-          });
+          const todayStr = getLocalDateStr(0);
+          const yesterdayStr = getLocalDateStr(-1);
 
-          const sorted = Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score);
-          setGlobalTop(sorted.slice(0, 100));
+          const sortedToday = processLeaderboard(data.leaderboard, todayStr, true);
+          const sortedYesterday = processLeaderboard(data.leaderboard, yesterdayStr, false);
+
+          setGlobalTopToday(sortedToday.slice(0, 100));
+          setGlobalTopYesterday(sortedYesterday.slice(0, 100));
+
           const myEmail = user.email.toLowerCase().trim();
-          const myIdx = sorted.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
-          setUserRank(myIdx !== -1 ? myIdx + 1 : null);
+          
+          const myIdxToday = sortedToday.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
+          setUserRankToday(myIdxToday !== -1 ? myIdxToday + 1 : null);
+
+          const myIdxYesterday = sortedYesterday.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
+          setUserRankYesterday(myIdxYesterday !== -1 ? myIdxYesterday + 1 : null);
+
           if (data.stats) setLiveStats(data.stats);
         }
       } else {
@@ -113,9 +138,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 15000); 
+    const interval = setInterval(() => fetchGlobalData(true), 30000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
+
+  const currentList = activeList === 'today' ? globalTopToday : globalTopYesterday;
+  const currentRank = activeList === 'today' ? userRankToday : userRankYesterday;
 
   const getRankConfig = (index: number) => {
     switch(index) {
@@ -141,17 +169,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent"></div>
         
         <div className="relative z-10 space-y-4">
-          <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">موقعك الحالي في السباق</h2>
+          <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">
+            رتبتك في قائمة {activeList === 'today' ? 'اليوم' : 'الأمس'}
+          </h2>
           
           <div className="relative inline-block">
             <div className="absolute inset-0 bg-yellow-400/25 blur-[40px] rounded-full scale-150 animate-pulse"></div>
             
             <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.8rem] p-8 min-w-[170px] shadow-2xl relative overflow-hidden ring-4 ring-white/5">
                <div className="absolute -top-2 -right-2 opacity-10"><Crown className="w-20 h-20" /></div>
-              <span className="text-[10px] font-black text-emerald-200 block mb-2 uppercase tracking-widest">رتبتك اليوم</span>
+              <span className="text-[10px] font-black text-emerald-200 block mb-2 uppercase tracking-widest">المركز</span>
               <div className="flex items-center justify-center">
                 <span className="text-7xl font-black font-mono text-yellow-400 tracking-tighter drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] leading-none">
-                  {userRank || "---"}
+                  {currentRank || "---"}
                 </span>
               </div>
             </div>
@@ -161,55 +191,75 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         </div>
       </div>
 
-      {/* الجلسات النشطة - نبض المحراب */}
-      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-5 px-2">
-           <div className="flex items-center gap-2.5">
-             <div className="relative flex items-center justify-center">
-               <div className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping absolute"></div>
-               <div className="w-2.5 h-2.5 bg-rose-500 rounded-full relative"></div>
-             </div>
-             <h3 className="text-sm font-black text-slate-800 header-font">الجلسات النشطة لنبض المحراب</h3>
-           </div>
-           <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-2 rounded-xl bg-slate-50 transition-all active:scale-90 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-300'}`}>
-             <RefreshCw className="w-4 h-4" />
-           </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: 'يقيمون الليل', val: liveStats.qiyam, icon: <Moon className="w-4 h-4" />, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-            { label: 'يصلون الضحى', val: liveStats.duha, icon: <Sun className="w-4 h-4" />, color: 'text-amber-500', bg: 'bg-amber-50' },
-            { label: 'في طلب علم', val: liveStats.knowledge, icon: <GraduationCap className="w-4 h-4" />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-            { label: 'ذاكرون لله', val: liveStats.athkar, icon: <Activity className="w-4 h-4" />, color: 'text-rose-500', bg: 'bg-rose-50' }
-          ].map((s, i) => (
-            <div key={i} className="flex items-center gap-3 p-4 rounded-2xl border border-slate-50 bg-slate-50/20 hover:border-emerald-100 transition-all group">
-              <div className={`p-2.5 rounded-xl ${s.bg} ${s.color} shrink-0 shadow-sm group-hover:scale-105 transition-transform`}>{s.icon}</div>
-              <div className="flex flex-col">
-                <span className="text-lg font-black text-slate-800 font-mono leading-none tracking-tight">{s.val}</span>
-                <span className="text-[9px] font-bold text-slate-400 header-font mt-1 leading-none">{s.label}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* تبديل القوائم */}
+      <div className="flex bg-white rounded-2xl p-1.5 shadow-sm border border-slate-100">
+        <button 
+          onClick={() => setActiveList('today')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${activeList === 'today' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <Sun className="w-4 h-4" /> فرسان اليوم
+        </button>
+        <button 
+          onClick={() => setActiveList('yesterday')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${activeList === 'yesterday' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <CalendarDays className="w-4 h-4" /> أرشيف الأمس
+        </button>
       </div>
+
+      {/* الجلسات النشطة - نبض المحراب */}
+      {activeList === 'today' && (
+        <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-5 px-2">
+             <div className="flex items-center gap-2.5">
+               <div className="relative flex items-center justify-center">
+                 <div className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping absolute"></div>
+                 <div className="w-2.5 h-2.5 bg-rose-500 rounded-full relative"></div>
+               </div>
+               <h3 className="text-sm font-black text-slate-800 header-font">الجلسات النشطة لنبض المحراب</h3>
+             </div>
+             <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-2 rounded-xl bg-slate-50 transition-all active:scale-90 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-300'}`}>
+               <RefreshCw className="w-4 h-4" />
+             </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'يقيمون الليل', val: liveStats.qiyam, icon: <Moon className="w-4 h-4" />, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+              { label: 'يصلون الضحى', val: liveStats.duha, icon: <Sun className="w-4 h-4" />, color: 'text-amber-500', bg: 'bg-amber-50' },
+              { label: 'في طلب علم', val: liveStats.knowledge, icon: <GraduationCap className="w-4 h-4" />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+              { label: 'ذاكرون لله', val: liveStats.athkar, icon: <Activity className="w-4 h-4" />, color: 'text-rose-500', bg: 'bg-rose-50' }
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-3 p-4 rounded-2xl border border-slate-50 bg-slate-50/20 hover:border-emerald-100 transition-all group">
+                <div className={`p-2.5 rounded-xl ${s.bg} ${s.color} shrink-0 shadow-sm group-hover:scale-105 transition-transform`}>{s.icon}</div>
+                <div className="flex flex-col">
+                  <span className="text-lg font-black text-slate-800 font-mono leading-none tracking-tight">{s.val}</span>
+                  <span className="text-[9px] font-bold text-slate-400 header-font mt-1 leading-none">{s.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* قائمة الفرسان */}
       <div className="space-y-4 px-1">
         <div className="flex items-center justify-between px-3 mb-2">
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-yellow-500" />
-            <h2 className="text-xl font-black header-font text-slate-800">فرسان اليوم</h2>
+            <h2 className="text-xl font-black header-font text-slate-800">
+              {activeList === 'today' ? 'فرسان اليوم' : 'سجل الشرف للأمس'}
+            </h2>
           </div>
           <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3.5 py-1.5 rounded-full border border-emerald-100 shadow-sm">
              <Users className="w-3.5 h-3.5" />
-             <span className="text-[10px] font-black header-font">{globalTop.length} مجاهد في المحراب</span>
+             <span className="text-[10px] font-black header-font">{currentList.length} مجاهد</span>
           </div>
         </div>
 
         <div className="space-y-3">
-          {globalTop.length > 0 ? (
-            globalTop.map((player, index) => {
+          {currentList.length > 0 ? (
+            currentList.map((player, index) => {
               const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
               const rank = getRankConfig(index);
 
@@ -221,7 +271,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                     {rank.icon ? rank.icon : <span className="text-xs font-black font-mono">{index + 1}</span>}
                   </div>
 
-                  {/* الاسم - المنتصف (تم تصغير الخط ليدعم الاسم الثلاثي) */}
+                  {/* الاسم - المنتصف */}
                   <div className="flex-grow text-right min-w-0 pr-1">
                     <div className="flex items-center gap-1 overflow-hidden">
                       <span className={`text-[13px] font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
@@ -257,7 +307,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               ) : (
                 <div className="p-8 bg-slate-50 rounded-[2.5rem] text-slate-400 flex flex-col items-center gap-4 border-2 border-dashed border-slate-200">
                     <WifiOff className="w-10 h-10 opacity-20" />
-                    <p className="text-[10px] font-black header-font">بانتظار التحاق الفرسان بالمحراب..</p>
+                    <p className="text-[10px] font-black header-font">
+                      {activeList === 'today' ? 'بانتظار التحاق الفرسان بالمحراب..' : 'لا توجد سجلات محفوظة للأمس في السحابة'}
+                    </p>
                 </div>
               )}
             </div>
