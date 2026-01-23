@@ -33,14 +33,23 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
-  // دالة للحصول على التاريخ بتنسيق YYYY-MM-DD
-  const getLocalDateStr = (offset = 0) => {
-    const date = new Date();
-    date.setDate(date.getDate() + offset);
-    return date.toISOString().split('T')[0];
+  /**
+   * دالة مخصصة لتوليد صيغة التاريخ كما هي في جوجل شيت
+   * الصيغة المطلوبة: M/D/YYYY (مثال: 1/24/2026)
+   */
+  const getSheetDateStr = (offset = 0) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    const month = d.getMonth() + 1; // الأشهر في JS تبدأ من 0
+    const day = d.getDate();
+    const year = d.getFullYear();
+    return `${month}/${day}/${year}`;
   };
 
-  const processLeaderboard = (data: any[], todayStr: string, yesterdayStr: string) => {
+  const processLeaderboard = (data: any[]) => {
+    const todayStr = getSheetDateStr(0);      // 1/24/2026
+    const yesterdayStr = getSheetDateStr(-1); // 1/23/2026
+
     const todayMap = new Map();
     const yesterdayMap = new Map();
 
@@ -51,18 +60,18 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       const score = parseInt(entry.score) || 0;
       if (score <= 0) return;
 
-      const entryDateFull = String(entry.date || ""); // قد يحتوي على "2023-10-27 00:50:00"
-      const entryDateOnly = entryDateFull.split(' ')[0]; // استخراج "2023-10-27"
+      // الخلية تحوي "1/24/2026 1:16:30"
+      // نقوم بفصل التاريخ عن الوقت باستخدام المسافة
+      const entryFullDateStr = String(entry.date || "");
+      const entryDateOnly = entryFullDateStr.split(' ')[0]; // النتيجة: "1/24/2026"
 
-      // التحقق هل السجل يخص اليوم أم الأمس
-      const isToday = entryDateOnly === todayStr || entry.isToday === true || entry.isToday === "true";
-      const isYesterday = entryDateOnly === yesterdayStr;
-
-      if (isToday) {
+      if (entryDateOnly === todayStr) {
+        // إذا كان التاريخ يطابق اليوم، ضعه في قائمة اليوم
         if (!todayMap.has(emailKey) || score > todayMap.get(emailKey).score) {
           todayMap.set(emailKey, { ...entry, score });
         }
-      } else if (isYesterday) {
+      } else if (entryDateOnly === yesterdayStr) {
+        // إذا كان التاريخ يطابق الأمس، انقله لقائمة الأمس
         if (!yesterdayMap.has(emailKey) || score > yesterdayMap.get(emailKey).score) {
           yesterdayMap.set(emailKey, { ...entry, score });
         }
@@ -97,10 +106,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         const data = await res.json();
         setNetworkError(false);
         if (data && data.leaderboard) {
-          const todayStr = getLocalDateStr(0);
-          const yesterdayStr = getLocalDateStr(-1);
-
-          const { sortedToday, sortedYesterday } = processLeaderboard(data.leaderboard, todayStr, yesterdayStr);
+          const { sortedToday, sortedYesterday } = processLeaderboard(data.leaderboard);
 
           setGlobalTopToday(sortedToday.slice(0, 50));
           setGlobalTopYesterday(sortedYesterday.slice(0, 50));
@@ -210,7 +216,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           </div>
         </div>
 
-        {/* نبض المحراب */}
+        {/* نبض المحراب الآن */}
         <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-5 px-2">
              <div className="flex items-center gap-2.5">
