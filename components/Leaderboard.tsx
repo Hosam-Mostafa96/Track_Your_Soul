@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Sun, GraduationCap, Activity, Loader2, Star, RefreshCw, Sparkles, Quote, Medal } from 'lucide-react';
+import { Trophy, Crown, Sun, GraduationCap, Activity, Loader2, Star, RefreshCw, Sparkles, Quote, Medal, AlertCircle, Settings } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -31,14 +31,36 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
-  const normalizeDateStr = (dateStr: string): string => {
+  /**
+   * دالة متطورة لتطبيع التاريخ
+   * تحول الصيغ المختلفة (01/24/2026 أو 2026-1-24) إلى صيغة موحدة (1/24/2026)
+   */
+  const normalizeDateStr = (dateStr: any): string => {
     if (!dateStr) return "";
-    const part = dateStr.trim().split(' ')[0];
-    return part.split('/').map(p => parseInt(p, 10).toString()).join('/');
+    let clean = String(dateStr).trim().split(' ')[0]; // خذ الجزء الأول (التاريخ) واترك الوقت
+    
+    // استبدال الواصلة بسلاش لتوحيد الصيغة
+    clean = clean.replace(/-/g, '/');
+    
+    // تقسيم الأجزاء والتخلص من الأصفار الزائدة (01 -> 1)
+    const parts = clean.split('/');
+    if (parts.length !== 3) return clean;
+
+    // محاولة تحديد ما إذا كان العام في البداية أو النهاية
+    let m, d, y;
+    if (parts[0].length === 4) { // YYYY/MM/DD
+      y = parts[0]; m = parts[1]; d = parts[2];
+    } else { // M/D/YYYY أو D/M/YYYY
+      // بما أن النظام يعتمد M/D/YYYY حسب طلبك:
+      m = parts[0]; d = parts[1]; y = parts[2];
+    }
+
+    return `${parseInt(m, 10)}/${parseInt(d, 10)}/${parseInt(y, 10)}`;
   };
 
   const getTodaySheetStr = () => {
     const d = new Date();
+    // توليد التاريخ المحلي للمتصفح بصيغة M/D/YYYY
     const formatted = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
     return normalizeDateStr(formatted);
   };
@@ -48,16 +70,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     const todayMap = new Map();
 
     data.forEach((entry: any) => {
-      const rawDate = entry.date || entry.Date || entry.timestamp || entry.Timestamp || "";
-      const emailKey = (entry.email || entry.name || "").toLowerCase().trim();
+      // البحث عن التاريخ في كل الأعمدة الممكنة
+      const rawDate = entry.date || entry.Date || entry.timestamp || entry.Timestamp || entry.التاريخ || "";
+      if (!rawDate) return;
+
+      const emailKey = (entry.email || entry.Email || entry.name || "").toLowerCase().trim();
       if (!emailKey) return;
       
-      const score = parseInt(entry.score) || 0;
+      const score = parseInt(entry.score || entry.Score || 0);
       if (score <= 0) return;
 
-      const entryDateOnly = normalizeDateStr(String(rawDate));
+      const entryDateOnly = normalizeDateStr(rawDate);
 
-      // نأخذ فقط من تاريخهم يطابق اليوم
+      // مقارنة مرنة للتاريخ
       if (entryDateOnly === todayStr) {
         if (!todayMap.has(emailKey) || score > todayMap.get(emailKey).score) {
           todayMap.set(emailKey, { ...entry, score });
@@ -70,8 +95,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   const fetchGlobalData = async (isSilent = false) => {
     if (!isSync || !user?.email || !navigator.onLine) return;
-    if (!isSilent) setIsRefreshing(true);
-    if (!isSilent && globalTopToday.length === 0) setIsLoading(true);
+    
+    if (!isSilent) {
+      setIsRefreshing(true);
+      if (globalTopToday.length === 0) setIsLoading(true);
+    }
     
     try {
       const res = await fetch(GOOGLE_STATS_API, {
@@ -124,6 +152,16 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       default: return { bg: 'bg-slate-100', text: 'text-slate-400', icon: null };
     }
   };
+
+  if (!isSync) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
+        <AlertCircle className="w-12 h-12 text-amber-500 opacity-50" />
+        <h3 className="font-bold text-slate-800 header-font">المنافسة معطلة</h3>
+        <p className="text-xs text-slate-400 header-font leading-relaxed">يجب تفعيل "المزامنة مع المحراب العالمي" من الإعدادات لتتمكن من رؤية الفرسان ومشاركة نتائجك.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-24 text-right" dir="rtl">
@@ -218,7 +256,17 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             </div>
           ) : (
             <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-slate-200">
-               {isLoading ? <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-300" /> : <p className="text-[10px] text-slate-400 font-bold header-font">لا يوجد فرسان مسجلون اليوم بعد</p>}
+               {isLoading ? (
+                 <div className="flex flex-col items-center gap-2">
+                   <Loader2 className="w-8 h-8 animate-spin text-emerald-300" />
+                   <span className="text-[10px] text-slate-400 font-bold header-font">جاري استحضار الفرسان من المحراب..</span>
+                 </div>
+               ) : (
+                 <div className="flex flex-col items-center gap-2">
+                   <p className="text-[10px] text-slate-400 font-bold header-font">لا يوجد فرسان مسجلون اليوم بعد.</p>
+                   <p className="text-[8px] text-slate-300 font-bold header-font tracking-tight">تأكد من تسجيل عباداتك وتفعيل المزامنة لتظهر هنا.</p>
+                 </div>
+               )}
             </div>
           )}
         </div>
