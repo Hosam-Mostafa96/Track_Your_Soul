@@ -34,44 +34,48 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   }, [motivationalQuotes]);
 
   /**
-   * دالة مخصصة لتوليد صيغة التاريخ كما هي في جوجل شيت
-   * الصيغة المطلوبة: M/D/YYYY (مثال: 1/24/2026)
+   * دالة لتنظيف التاريخ وتحويله لصيغة موحدة بدون أصفار زائدة
+   * تحول "01/05/2026" إلى "1/5/2026" لضمان مطابقة نصية دقيقة
    */
+  const normalizeDateStr = (dateStr: string): string => {
+    if (!dateStr) return "";
+    const part = dateStr.trim().split(' ')[0]; // خذ الجزء الخاص بالتاريخ فقط
+    return part.split('/').map(p => parseInt(p, 10).toString()).join('/');
+  };
+
   const getSheetDateStr = (offset = 0) => {
     const d = new Date();
     d.setDate(d.getDate() + offset);
-    const month = d.getMonth() + 1; // الأشهر في JS تبدأ من 0
-    const day = d.getDate();
-    const year = d.getFullYear();
-    return `${month}/${day}/${year}`;
+    // توليد التاريخ بصيغة M/D/YYYY
+    const formatted = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    return normalizeDateStr(formatted);
   };
 
   const processLeaderboard = (data: any[]) => {
-    const todayStr = getSheetDateStr(0);      // 1/24/2026
-    const yesterdayStr = getSheetDateStr(-1); // 1/23/2026
+    const todayStr = getSheetDateStr(0);      
+    const yesterdayStr = getSheetDateStr(-1); 
 
     const todayMap = new Map();
     const yesterdayMap = new Map();
 
     data.forEach((entry: any) => {
+      // البحث عن مفتاح التاريخ في عدة مسميات محتملة
+      const rawDate = entry.date || entry.Date || entry.timestamp || entry.Timestamp || "";
+      if (!rawDate) return;
+
       const emailKey = (entry.email || entry.name || "").toLowerCase().trim();
       if (!emailKey) return;
       
       const score = parseInt(entry.score) || 0;
       if (score <= 0) return;
 
-      // الخلية تحوي "1/24/2026 1:16:30"
-      // نقوم بفصل التاريخ عن الوقت باستخدام المسافة
-      const entryFullDateStr = String(entry.date || "");
-      const entryDateOnly = entryFullDateStr.split(' ')[0]; // النتيجة: "1/24/2026"
+      const entryDateOnly = normalizeDateStr(String(rawDate));
 
       if (entryDateOnly === todayStr) {
-        // إذا كان التاريخ يطابق اليوم، ضعه في قائمة اليوم
         if (!todayMap.has(emailKey) || score > todayMap.get(emailKey).score) {
           todayMap.set(emailKey, { ...entry, score });
         }
       } else if (entryDateOnly === yesterdayStr) {
-        // إذا كان التاريخ يطابق الأمس، انقله لقائمة الأمس
         if (!yesterdayMap.has(emailKey) || score > yesterdayMap.get(emailKey).score) {
           yesterdayMap.set(emailKey, { ...entry, score });
         }
@@ -112,7 +116,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           setGlobalTopYesterday(sortedYesterday.slice(0, 50));
 
           const myEmail = user.email.toLowerCase().trim();
-          const myIdxToday = sortedToday.findIndex(p => (p.email || "").toLowerCase().trim() === myEmail);
+          const myIdxToday = sortedToday.findIndex(p => (p.email || p.Email || "").toLowerCase().trim() === myEmail);
           setUserRankToday(myIdxToday !== -1 ? myIdxToday + 1 : null);
 
           if (data.stats) setLiveStats(data.stats);
@@ -157,7 +161,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       {list.length > 0 ? (
         <div className="space-y-3">
           {list.map((player, index) => {
-            const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
+            const isMe = (player.email || player.Email || player.name || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
             const rank = getRankConfig(index);
 
             return (
