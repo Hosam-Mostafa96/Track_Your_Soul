@@ -14,7 +14,8 @@ import {
   BarChart3,
   Library,
   Orbit,
-  BookOpen
+  BookOpen,
+  Combine
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -36,6 +37,7 @@ import Statistics from './components/Statistics';
 import BookLibrary from './components/BookLibrary';
 import Subha from './components/Subha';
 import QuranPage from './components/QuranPage';
+import WorshipPatterns from './components/WorshipPatterns';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -66,7 +68,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide';
+  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'patterns' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
@@ -91,12 +93,6 @@ const App: React.FC = () => {
         const item = localStorage.getItem(key);
         if (!item) return fallback;
         const parsed = JSON.parse(item);
-        if (key === 'worship_logs') {
-          Object.keys(parsed).forEach(date => {
-            if (!parsed[date].quran) parsed[date].quran = INITIAL_LOG(date).quran;
-            if (parsed[date].quran && !parsed[date].quran.tasksCompleted) parsed[date].quran.tasksCompleted = [];
-          });
-        }
         return parsed;
       } catch (e) { return fallback; }
     };
@@ -127,8 +123,8 @@ const App: React.FC = () => {
     {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
     {id: 'subha', icon: Orbit, label: 'السبحة'},
     {id: 'quran', icon: BookOpen, label: 'القرآن'},
-    {id: 'library', icon: Library, label: 'المكتبة'},
-    {id: 'stats', icon: BarChart3, label: 'الإحصائيات'},
+    {id: 'patterns', icon: Combine, label: 'الأنماط'},
+    {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
     {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
   ];
 
@@ -140,7 +136,7 @@ const App: React.FC = () => {
       case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { const newLog = {...currentLog}; if(field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = {...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins}; } updateLog(newLog); }} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />;
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
       case 'quran': return <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />;
-      case 'library': return <BookLibrary books={books} onAddBook={(t, p) => { const nb = {id: Math.random().toString(36).substring(7), title: t, totalPages: p, currentPages: 0, startDate: new Date().toISOString(), isFinished: false}; setBooks([nb, ...books]); localStorage.setItem('worship_books', JSON.stringify([nb, ...books])); }} onDeleteBook={(id) => setBooks(books.filter(b => b.id !== id))} onUpdateProgress={() => {}} />;
+      case 'patterns': return <WorshipPatterns logs={logs} weights={weights} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
       case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} />;
@@ -156,7 +152,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
-      {/* تم تقليل z-index هنا ليكون z-10 */}
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden z-10">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -190,7 +185,6 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* تم رفع z-index هنا ليكون z-20 ليطفو فوق الهيدر، وتم تعديل الهامش ليكون -mt-10 بدلاً من -mt-12 لراحة العين */}
       <main className="px-4 -mt-10 relative z-20 max-w-2xl mx-auto">
         {renderContent()}
       </main>
