@@ -280,7 +280,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         <div className="space-y-4">
           {[
             { label: 'حفظ جديد', field: 'hifzRub' as const },
-            { label: 'مراجعة & قراءة', field: 'revisionRub' as const }
+            { label: 'قراءة', field: 'revisionRub' as const }
           ].map(q => (
             <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
               <span className="text-sm font-bold text-slate-700 header-font">{q.label}</span>
