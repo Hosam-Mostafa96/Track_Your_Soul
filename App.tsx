@@ -8,13 +8,14 @@ import {
   UserCircle,
   Medal,
   Sparkles,
-  Mail,
+  Bell,
   Info,
   Loader2,
   BarChart3,
   Library,
   Orbit,
-  BookOpen
+  BookOpen,
+  Send
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -36,6 +37,7 @@ import Statistics from './components/Statistics';
 import BookLibrary from './components/BookLibrary';
 import Subha from './components/Subha';
 import QuranPage from './components/QuranPage';
+import Notifications from './components/Notifications';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -66,7 +68,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide';
+  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide' | 'notifications';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
@@ -76,6 +78,9 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
+
+  // منطق الإشعارات (إشعارات وهمية كمثال)
+  const [hasNewNotifications, setHasNewNotifications] = useState(true);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -124,6 +129,7 @@ const App: React.FC = () => {
     {id: 'library', icon: Library, label: 'المكتبة'},
     {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
     {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
+    {id: 'contact', icon: Send, label: 'تواصل'},
   ];
 
   const handleUpdateBook = (book: Book, pagesReadToday: number) => {
@@ -143,7 +149,6 @@ const App: React.FC = () => {
     setBooks(updated);
     localStorage.setItem('worship_books', JSON.stringify(updated));
     
-    // تسجيل عدد الصفحات في السجل اليومي أيضاً للحصول على النقاط
     const newLog = { ...currentLog };
     newLog.knowledge = {
       ...newLog.knowledge,
@@ -192,6 +197,7 @@ const App: React.FC = () => {
       case 'history': return <WorshipHistory logs={logs} weights={weights} />;
       case 'guide': return <WorshipGuide />;
       case 'contact': return <ContactUs />;
+      case 'notifications': return <Notifications onBack={() => setActiveTab('dashboard')} />;
       default: return null;
     }
   };
@@ -223,8 +229,14 @@ const App: React.FC = () => {
             </button>
             <h1 className="text-xl md:text-2xl font-bold header-font self-center truncate">ميزان العبادات</h1>
             <div className="flex gap-1 items-center">
-              <button onClick={() => setActiveTab('contact')} className={`p-3 rounded-full transition-all border ${activeTab === 'contact' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}>
-                <Mail className="w-6 h-6" />
+              <button 
+                onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} 
+                className={`p-3 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}
+              >
+                <Bell className="w-6 h-6" />
+                {hasNewNotifications && (
+                  <span className="absolute top-2 right-2 w-3 h-3 bg-rose-500 rounded-full border-2 border-white"></span>
+                )}
               </button>
               <button onClick={() => setActiveTab('guide')} className="p-3 hover:bg-white/10 rounded-full transition-all active:scale-95">
                 <Info className="w-6 h-6 text-white/70" />
