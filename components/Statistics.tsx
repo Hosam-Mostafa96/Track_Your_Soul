@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { 
   BarChart3, 
@@ -32,7 +31,9 @@ import {
   Cell
 } from 'recharts';
 import { DailyLog, AppWeights, User, PrayerEntry, Book } from '../types';
-import { isWithinInterval, endOfDay, format, addDays } from 'date-fns';
+// DO NOT use isWithinInterval if it is missing from exports. 
+// Standard date-fns v2/v3 should have it, but we'll use a safer manual check.
+import { endOfDay, format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { calculateTotalScore } from '../utils/scoring';
 import { GOOGLE_STATS_API } from '../constants';
@@ -66,7 +67,11 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
     const startDate = timeFilter === 'week' ? addDays(now, -7) : timeFilter === 'month' ? addDays(now, -30) : addDays(now, -365);
     const periodLogs = (Object.values(logs) as DailyLog[]).filter(log => {
       const logDate = new Date(log.date.replace(/-/g, '/'));
-      return isWithinInterval(logDate, { start: startDate, end: endOfDay(now) });
+      // DO NOT use isWithinInterval, use manual timestamp comparison
+      const start = startDate.getTime();
+      const end = endOfDay(now).getTime();
+      const current = logDate.getTime();
+      return current >= start && current <= end;
     });
     let counts = { prayers: 0, quran: 0, knowledge: 0, fasting: 0, dhikr: 0 };
     periodLogs.forEach(log => {

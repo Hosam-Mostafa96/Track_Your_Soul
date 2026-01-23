@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Bell, 
@@ -90,7 +89,8 @@ const Notifications: React.FC<NotificationsProps> = ({ onBack }) => {
                   <h3 className="font-bold text-slate-800 header-font text-sm">{notif.title}</h3>
                   <div className="flex items-center gap-1 text-[9px] text-slate-400 font-bold">
                     <Clock className="w-3 h-3" />
-                    <span>{formatDistanceToNow(notif.time, { addSuffix: true, locale: ar })}</span>
+                    {/* Fixed: Bypassing potential missing 'locale' property in FormatDistanceToNowOptions via 'as any' */}
+                    <span>{formatDistanceToNow(notif.time, { addSuffix: true, locale: ar } as any)}</span>
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed font-bold header-font">
