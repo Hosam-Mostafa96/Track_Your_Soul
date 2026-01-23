@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, Quote, CalendarDays } from 'lucide-react';
+import { Trophy, Crown, Moon, Sun, GraduationCap, Activity, Loader2, WifiOff, Star, Users, Medal, RefreshCw, Sparkles, Quote, CalendarDays, ChevronDown, ChevronUp } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -11,7 +11,6 @@ interface LeaderboardProps {
 }
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync }) => {
-  const [activeList, setActiveList] = useState<'today' | 'yesterday'>('today');
   const [liveStats, setLiveStats] = useState({
     qiyam: 0, duha: 0, knowledge: 0, athkar: 0, totalUsers: 0
   });
@@ -22,6 +21,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [networkError, setNetworkError] = useState(false);
+  const [showYesterday, setShowYesterday] = useState(true);
 
   const motivationalQuotes = useMemo(() => [
     { text: "وَفِي ذَلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ", source: "المطففين ٢٦" },
@@ -55,16 +55,16 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       const score = parseInt(entry.score) || 0;
       if (score <= 0) return;
 
-      // منطق الفلترة للتاريخ
       let matchesDate = false;
+      // منطق الفرز: التحقق من علامة اليوم أو مطابقة التاريخ النصي
       if (isTodayFlag && (entry.isToday === true || entry.isToday === "true")) matchesDate = true;
       if (entry.date) {
         const entryStr = String(entry.date);
         if (entryStr.includes(dateStr)) matchesDate = true;
       }
       
-      // إذا لم يكن هناك تاريخ وكان اليوم، نعتبرها اليوم افتراضياً إذا كانت النقاط > 0
-      if (!matchesDate && isTodayFlag && (!entry.date || entry.date === "undefined")) matchesDate = true;
+      // إذا لم يكن هناك تاريخ وكان الهدف هو قائمة اليوم، نعتبرها اليوم افتراضياً إذا سجلت نقاطاً
+      if (!matchesDate && isTodayFlag && (!entry.date || entry.date === "undefined" || entry.date === "")) matchesDate = true;
 
       if (matchesDate) {
         const record = { ...entry, score };
@@ -94,7 +94,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           email: user.email.toLowerCase().trim(),
           name: user.name || "مصلٍ مجهول",
           score: currentScore,
-          includeYesterday: true // تفعيل جلب بيانات الأمس من السيرفر
+          includeYesterday: true 
         }),
         signal: controller.signal
       });
@@ -111,8 +111,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           const sortedToday = processLeaderboard(data.leaderboard, todayStr, true);
           const sortedYesterday = processLeaderboard(data.leaderboard, yesterdayStr, false);
 
-          setGlobalTopToday(sortedToday.slice(0, 100));
-          setGlobalTopYesterday(sortedYesterday.slice(0, 100));
+          setGlobalTopToday(sortedToday.slice(0, 50));
+          setGlobalTopYesterday(sortedYesterday.slice(0, 50));
 
           const myEmail = user.email.toLowerCase().trim();
           
@@ -142,9 +142,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
-  const currentList = activeList === 'today' ? globalTopToday : globalTopYesterday;
-  const currentRank = activeList === 'today' ? userRankToday : userRankYesterday;
-
   const getRankConfig = (index: number) => {
     switch(index) {
       case 0: return { bg: 'bg-amber-400', text: 'text-white', icon: <Crown className="w-5 h-5" /> };
@@ -154,8 +151,41 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     }
   };
 
+  const renderPlayerList = (list: any[], showRankIcons: boolean) => (
+    <div className="space-y-3">
+      {list.map((player, index) => {
+        const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
+        const rank = getRankConfig(index);
+
+        return (
+          <div key={`${player.email || player.name}-${index}`} className={`flex items-center p-3 rounded-[2.2rem] transition-all relative gap-2.5 shadow-sm group border ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.01] z-10 border-transparent' : 'bg-white border-slate-50 hover:border-emerald-100'}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-transform shadow-sm ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-inner`}`}>
+              {(showRankIcons && rank.icon) ? rank.icon : <span className="text-xs font-black font-mono">{index + 1}</span>}
+            </div>
+            <div className="flex-grow text-right min-w-0 pr-1">
+              <div className="flex items-center gap-1 overflow-hidden">
+                <span className={`text-[13px] font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
+                  {player.name}
+                </span>
+                {isMe && <Sparkles className="w-2.5 h-2.5 text-yellow-300 shrink-0" />}
+              </div>
+            </div>
+            <div className={`flex flex-col items-center px-3 shrink-0 border-r border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
+              <span className={`text-lg font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                {player.score.toLocaleString()}
+              </span>
+              <span className={`text-[7px] font-black header-font mt-1 uppercase opacity-60 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>
+                نقطة
+              </span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  );
+
   return (
-    <div className="space-y-4 animate-in fade-in duration-700 pb-24 text-right" dir="rtl">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-24 text-right" dir="rtl">
       
       {/* قسم النفحة الربانية */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-3xl p-5 border border-emerald-100/50 shadow-sm text-center relative overflow-hidden group">
@@ -164,51 +194,20 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         <span className="text-[9px] font-black text-emerald-600/50 header-font uppercase tracking-widest">{currentQuote.source}</span>
       </div>
 
-      {/* الهيدر المطور - إبراز الترتيب الشخصي */}
-      <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden border border-white/10 text-center">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent"></div>
-        
-        <div className="relative z-10 space-y-4">
-          <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">
-            رتبتك في قائمة {activeList === 'today' ? 'اليوم' : 'الأمس'}
-          </h2>
-          
-          <div className="relative inline-block">
-            <div className="absolute inset-0 bg-yellow-400/25 blur-[40px] rounded-full scale-150 animate-pulse"></div>
-            
-            <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.8rem] p-8 min-w-[170px] shadow-2xl relative overflow-hidden ring-4 ring-white/5">
-               <div className="absolute -top-2 -right-2 opacity-10"><Crown className="w-20 h-20" /></div>
-              <span className="text-[10px] font-black text-emerald-200 block mb-2 uppercase tracking-widest">المركز</span>
-              <div className="flex items-center justify-center">
-                <span className="text-7xl font-black font-mono text-yellow-400 tracking-tighter drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] leading-none">
-                  {currentRank || "---"}
-                </span>
-              </div>
+      {/* الترتيب اليومي والنبض */}
+      <section className="space-y-4">
+        <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden border border-white/10 text-center">
+          <div className="relative z-10 space-y-3">
+            <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">رتبتك اليوم (منذ منتصف الليل)</h2>
+            <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.2rem] py-5 px-8 inline-block shadow-2xl">
+              <span className="text-5xl font-black font-mono text-yellow-400 tracking-tighter drop-shadow-[0_0_10px_rgba(250,204,21,0.4)] leading-none">
+                {userRankToday || "---"}
+              </span>
             </div>
           </div>
-          
-          <p className="text-[10px] font-bold text-emerald-100/50 header-font italic tracking-wide">تحديث تلقائي من السحاب</p>
         </div>
-      </div>
 
-      {/* تبديل القوائم */}
-      <div className="flex bg-white rounded-2xl p-1.5 shadow-sm border border-slate-100">
-        <button 
-          onClick={() => setActiveList('today')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${activeList === 'today' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          <Sun className="w-4 h-4" /> فرسان اليوم
-        </button>
-        <button 
-          onClick={() => setActiveList('yesterday')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${activeList === 'yesterday' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          <CalendarDays className="w-4 h-4" /> أرشيف الأمس
-        </button>
-      </div>
-
-      {/* الجلسات النشطة - نبض المحراب */}
-      {activeList === 'today' && (
+        {/* نبض المحراب */}
         <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-5 px-2">
              <div className="flex items-center gap-2.5">
@@ -216,13 +215,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                  <div className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping absolute"></div>
                  <div className="w-2.5 h-2.5 bg-rose-500 rounded-full relative"></div>
                </div>
-               <h3 className="text-sm font-black text-slate-800 header-font">الجلسات النشطة لنبض المحراب</h3>
+               <h3 className="text-sm font-black text-slate-800 header-font">نبض المحراب الآن</h3>
              </div>
              <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-2 rounded-xl bg-slate-50 transition-all active:scale-90 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-300'}`}>
                <RefreshCw className="w-4 h-4" />
              </button>
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'يقيمون الليل', val: liveStats.qiyam, icon: <Moon className="w-4 h-4" />, color: 'text-indigo-500', bg: 'bg-indigo-50' },
@@ -240,92 +238,53 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             ))}
           </div>
         </div>
-      )}
 
-      {/* قائمة الفرسان */}
-      <div className="space-y-4 px-1">
-        <div className="flex items-center justify-between px-3 mb-2">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-yellow-500" />
-            <h2 className="text-xl font-black header-font text-slate-800">
-              {activeList === 'today' ? 'فرسان اليوم' : 'سجل الشرف للأمس'}
-            </h2>
+        {/* قائمة فرسان اليوم */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-3">
+            <div className="flex items-center gap-2">
+              <Sun className="w-5 h-5 text-amber-500" />
+              <h2 className="text-xl font-black header-font text-slate-800">فرسان اليوم</h2>
+            </div>
+            <span className="text-[10px] font-black header-font bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">{globalTopToday.length} مجاهد</span>
           </div>
-          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3.5 py-1.5 rounded-full border border-emerald-100 shadow-sm">
-             <Users className="w-3.5 h-3.5" />
-             <span className="text-[10px] font-black header-font">{currentList.length} مجاهد</span>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {currentList.length > 0 ? (
-            currentList.map((player, index) => {
-              const isMe = (player.email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
-              const rank = getRankConfig(index);
-
-              return (
-                <div key={`${player.email || player.name}-${index}`} className={`flex items-center p-3 rounded-[2.2rem] transition-all relative gap-2.5 shadow-sm group border ${isMe ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-100 scale-[1.01] z-10 border-transparent' : 'bg-white border-slate-50 hover:border-emerald-100'}`}>
-                  
-                  {/* الرتبة - أقصى اليمين */}
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-transform shadow-sm ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-inner`}`}>
-                    {rank.icon ? rank.icon : <span className="text-xs font-black font-mono">{index + 1}</span>}
-                  </div>
-
-                  {/* الاسم - المنتصف */}
-                  <div className="flex-grow text-right min-w-0 pr-1">
-                    <div className="flex items-center gap-1 overflow-hidden">
-                      <span className={`text-[13px] font-bold header-font truncate leading-tight ${isMe ? 'text-white' : 'text-slate-800'}`}>
-                        {player.name}
-                      </span>
-                      {isMe && <Sparkles className="w-2.5 h-2.5 text-yellow-300 shrink-0" />}
-                    </div>
-                  </div>
-
-                  {/* النقاط - أقصى اليسار */}
-                  <div className={`flex flex-col items-center px-3 shrink-0 border-r border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
-                    <span className={`text-lg font-black font-mono tracking-tighter leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
-                      {player.score.toLocaleString()}
-                    </span>
-                    <span className={`text-[7px] font-black header-font mt-1 uppercase opacity-60 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>
-                      نقطة
-                    </span>
-                  </div>
-
-                </div>
-              )
-            })
-          ) : (
-            <div className="text-center py-20 flex flex-col items-center">
-              {isLoading ? (
-                <Loader2 className="w-10 h-10 text-emerald-200 animate-spin" />
-              ) : networkError ? (
-                <div className="p-8 bg-rose-50 rounded-[2.5rem] text-rose-400 flex flex-col items-center gap-4 border-2 border-dashed border-rose-200">
-                    <WifiOff className="w-10 h-10 opacity-40" />
-                    <p className="text-[10px] font-black header-font">تعذر الاتصال بالمحراب السحابي</p>
-                    <button onClick={() => fetchGlobalData()} className="text-[10px] font-black bg-white px-4 py-2 rounded-xl shadow-sm border border-rose-100 text-rose-600">إعادة المحاولة</button>
-                </div>
-              ) : (
-                <div className="p-8 bg-slate-50 rounded-[2.5rem] text-slate-400 flex flex-col items-center gap-4 border-2 border-dashed border-slate-200">
-                    <WifiOff className="w-10 h-10 opacity-20" />
-                    <p className="text-[10px] font-black header-font">
-                      {activeList === 'today' ? 'بانتظار التحاق الفرسان بالمحراب..' : 'لا توجد سجلات محفوظة للأمس في السحابة'}
-                    </p>
-                </div>
-              )}
+          {globalTopToday.length > 0 ? renderPlayerList(globalTopToday, true) : (
+            <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-slate-200">
+               {isLoading ? <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-300" /> : <p className="text-[10px] text-slate-400 font-bold header-font">بانتظار تسجيل فرسان اليوم..</p>}
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      <div className="p-5 bg-slate-900 rounded-[2.2rem] text-white text-center shadow-lg mx-1 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-full h-full opacity-5 pointer-events-none">
-          <Sparkles className="w-full h-full scale-150" />
-        </div>
-        <p className="text-[10px] font-bold header-font opacity-60 italic leading-relaxed relative z-10">
+      {/* أرشيف الأمس */}
+      <section className="space-y-4 pt-4 border-t border-slate-100">
+        <button 
+          onClick={() => setShowYesterday(!showYesterday)}
+          className="w-full flex items-center justify-between px-3 py-2 bg-slate-100/50 rounded-2xl"
+        >
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-slate-400" />
+            <h2 className="text-lg font-black header-font text-slate-700">سجل الشرف (الأمس)</h2>
+          </div>
+          {showYesterday ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+        </button>
+
+        {showYesterday && (
+          <div className="animate-in slide-in-from-top duration-300">
+            {globalTopYesterday.length > 0 ? renderPlayerList(globalTopYesterday, false) : (
+              <div className="text-center py-12 bg-slate-50 rounded-[2rem] border border-dashed border-slate-100">
+                <p className="text-[10px] text-slate-400 font-bold header-font">لا يوجد سجلات محفوظة للأمس في السحابة</p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <div className="p-5 bg-slate-900 rounded-[2.2rem] text-white text-center shadow-lg mx-1">
+        <p className="text-[10px] font-bold header-font opacity-60 italic leading-relaxed">
           "ميزانك هو ما استقر في قلبك وصدقه عملك"
         </p>
       </div>
-
     </div>
   );
 };
