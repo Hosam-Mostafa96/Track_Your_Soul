@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   Book, 
@@ -19,7 +18,8 @@ import {
   Clock
 } from 'lucide-react';
 import { DailyLog } from '../types';
-import { format, subDays, startOfDay } from 'date-fns';
+// Fixed: Replaced subDays with addDays as it was reported as not exported; removed unused startOfDay.
+import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 interface QuranPageProps {
@@ -56,7 +56,8 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
   // Logic for Yesterday's Repetition
   const yesterdayLog = useMemo(() => {
-    const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    // Fixed: Replaced subDays(new Date(), 1) with addDays(new Date(), -1).
+    const yesterdayDate = format(addDays(new Date(), -1), 'yyyy-MM-dd');
     return logs[yesterdayDate];
   }, [logs]);
 
@@ -64,7 +65,8 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
   const rabtPortions = useMemo(() => {
     const portions = [];
     for (let i = 1; i <= 10; i++) {
-      const d = format(subDays(new Date(), i), 'yyyy-MM-dd');
+      // Fixed: Replaced subDays(new Date(), i) with addDays(new Date(), -i).
+      const d = format(addDays(new Date(), -i), 'yyyy-MM-dd');
       const l = logs[d];
       if (l?.quran?.todayPortion) {
         portions.push({ date: d, portion: l.quran.todayPortion });

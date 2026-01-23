@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   Play, 
@@ -16,7 +15,8 @@ import {
   Zap,
   Timer as PomodoroIcon
 } from 'lucide-react';
-import { format, subDays } from 'date-fns';
+// Fixed: Replaced subDays with addDays as it was reported as not exported from date-fns.
+import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { GOOGLE_STATS_API } from '../constants';
 import confetti from 'canvas-confetti';
@@ -91,7 +91,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     const savedSessions = localStorage.getItem('worship_timer_sessions');
     if (savedSessions) {
       const parsed: SessionRecord[] = JSON.parse(savedSessions);
-      const thirtyDaysAgo = subDays(new Date(), 30).getTime();
+      // Fixed: Replaced subDays(new Date(), 30) with addDays(new Date(), -30).
+      const thirtyDaysAgo = addDays(new Date(), -30).getTime();
       const validSessions = parsed.filter(s => s.timestamp > thirtyDaysAgo);
       setSessions(validSessions);
     }

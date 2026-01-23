@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { 
   Flame, 
@@ -29,7 +28,8 @@ import {
   BookMarked
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { format, addDays, startOfMonth } from 'date-fns';
+// Fixed: Removed startOfMonth as it was reported as not exported; addDays is used instead or manual calculation.
+import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { DailyLog, AppWeights, PrayerName, PrayerEntry, Book } from '../types';
 import { calculateTotalScore } from '../utils/scoring';
@@ -69,7 +69,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   const activeBook = useMemo(() => books.find(b => !b.isFinished), [books]);
   
   const finishedThisMonth = useMemo(() => {
-    const monthStart = startOfMonth(new Date()).getTime();
+    // Fixed: Replaced startOfMonth with a manual Date calculation.
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
     return books.filter(b => b.isFinished && b.finishDate && new Date(b.finishDate).getTime() >= monthStart).length;
   }, [books]);
 
@@ -232,14 +234,14 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* إحصائيات الارتقاء والأوسمة */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
-           <div className="flex items-center gap-2 mb-2"><Activity className="w-4 h-4 text-emerald-500" /><span className="text-[10px] font-bold text-slate-400 header-font uppercase">معامل الارتقاء</span></div>
+           <div className="flex items-center gap-2 mb-2"><Activity className="w-4 h-4 text-emerald-500" /><span className="text-[10px] font-bold text-slate-400 header-font uppercase tracking-widest">معامل الارتقاء</span></div>
            <div>
              <span className={`text-2xl font-black font-mono ${momentumInfo.color}`}>{momentumInfo.percent}%</span>
              <p className="text-[10px] text-slate-400 font-bold header-font">مقارنة بالمتوسط الأسبوعي</p>
            </div>
         </div>
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
-           <div className="flex items-center gap-2 mb-2"><Award className="w-4 h-4 text-amber-500" /><span className="text-[10px] font-bold text-slate-400 header-font uppercase">الأوسمة المكتسبة</span></div>
+           <div className="flex items-center gap-2 mb-2"><Award className="w-4 h-4 text-amber-500" /><span className="text-[10px] font-bold text-slate-400 header-font uppercase tracking-widest">الأوسمة المكتسبة</span></div>
            <div>
              <span className="text-2xl font-black font-mono text-amber-500">{badges.filter(b => b.active).length} / {badges.length}</span>
              <p className="text-[10px] text-slate-400 font-bold header-font">إنجازات ورد اليوم</p>

@@ -14,8 +14,7 @@ import {
   BarChart3,
   Library,
   Orbit,
-  BookOpen,
-  Combine
+  BookOpen
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -37,7 +36,6 @@ import Statistics from './components/Statistics';
 import BookLibrary from './components/BookLibrary';
 import Subha from './components/Subha';
 import QuranPage from './components/QuranPage';
-import WorshipPatterns from './components/WorshipPatterns';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -68,7 +66,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'patterns' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide';
+  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
@@ -123,20 +121,71 @@ const App: React.FC = () => {
     {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
     {id: 'subha', icon: Orbit, label: 'السبحة'},
     {id: 'quran', icon: BookOpen, label: 'القرآن'},
-    {id: 'patterns', icon: Combine, label: 'الأنماط'},
+    {id: 'library', icon: Library, label: 'المكتبة'},
     {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
     {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
   ];
 
+  const handleUpdateBook = (book: Book, pagesReadToday: number) => {
+    const updated = books.map(b => {
+      if (b.id === book.id) {
+        const newPages = Math.min(b.currentPages + pagesReadToday, b.totalPages);
+        const isNowFinished = newPages >= b.totalPages;
+        return {
+          ...b,
+          currentPages: newPages,
+          isFinished: isNowFinished,
+          finishDate: isNowFinished ? new Date().toISOString() : b.finishDate
+        };
+      }
+      return b;
+    });
+    setBooks(updated);
+    localStorage.setItem('worship_books', JSON.stringify(updated));
+    
+    // تسجيل عدد الصفحات في السجل اليومي أيضاً للحصول على النقاط
+    const newLog = { ...currentLog };
+    newLog.knowledge = {
+      ...newLog.knowledge,
+      readingPages: (newLog.knowledge.readingPages || 0) + pagesReadToday
+    };
+    updateLog(newLog);
+  };
+
+  const handleAddBook = (title: string, totalPages: number) => {
+    const newBook: Book = {
+      id: Math.random().toString(36).substr(2, 9),
+      title,
+      totalPages,
+      currentPages: 0,
+      startDate: new Date().toISOString(),
+      isFinished: false
+    };
+    const updated = [...books, newBook];
+    setBooks(updated);
+    localStorage.setItem('worship_books', JSON.stringify(updated));
+  };
+
+  const handleDeleteBook = (id: string) => {
+    if (window.confirm('هل أنت متأكد من حذف هذا الكتاب من مكتبتك؟')) {
+      const updated = books.filter(b => b.id !== id);
+      setBooks(updated);
+      localStorage.setItem('worship_books', JSON.stringify(updated));
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={setTargetScore} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={(b, p) => { const updated = books.map(book => book.id === b.id ? {...book, currentPages: Math.min(book.currentPages + p, book.totalPages)} : book); setBooks(updated); localStorage.setItem('worship_books', JSON.stringify(updated)); }} onSwitchTab={setActiveTab} />;
+      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={setTargetScore} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
       case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { const newLog = {...currentLog}; if(field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = {...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins}; } updateLog(newLog); }} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />;
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
       case 'quran': return <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />;
-      case 'patterns': return <WorshipPatterns logs={logs} weights={weights} />;
+      case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => {
+        const book = books.find(b => b.id === id);
+        if (book) handleUpdateBook(book, pages);
+      }} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
       case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} />;
@@ -148,7 +197,20 @@ const App: React.FC = () => {
   };
 
   if (!isAppReady) return <div className="min-h-screen bg-emerald-900 flex items-center justify-center"><Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /></div>;
-  if (!user) return <Onboarding installPrompt={null} onComplete={(u) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); }} />;
+  if (!user) return <Onboarding installPrompt={null} onComplete={(u, restoredLogs, restoredBooks) => { 
+    setUser(u); 
+    localStorage.setItem('worship_user', JSON.stringify(u));
+    if (restoredLogs) {
+      const parsedLogs = JSON.parse(restoredLogs);
+      setLogs(parsedLogs);
+      localStorage.setItem('worship_logs', JSON.stringify(parsedLogs));
+    }
+    if (restoredBooks) {
+      const parsedBooks = JSON.parse(restoredBooks);
+      setBooks(parsedBooks);
+      localStorage.setItem('worship_books', JSON.stringify(parsedBooks));
+    }
+  }} />;
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
