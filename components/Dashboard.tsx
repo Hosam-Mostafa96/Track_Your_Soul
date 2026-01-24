@@ -27,7 +27,6 @@ import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { DailyLog, AppWeights, PrayerName, PrayerEntry, Book } from '../types';
 import { calculateTotalScore } from '../utils/scoring';
-import { GoogleGenAI } from "@google/genai";
 import confetti from 'canvas-confetti';
 
 interface DashboardProps {
@@ -47,8 +46,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   log, logs, weights, onDateChange, targetScore, onTargetChange, onOpenSettings,
   books, onUpdateBook, onSwitchTab
 }) => {
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiAdvice, setAiAdvice] = useState<string | null>(null);
   const [isEditingTarget, setIsEditingTarget] = useState(false);
   const [tempTarget, setTempTarget] = useState(targetScore.toString());
   const [readingInput, setReadingInput] = useState('');
@@ -74,6 +71,14 @@ const Dashboard: React.FC<DashboardProps> = ({
       origin: { y: 0.8 },
       colors: ['#10b981', '#34d399']
     });
+  };
+
+  const handleSaveTarget = () => {
+    const val = parseInt(tempTarget);
+    if (!isNaN(val) && val > 0) {
+      onTargetChange(val);
+      setIsEditingTarget(false);
+    }
   };
 
   const badges = useMemo(() => {
@@ -124,11 +129,11 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className="relative z-10 space-y-3">
           <div className="flex items-center gap-3 text-white">
             <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
-              <BrainCircuit className={`w-5 h-5 ${isAiLoading ? 'animate-pulse' : ''}`} />
+              <BrainCircuit className={`w-5 h-5`} />
             </div>
             <h4 className="text-sm font-bold header-font">المستشار الروحي</h4>
           </div>
-          <form onSubmit={(e) => { e.preventDefault(); /* Ai logic */ }} className="relative">
+          <form onSubmit={(e) => { e.preventDefault(); }} className="relative">
             <input 
               type="text"
               value={userQuery}
@@ -141,7 +146,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* الهدف اليومي */}
-      <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-50">
+      <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-50 rounded-xl">
@@ -149,7 +154,29 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <h3 className="font-bold text-slate-800 header-font text-sm">هدف اليوم</h3>
           </div>
-          <span className="text-xs font-black text-emerald-600 font-mono">{currentTotalScore.toLocaleString()} / {targetScore.toLocaleString()}</span>
+          <div className="flex items-center gap-2">
+            {isEditingTarget ? (
+              <div className="flex items-center gap-1">
+                <input 
+                  type="number" 
+                  value={tempTarget} 
+                  onChange={(e) => setTempTarget(e.target.value)}
+                  className="w-20 px-2 py-1 bg-slate-50 border border-emerald-200 rounded-lg text-xs font-black text-center outline-none"
+                  autoFocus
+                />
+                <button onClick={handleSaveTarget} className="p-1.5 bg-emerald-500 text-white rounded-lg"><Check className="w-3.5 h-3.5" /></button>
+                <button onClick={() => setIsEditingTarget(false)} className="p-1.5 bg-slate-100 text-slate-400 rounded-lg"><X className="w-3.5 h-3.5" /></button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => { setIsEditingTarget(true); setTempTarget(targetScore.toString()); }}
+                className="flex items-center gap-1.5 hover:bg-slate-50 p-1 px-2 rounded-lg transition-colors"
+              >
+                <span className="text-xs font-black text-emerald-600 font-mono">{currentTotalScore.toLocaleString()} / {targetScore.toLocaleString()}</span>
+                <Edit2 className="w-3 h-3 text-slate-300" />
+              </button>
+            )}
+          </div>
         </div>
         <div className="w-full bg-slate-50 h-3 rounded-full overflow-hidden mb-2">
           <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${Math.min(progressPercent, 100)}%` }} />
@@ -157,8 +184,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         <p className="text-[10px] text-slate-400 font-bold text-center">لقد أنجزت {Math.round(progressPercent)}% من هدفك الروحي</p>
       </div>
 
-      {/* قسم تتبع القراءة (مطابق تماماً للصورة) */}
-      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-50 relative">
+      {/* قسم تتبع القراءة */}
+      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100 relative">
         <div className="flex justify-between items-start mb-6">
           <div className="flex gap-4">
             <div className="p-3 bg-emerald-50 rounded-2xl">
@@ -217,8 +244,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         )}
       </div>
 
-      {/* أوسمة الأبرار اليوم (شبكة مطابق للصورة) */}
-      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-50">
+      {/* أوسمة الأبرار اليوم */}
+      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100">
         <div className="flex items-center gap-3 mb-6">
           <Award className="w-6 h-6 text-amber-500" />
           <h3 className="text-xl font-bold text-slate-800 header-font">أوسمة الأبرار اليوم</h3>

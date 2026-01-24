@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   RotateCcw, 
   ChevronUp, 
@@ -7,16 +7,20 @@ import {
   Zap, 
   Sparkles, 
   Target,
-  Disc
+  Disc,
+  Plus,
+  X,
+  Check
 } from 'lucide-react';
 import { DailyLog } from '../types';
 
-interface SubhaProps {
-  log: DailyLog;
-  onUpdateLog: (updated: DailyLog) => void;
+interface DhikrType {
+  id: string;
+  label: string;
+  key: string | null;
 }
 
-const DHIKR_TYPES = [
+const DEFAULT_DHIKR_TYPES: DhikrType[] = [
   { id: 'istighfar', label: 'استغفار', key: 'istighfar' },
   { id: 'salawat', label: 'صلاة على النبي', key: 'salawat' },
   { id: 'hawqalah', label: 'حوقلة (لا حول ولا قوة)', key: 'hawqalah' },
@@ -25,12 +29,30 @@ const DHIKR_TYPES = [
   { id: 'absolute', label: 'ذكر مطلق (غير محسوب)', key: null },
 ];
 
+interface SubhaProps {
+  log: DailyLog;
+  onUpdateLog: (updated: DailyLog) => void;
+}
+
 const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
-  const [selectedType, setSelectedType] = useState(DHIKR_TYPES[0]);
+  const [customDhikrs, setCustomDhikrs] = useState<DhikrType[]>([]);
+  const [selectedType, setSelectedType] = useState<DhikrType>(DEFAULT_DHIKR_TYPES[0]);
   const [absoluteCount, setAbsoluteCount] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAddingDhikr, setIsAddingDhikr] = useState(false);
+  const [newDhikrLabel, setNewDhikrLabel] = useState('');
 
-  // التأكد من أن حقل الأذكار موجود لمنع الأخطاء
+  useEffect(() => {
+    const saved = localStorage.getItem('worship_custom_dhikrs');
+    if (saved) {
+      setCustomDhikrs(JSON.parse(saved));
+    }
+  }, []);
+
+  const allDhikrTypes = useMemo(() => {
+    return [...DEFAULT_DHIKR_TYPES, ...customDhikrs];
+  }, [customDhikrs]);
+
   const safeCounters = log?.athkar?.counters || {
     salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0
   };
@@ -40,25 +62,20 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     : absoluteCount;
 
   const handleIncrement = (e: React.MouseEvent | React.TouchEvent) => {
-    // نستخدم onClick لضمان حدوث زيادة واحدة فقط في كل تفاعل
     e.stopPropagation();
     
-    // اهتزاز خفيف للهواتف التي تدعم ذلك لزيادة الواقعية
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate(15); } catch(err) {}
     }
 
     const nextCount = currentCount + 1;
 
-    // اهتزاز مميز عند كل ١٠٠ لتنبيه المستخدم
     if (nextCount > 0 && nextCount % 100 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate([100, 50, 100]); } catch(err) {}
     }
 
     if (selectedType.key) {
-      // تحديث السجل الأصلي مع الحفاظ على البيانات الأخرى
       const newLog = { ...log };
-      // Fix: Ensure counters object is fully initialized with all required properties to satisfy DailyLog type
       if (!newLog.athkar) newLog.athkar = { 
         counters: { salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0 }, 
         checklists: { morning: false, evening: false, sleep: false, travel: false } 
@@ -92,9 +109,24 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     }
   };
 
+  const handleAddCustomDhikr = () => {
+    if (!newDhikrLabel.trim()) return;
+    const id = 'custom_' + Math.random().toString(36).substr(2, 9);
+    const newDhikr: DhikrType = {
+      id: id,
+      label: newDhikrLabel.trim(),
+      key: id // استخدام الـ id كـ key لتخزينه في counters
+    };
+    const updated = [...customDhikrs, newDhikr];
+    setCustomDhikrs(updated);
+    localStorage.setItem('worship_custom_dhikrs', JSON.stringify(updated));
+    setNewDhikrLabel('');
+    setIsAddingDhikr(false);
+    setSelectedType(newDhikr);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 max-w-md mx-auto">
-      {/* هيدر الصفحة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-xl">
@@ -113,7 +145,6 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         </button>
       </div>
 
-      {/* قائمة اختيار الذكر */}
       <div className="relative">
         <button 
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -129,7 +160,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         {isDropdownOpen && (
           <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in duration-200 z-[100]">
             <div className="max-h-[40vh] overflow-y-auto no-scrollbar">
-              {DHIKR_TYPES.map(type => (
+              {allDhikrTypes.map(type => (
                 <button
                   key={type.id}
                   onClick={() => { setSelectedType(type); setIsDropdownOpen(false); }}
@@ -138,12 +169,34 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
                   {type.label}
                 </button>
               ))}
+              <button 
+                onClick={() => { setIsAddingDhikr(true); setIsDropdownOpen(false); }}
+                className="w-full flex items-center justify-center gap-2 px-6 py-5 bg-emerald-50 text-emerald-700 text-xs font-black header-font hover:bg-emerald-100 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> إضافة ذكر مخصص
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* منطقة اللمس العملاقة - تم تغيير الحدث لـ onClick لمنع التكرار */}
+      {isAddingDhikr && (
+        <div className="bg-white rounded-2xl p-4 shadow-xl border border-emerald-100 animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <input 
+              type="text" 
+              value={newDhikrLabel}
+              onChange={(e) => setNewDhikrLabel(e.target.value)}
+              placeholder="اكتب الذكر الجديد هنا.."
+              className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-emerald-500"
+              autoFocus
+            />
+            <button onClick={handleAddCustomDhikr} className="p-3 bg-emerald-600 text-white rounded-xl"><Check className="w-4 h-4" /></button>
+            <button onClick={() => setIsAddingDhikr(false)} className="p-3 bg-slate-100 text-slate-400 rounded-xl"><X className="w-4 h-4" /></button>
+          </div>
+        </div>
+      )}
+
       <div 
         onClick={handleIncrement}
         className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-95 transition-all duration-75 group cursor-pointer overflow-hidden touch-none shadow-inner"
@@ -161,7 +214,6 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
           </div>
         </div>
 
-        {/* تنبيه بصري عند الوصول لكل ١٠٠ */}
         {currentCount > 0 && currentCount % 100 === 0 && (
            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
              <div className="w-64 h-64 border-8 border-emerald-400 rounded-full animate-ping opacity-20"></div>
@@ -169,7 +221,6 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         )}
       </div>
 
-      {/* أدوات المساعدة */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-rose-50 rounded-xl"><Target className="w-5 h-5 text-rose-500" /></div>

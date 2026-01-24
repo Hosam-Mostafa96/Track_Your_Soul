@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, 
   PenLine, 
@@ -15,9 +15,10 @@ import {
   Library,
   Orbit,
   BookOpen,
-  Send
+  Send,
+  Calendar
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User, Book } from './types';
@@ -73,13 +74,12 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
   const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [targetScore, setTargetScore] = useState(5000);
+  const [targetScore, setTargetScore] = useState(13500);
   const [user, setUser] = useState<User | null>(null);
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
-  const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(false);
+  const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
 
-  // منطق الإشعارات (إشعارات وهمية كمثال)
   const [hasNewNotifications, setHasNewNotifications] = useState(true);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -102,9 +102,9 @@ const App: React.FC = () => {
 
     setLogs(safeLoad('worship_logs', {}));
     setBooks(safeLoad('worship_books', []));
-    setTargetScore(safeLoad('worship_target', 5000));
+    setTargetScore(safeLoad('worship_target', 13500));
     setUser(safeLoad('worship_user', null));
-    setIsGlobalSyncEnabled(safeLoad('worship_global_sync', false));
+    setIsGlobalSyncEnabled(safeLoad('worship_global_sync', true));
     setWeights(safeLoad('worship_weights', DEFAULT_WEIGHTS));
     setQuranPlan(localStorage.getItem('worship_quran_plan') as any || 'new_1');
     setIsAppReady(true);
@@ -118,6 +118,21 @@ const App: React.FC = () => {
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
+
+  const hijriDate = useMemo(() => {
+    return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-uma', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(new Date());
+  }, []);
+
+  const daysToRamadan = useMemo(() => {
+    const ramadanDate = new Date('2025-03-01');
+    const today = new Date();
+    const diff = differenceInDays(ramadanDate, today);
+    return Math.max(0, diff);
+  }, []);
 
   const navItems = [
     {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
@@ -181,7 +196,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={setTargetScore} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} />;
+      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
       case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { const newLog = {...currentLog}; if(field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = {...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins}; } updateLog(newLog); }} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />;
@@ -223,11 +238,14 @@ const App: React.FC = () => {
       <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden z-10">
         <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-full flex justify-between items-start mb-4 gap-2">
+          <div className="w-full flex justify-between items-start mb-2 gap-2">
             <button onClick={() => setActiveTab('profile')} className="p-3 hover:bg-white/10 rounded-full transition-all flex-shrink-0 active:scale-95">
               <UserCircle className={`w-7 h-7 ${user ? 'text-yellow-400' : 'text-white/50'}`} />
             </button>
-            <h1 className="text-xl md:text-2xl font-bold header-font self-center truncate">ميزان العبادات</h1>
+            <div className="flex flex-col items-center gap-0.5">
+              <h1 className="text-xl md:text-2xl font-bold header-font self-center truncate">تطبيق إدارة العبادات والأوراد</h1>
+              <p className="text-[11px] font-bold text-emerald-200 header-font">مرحباً، {user.name}</p>
+            </div>
             <div className="flex gap-1 items-center">
               <button 
                 onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} 
@@ -238,11 +256,19 @@ const App: React.FC = () => {
                   <span className="absolute top-2 right-2 w-3 h-3 bg-rose-500 rounded-full border-2 border-white"></span>
                 )}
               </button>
-              <button onClick={() => setActiveTab('guide')} className="p-3 hover:bg-white/10 rounded-full transition-all active:scale-95">
-                <Info className="w-6 h-6 text-white/70" />
-              </button>
             </div>
           </div>
+
+          <div className="flex flex-col items-center mt-2 space-y-1">
+             <div className="flex items-center gap-1.5 text-xs font-bold text-white/90 bg-white/10 px-4 py-1.5 rounded-full border border-white/10">
+                <Calendar className="w-3.5 h-3.5 text-yellow-400" />
+                {hijriDate}
+             </div>
+             <div className="flex items-center gap-1 text-[10px] font-black text-emerald-100 uppercase tracking-widest">
+               باقٍ {daysToRamadan} يوم على شهر رمضان 🌙
+             </div>
+          </div>
+
           <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-md:max-w-md flex items-center justify-between border border-white/20 shadow-2xl relative">
             <div className="flex items-center gap-4">
               <div className="bg-yellow-400/20 p-3 rounded-2xl"><Sparkles className="w-8 h-8 text-yellow-400" /></div>
