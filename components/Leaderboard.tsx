@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Sun, GraduationCap, Activity, Loader2, Star, RefreshCw, Sparkles, Quote, Medal, AlertCircle } from 'lucide-react';
+import { Trophy, Crown, Sun, GraduationCap, Activity, Loader2, Star, RefreshCw, Sparkles, Quote, Medal, AlertCircle, Users } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -14,8 +14,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [liveStats, setLiveStats] = useState({
     qiyam: 0, duha: 0, knowledge: 0, athkar: 0, totalUsers: 0
   });
-  const [globalTopToday, setGlobalTopToday] = useState<any[]>([]);
-  const [userRankToday, setUserRankToday] = useState<number | null>(null);
+  const [globalTop, setGlobalTop] = useState<any[]>([]);
+  const [userRank, setUserRank] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [networkError, setNetworkError] = useState(false);
@@ -32,75 +32,32 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   }, [motivationalQuotes]);
 
   /**
-   * دالة معيارية لتحويل أي تاريخ إلى صيغة YYYY-MM-DD
-   * تعالج M/D/YYYY و D/M/YYYY و YYYY-MM-DD
+   * معالجة كافة الأسماء من الشيت وترتيبهم حسب النقاط
    */
-  const standardizeDate = (dateVal: any): string => {
-    if (!dateVal) return "";
-    let str = String(dateVal).trim().split(' ')[0]; // إزالة الوقت إن وجد
-    str = str.replace(/-/g, '/');
-    const parts = str.split('/');
-    
-    if (parts.length !== 3) return str;
-
-    let y, m, d;
-
-    if (parts[0].length === 4) { // YYYY/MM/DD
-      y = parts[0]; m = parts[1]; d = parts[2];
-    } else {
-      // افتراض M/D/YYYY أو D/M/YYYY
-      let p0 = parseInt(parts[0], 10);
-      let p1 = parseInt(parts[1], 10);
-      let p2 = parts[2].length === 2 ? `20${parts[2]}` : parts[2]; // تصحيح السنة لو كانت 25 بدل 2025
-
-      if (p0 > 12) { // إذا كان الجزء الأول > 12 فهو حتماً اليوم D/M/Y
-        d = p0; m = p1; y = p2;
-      } else { // الاحتمال الأكبر M/D/Y
-        m = p0; d = p1; y = p2;
-      }
-    }
-
-    // إرجاع الصيغة الموحدة مع إضافة أصفار للحقول الفردية
-    const mm = String(m).padStart(2, '0');
-    const dd = String(d).padStart(2, '0');
-    return `${y}-${mm}-${dd}`;
-  };
-
-  const getTodayISO = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   const processLeaderboard = (data: any[]) => {
-    const todayISO = getTodayISO();
-    const todayMap = new Map();
+    const topMap = new Map();
 
     data.forEach((entry: any) => {
-      // البحث عن التاريخ في مسميات مختلفة
-      const rawDate = entry.date || entry.Date || entry.timestamp || entry.Timestamp || entry.التاريخ || "";
-      if (!rawDate) return;
-
-      const emailKey = (entry.email || entry.Email || entry.name || "").toLowerCase().trim();
+      // تحديد مفتاح فريد (البريد أو الاسم)
+      const emailKey = (entry.email || entry.Email || entry.name || entry.Name || "").toLowerCase().trim();
       if (!emailKey) return;
       
-      // دعم مسميات مختلفة للنقاط
-      const score = parseInt(entry.score || entry.Score || entry.points || entry.النقاط || 0);
-      if (score <= 0) return;
+      // جلب النقاط من مختلف المسميات الممكنة في الشيت (Score, Score, Points, النقاط)
+      const score = parseInt(entry.score || entry.Score || entry.points || entry.النقاط || entry.C || 0);
+      if (score < 0) return; // السماح بظهور أصحاب الـ 0 نقاط أيضاً
 
-      const entryISO = standardizeDate(rawDate);
-
-      // مقارنة دقيقة باستخدام الصيغة المعيارية
-      if (entryISO === todayISO) {
-        if (!todayMap.has(emailKey) || score > todayMap.get(emailKey).score) {
-          todayMap.set(emailKey, { ...entry, score });
-        }
+      // الاحتفاظ بأعلى نتيجة مسجلة لهذا الشخص
+      if (!topMap.has(emailKey) || score > topMap.get(emailKey).score) {
+        topMap.set(emailKey, { 
+          name: entry.name || entry.Name || "متسابق",
+          email: emailKey,
+          score: score 
+        });
       }
     });
 
-    return Array.from(todayMap.values()).sort((a, b) => b.score - a.score);
+    // الترتيب من الأعلى للأدنى
+    return Array.from(topMap.values()).sort((a, b) => b.score - a.score);
   };
 
   const fetchGlobalData = async (isSilent = false) => {
@@ -108,7 +65,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     
     if (!isSilent) {
       setIsRefreshing(true);
-      if (globalTopToday.length === 0) setIsLoading(true);
+      if (globalTop.length === 0) setIsLoading(true);
     }
     
     try {
@@ -127,12 +84,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         const data = await res.json();
         setNetworkError(false);
         if (data && data.leaderboard) {
-          const sortedToday = processLeaderboard(data.leaderboard);
-          setGlobalTopToday(sortedToday.slice(0, 50));
+          const sortedAll = processLeaderboard(data.leaderboard);
+          setGlobalTop(sortedAll.slice(0, 100)); // عرض أفضل 100 متسابق
 
           const myEmail = user.email.toLowerCase().trim();
-          const myIdx = sortedToday.findIndex(p => (p.email || p.Email || "").toLowerCase().trim() === myEmail);
-          setUserRankToday(myIdx !== -1 ? myIdx + 1 : null);
+          const myIdx = sortedAll.findIndex(p => p.email === myEmail);
+          setUserRank(myIdx !== -1 ? myIdx + 1 : null);
 
           if (data.stats) setLiveStats(data.stats);
         }
@@ -168,7 +125,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
         <AlertCircle className="w-12 h-12 text-amber-500 opacity-50" />
         <h3 className="font-bold text-slate-800 header-font">المنافسة معطلة</h3>
-        <p className="text-xs text-slate-400 header-font leading-relaxed">يجب تفعيل "المزامنة مع المحراب العالمي" من الإعدادات لتتمكن من رؤية الفرسان ومشاركة نتائجك.</p>
+        <p className="text-xs text-slate-400 header-font leading-relaxed">يجب تفعيل "المزامنة مع المحراب العالمي" من الإعدادات لتتمكن من رؤية المتصدرين ومشاركة نتائجك.</p>
       </div>
     );
   }
@@ -184,10 +141,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       <section className="space-y-6">
         <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden border border-white/10 text-center">
           <div className="relative z-10 space-y-3">
-            <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">رتبتك بين فرسان اليوم</h2>
+            <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">ترتيبك في قائمة المتصدرين</h2>
             <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.2rem] py-5 px-8 inline-block shadow-2xl">
               <span className="text-5xl font-black font-mono text-yellow-400 tracking-tighter leading-none">
-                {userRankToday || "---"}
+                {userRank || "---"}
               </span>
             </div>
           </div>
@@ -228,20 +185,20 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           <div className="flex items-center justify-between px-3">
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500" />
-              <h2 className="text-xl font-black header-font text-slate-800">فرسان اليوم</h2>
+              <h2 className="text-xl font-black header-font text-slate-800">قائمة المتصدرين</h2>
             </div>
-            <span className="text-[10px] font-black header-font bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">{globalTopToday.length} فرسان</span>
+            <span className="text-[10px] font-black header-font bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">{globalTop.length} متسابق</span>
           </div>
           
-          {globalTopToday.length > 0 ? (
+          {globalTop.length > 0 ? (
             <div className="space-y-3">
-              {globalTopToday.map((player, index) => {
-                const isMe = (player.email || player.Email || "").toLowerCase().trim() === user?.email.toLowerCase().trim();
+              {globalTop.map((player, index) => {
+                const isMe = player.email === user?.email.toLowerCase().trim();
                 const rank = getRankConfig(index);
 
                 return (
                   <div key={index} className={`flex items-center p-3 rounded-[2.2rem] transition-all relative gap-2.5 shadow-sm border ${isMe ? 'bg-emerald-700 text-white shadow-xl scale-[1.01] border-transparent' : 'bg-white border-slate-50'}`}>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white`}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-sm`}`}>
                       {rank.icon ? rank.icon : <span className="text-xs font-black font-mono">{index + 1}</span>}
                     </div>
                     <div className="flex-grow text-right pr-1">
@@ -269,12 +226,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                {isLoading ? (
                  <div className="flex flex-col items-center gap-2">
                    <Loader2 className="w-8 h-8 animate-spin text-emerald-300" />
-                   <span className="text-[10px] text-slate-400 font-bold header-font">جاري استحضار الفرسان من المحراب..</span>
+                   <span className="text-[10px] text-slate-400 font-bold header-font">جاري جلب قائمة المتصدرين..</span>
                  </div>
                ) : (
                  <div className="flex flex-col items-center gap-2">
-                   <p className="text-[10px] text-slate-400 font-bold header-font">لا يوجد فرسان مسجلون اليوم بعد.</p>
-                   <p className="text-[8px] text-slate-300 font-bold header-font tracking-tight">تأكد من تسجيل عباداتك وتفعيل المزامنة لتظهر هنا.</p>
+                   <p className="text-[10px] text-slate-400 font-bold header-font">لا توجد أسماء في القائمة حالياً.</p>
+                   <p className="text-[8px] text-slate-300 font-bold header-font tracking-tight">تأكد من الاتصال بالإنترنت والمزامنة.</p>
                  </div>
                )}
             </div>
