@@ -11,7 +11,9 @@ import {
   Settings,
   Target,
   Globe,
-  PlusCircle
+  PlusCircle,
+  Smartphone,
+  CalendarDays
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -24,19 +26,27 @@ const Notifications: React.FC<NotificationsProps> = ({ onBack }) => {
   // سجل التحديثات الفعلي للتطبيق
   const notifications = [
     {
+      id: 0,
+      type: 'update',
+      title: 'تحسينات الواجهة والمواعيد',
+      message: 'تم إصلاح تزاحم العنوان في شاشات الهواتف، وتصحيح موعد رمضان القادم (18 فبراير)، وضبط محرك التاريخ الهجري.',
+      time: new Date(),
+      icon: <Smartphone className="w-5 h-5 text-emerald-500" />
+    },
+    {
       id: 1,
       type: 'update',
       title: 'تغيير المسمى الرسمي',
       message: 'تم تغيير اسم التطبيق إلى "تطبيق إدارة العبادات والأوراد" ليكون أكثر شمولية ويعبر عن هويته الحقيقية.',
-      time: new Date(),
-      icon: <Settings className="w-5 h-5 text-emerald-500" />
+      time: new Date(Date.now() - 1000 * 60 * 60 * 2),
+      icon: <Settings className="w-5 h-5 text-blue-500" />
     },
     {
       id: 2,
       type: 'feature',
       title: 'الأهداف والذكر المخصص',
       message: 'يمكنك الآن تعديل هدفك الروحي اليومي (13,500 نقطة افتراضياً) وإضافة أذكار مخصصة داخل صفحة السبحة.',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 1),
+      time: new Date(Date.now() - 1000 * 60 * 60 * 24),
       icon: <Target className="w-5 h-5 text-amber-500" />
     },
     {
@@ -44,7 +54,7 @@ const Notifications: React.FC<NotificationsProps> = ({ onBack }) => {
       type: 'feature',
       title: 'المحراب العالمي 24 ساعة',
       message: 'تحديث نظام قائمة المتصدرين ليعتمد على جهد الـ 24 ساعة الأخيرة فقط، مما يضمن تنافسية واقعية وحيوية.',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 2),
+      time: new Date(Date.now() - 1000 * 60 * 60 * 30),
       icon: <Trophy className="w-5 h-5 text-orange-500" />
     },
     {
@@ -52,16 +62,8 @@ const Notifications: React.FC<NotificationsProps> = ({ onBack }) => {
       type: 'update',
       title: 'المزامنة الافتراضية',
       message: 'تم ضبط المزامنة مع المحراب العالمي لتكون مفعلة تلقائياً لضمان اتصالك الدائم بمجتمع المصلين.',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 3),
+      time: new Date(Date.now() - 1000 * 60 * 60 * 48),
       icon: <Globe className="w-5 h-5 text-blue-500" />
-    },
-    {
-      id: 5,
-      type: 'feature',
-      title: 'التاريخ الهجري وعداد رمضان',
-      message: 'إضافة التاريخ الهجري وعداد تنازلي لأيام شهر رمضان المبارك في الواجهة الرئيسية.',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 4),
-      icon: <Sparkles className="w-5 h-5 text-yellow-500" />
     }
   ];
 

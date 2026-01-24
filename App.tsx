@@ -16,7 +16,9 @@ import {
   Orbit,
   BookOpen,
   Send,
-  Calendar
+  Calendar,
+  BookMarked,
+  Lightbulb
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -79,7 +81,6 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
-
   const [hasNewNotifications, setHasNewNotifications] = useState(true);
 
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -87,7 +88,6 @@ const App: React.FC = () => {
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
   const [timerMode, setTimerMode] = useState<'stopwatch' | 'pomodoro'>('stopwatch');
   const [pomodoroGoal, setPomodoroGoal] = useState(25 * 60);
-
   const [quranPlan, setQuranPlan] = useState<'new_1' | 'new_2' | 'itqan_3' | 'itqan_4'>('new_1');
 
   useEffect(() => {
@@ -119,17 +119,23 @@ const App: React.FC = () => {
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
 
+  // تحديث التاريخ الهجري ليكون 1447هـ بناءً على طلب المستخدم
   const hijriDate = useMemo(() => {
-    return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-uma', {
+    const formatter = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
-    }).format(new Date());
+    });
+    const parts = formatter.formatToParts(new Date());
+    // استبدال السنة بـ 1447هـ كما طلب المستخدم
+    return parts.map(p => p.type === 'year' ? '1447هـ' : p.value).join('');
   }, []);
 
+  // حساب الأيام لرمضان 1447هـ (18 فبراير 2026)
   const daysToRamadan = useMemo(() => {
-    const ramadanDate = new Date('2025-03-01');
+    const ramadanDate = new Date('2026-02-18'); 
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const diff = differenceInDays(ramadanDate, today);
     return Math.max(0, diff);
   }, []);
@@ -235,57 +241,72 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
-      <header className="bg-emerald-800 text-white p-6 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden z-10">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-700 rounded-full -translate-y-24 translate-x-24 opacity-30 blur-2xl"></div>
-        <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-full flex justify-between items-start mb-2 gap-2">
-            <button onClick={() => setActiveTab('profile')} className="p-3 hover:bg-white/10 rounded-full transition-all flex-shrink-0 active:scale-95">
-              <UserCircle className={`w-7 h-7 ${user ? 'text-yellow-400' : 'text-white/50'}`} />
+      <header className="bg-emerald-800 text-white p-4 pb-20 rounded-b-[3rem] shadow-xl relative overflow-hidden z-10">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-700 rounded-full -translate-y-16 translate-x-16 opacity-30 blur-2xl"></div>
+        <div className="relative z-10 flex flex-col gap-4">
+          {/* سطر العنوان والأيقونات بتوزيع ذكي يمنع الاختفاء */}
+          <div className="flex items-center justify-between gap-2 w-full">
+            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0">
+              <UserCircle className="w-7 h-7 text-white" />
             </button>
-            <div className="flex flex-col items-center gap-0.5">
-              <h1 className="text-xl md:text-2xl font-bold header-font self-center truncate">تطبيق إدارة العبادات والأوراد</h1>
-              <p className="text-[11px] font-bold text-emerald-200 header-font">مرحباً، {user.name}</p>
+            
+            <div className="flex-1 flex flex-col items-center justify-center min-w-0">
+              <h1 className="text-[11px] sm:text-[13px] md:text-base font-black header-font text-center leading-tight whitespace-normal max-w-[140px] sm:max-w-none">
+                إدارة العبادات والأوراد
+              </h1>
+              <span className="text-[8px] sm:text-[10px] text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">
+                مرحباً، {user.name}
+              </span>
             </div>
-            <div className="flex gap-1 items-center">
+
+            <div className="flex items-center gap-0.5 shrink-0">
+               <button 
+                onClick={() => setActiveTab('guide')} 
+                className={`p-2 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}
+              >
+                <Lightbulb className="w-5 h-5" />
+              </button>
               <button 
                 onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} 
-                className={`p-3 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}
+                className={`p-2 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}
               >
-                <Bell className="w-6 h-6" />
+                <Bell className="w-5 h-5" />
                 {hasNewNotifications && (
-                  <span className="absolute top-2 right-2 w-3 h-3 bg-rose-500 rounded-full border-2 border-white"></span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border border-white animate-pulse"></span>
                 )}
               </button>
             </div>
           </div>
 
-          <div className="flex flex-col items-center mt-2 space-y-1">
-             <div className="flex items-center gap-1.5 text-xs font-bold text-white/90 bg-white/10 px-4 py-1.5 rounded-full border border-white/10">
+          {/* سطر التاريخ وعداد رمضان المصحح */}
+          <div className="flex flex-col items-center gap-1.5">
+             <div className="flex items-center gap-1.5 text-[10px] font-black text-white bg-white/10 px-4 py-1 rounded-full border border-white/10 shadow-sm backdrop-blur-sm">
                 <Calendar className="w-3.5 h-3.5 text-yellow-400" />
                 {hijriDate}
              </div>
-             <div className="flex items-center gap-1 text-[10px] font-black text-emerald-100 uppercase tracking-widest">
-               باقٍ {daysToRamadan} يوم على شهر رمضان 🌙
+             <div className="flex items-center gap-1 text-[9px] font-black text-emerald-50 uppercase tracking-widest bg-black/20 px-4 py-1 rounded-full border border-white/5">
+               باقٍ {daysToRamadan} يوم على رمضان 1447هـ 🌙
              </div>
           </div>
 
-          <div className="mt-8 bg-white/10 backdrop-blur-xl rounded-3xl p-5 w-full max-md:max-w-md flex items-center justify-between border border-white/20 shadow-2xl relative">
-            <div className="flex items-center gap-4">
-              <div className="bg-yellow-400/20 p-3 rounded-2xl"><Sparkles className="w-8 h-8 text-yellow-400" /></div>
+          {/* بطاقة الرصيد اليومي */}
+          <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="bg-yellow-400/20 p-2.5 rounded-2xl"><Sparkles className="w-6 h-6 text-yellow-400" /></div>
               <div className="text-right">
-                <p className="text-[10px] text-emerald-200 uppercase tracking-[0.2em] font-bold header-font">الرصيد الروحي</p>
-                <span className="text-3xl font-bold font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
+                <p className="text-[9px] text-emerald-200 uppercase font-black header-font leading-none mb-1">الرصيد الروحي</p>
+                <span className="text-2xl font-black font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
               </div>
             </div>
-            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
-              <p className="text-[10px] text-emerald-200 uppercase font-bold header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
-              <p className="text-lg font-semibold header-font leading-tight">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
+            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all border border-transparent hover:border-white/10">
+              <p className="text-[9px] text-emerald-200 font-bold header-font leading-none mb-0.5">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
+              <p className="text-sm font-black header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="px-4 -mt-10 relative z-20 max-w-2xl mx-auto">
+      <main className="px-4 -mt-8 relative z-20 max-w-2xl mx-auto">
         {renderContent()}
       </main>
 
