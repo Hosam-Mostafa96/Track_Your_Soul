@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Sun, GraduationCap, Activity, Loader2, Star, RefreshCw, Sparkles, Quote, Medal, AlertCircle, Settings } from 'lucide-react';
+import { Trophy, Crown, Sun, GraduationCap, Activity, Loader2, Star, RefreshCw, Sparkles, Quote, Medal, AlertCircle } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -32,58 +32,68 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   }, [motivationalQuotes]);
 
   /**
-   * دالة متطورة لتطبيع التاريخ
-   * تحول الصيغ المختلفة (01/24/2026 أو 2026-1-24) إلى صيغة موحدة (1/24/2026)
+   * دالة معيارية لتحويل أي تاريخ إلى صيغة YYYY-MM-DD
+   * تعالج M/D/YYYY و D/M/YYYY و YYYY-MM-DD
    */
-  const normalizeDateStr = (dateStr: any): string => {
-    if (!dateStr) return "";
-    let clean = String(dateStr).trim().split(' ')[0]; // خذ الجزء الأول (التاريخ) واترك الوقت
+  const standardizeDate = (dateVal: any): string => {
+    if (!dateVal) return "";
+    let str = String(dateVal).trim().split(' ')[0]; // إزالة الوقت إن وجد
+    str = str.replace(/-/g, '/');
+    const parts = str.split('/');
     
-    // استبدال الواصلة بسلاش لتوحيد الصيغة
-    clean = clean.replace(/-/g, '/');
-    
-    // تقسيم الأجزاء والتخلص من الأصفار الزائدة (01 -> 1)
-    const parts = clean.split('/');
-    if (parts.length !== 3) return clean;
+    if (parts.length !== 3) return str;
 
-    // محاولة تحديد ما إذا كان العام في البداية أو النهاية
-    let m, d, y;
+    let y, m, d;
+
     if (parts[0].length === 4) { // YYYY/MM/DD
       y = parts[0]; m = parts[1]; d = parts[2];
-    } else { // M/D/YYYY أو D/M/YYYY
-      // بما أن النظام يعتمد M/D/YYYY حسب طلبك:
-      m = parts[0]; d = parts[1]; y = parts[2];
+    } else {
+      // افتراض M/D/YYYY أو D/M/YYYY
+      let p0 = parseInt(parts[0], 10);
+      let p1 = parseInt(parts[1], 10);
+      let p2 = parts[2].length === 2 ? `20${parts[2]}` : parts[2]; // تصحيح السنة لو كانت 25 بدل 2025
+
+      if (p0 > 12) { // إذا كان الجزء الأول > 12 فهو حتماً اليوم D/M/Y
+        d = p0; m = p1; y = p2;
+      } else { // الاحتمال الأكبر M/D/Y
+        m = p0; d = p1; y = p2;
+      }
     }
 
-    return `${parseInt(m, 10)}/${parseInt(d, 10)}/${parseInt(y, 10)}`;
+    // إرجاع الصيغة الموحدة مع إضافة أصفار للحقول الفردية
+    const mm = String(m).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    return `${y}-${mm}-${dd}`;
   };
 
-  const getTodaySheetStr = () => {
+  const getTodayISO = () => {
     const d = new Date();
-    // توليد التاريخ المحلي للمتصفح بصيغة M/D/YYYY
-    const formatted = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
-    return normalizeDateStr(formatted);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const processLeaderboard = (data: any[]) => {
-    const todayStr = getTodaySheetStr();
+    const todayISO = getTodayISO();
     const todayMap = new Map();
 
     data.forEach((entry: any) => {
-      // البحث عن التاريخ في كل الأعمدة الممكنة
+      // البحث عن التاريخ في مسميات مختلفة
       const rawDate = entry.date || entry.Date || entry.timestamp || entry.Timestamp || entry.التاريخ || "";
       if (!rawDate) return;
 
       const emailKey = (entry.email || entry.Email || entry.name || "").toLowerCase().trim();
       if (!emailKey) return;
       
-      const score = parseInt(entry.score || entry.Score || 0);
+      // دعم مسميات مختلفة للنقاط
+      const score = parseInt(entry.score || entry.Score || entry.points || entry.النقاط || 0);
       if (score <= 0) return;
 
-      const entryDateOnly = normalizeDateStr(rawDate);
+      const entryISO = standardizeDate(rawDate);
 
-      // مقارنة مرنة للتاريخ
-      if (entryDateOnly === todayStr) {
+      // مقارنة دقيقة باستخدام الصيغة المعيارية
+      if (entryISO === todayISO) {
         if (!todayMap.has(emailKey) || score > todayMap.get(emailKey).score) {
           todayMap.set(emailKey, { ...entry, score });
         }
