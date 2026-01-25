@@ -13,11 +13,27 @@ import {
   ChevronDown,
   Settings,
   MessageSquareText,
-  Clock
+  Clock,
+  Mic,
+  ListChecks
 } from 'lucide-react';
 import { DailyLog } from '../types';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+
+// توليد قائمة الأرباع (240 ربع)
+const PORTIONS_240 = Array.from({ length: 240 }, (_, i) => ({
+  id: `rub_${i + 1}`,
+  label: `الربع رقم ${i + 1}`,
+  index: i + 1
+}));
+
+// توليد قائمة الصفحات (604 صفحة)
+const PAGES_604 = Array.from({ length: 604 }, (_, i) => ({
+  id: `page_${i + 1}`,
+  label: `صفحة رقم ${i + 1}`,
+  index: i + 1
+}));
 
 interface QuranPageProps {
   log: DailyLog;
@@ -51,38 +67,40 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     });
   };
 
-  const yesterdayLog = useMemo(() => {
-    const yesterdayDate = format(addDays(new Date(), -1), 'yyyy-MM-dd');
-    return logs[yesterdayDate];
-  }, [logs]);
+  // استخراج الفهرس الحالي بناءً على القيمة المختارة
+  const currentIndex = useMemo(() => {
+    if (!quranData.todayPortion) return 0;
+    const match = quranData.todayPortion.match(/\d+/);
+    return match ? parseInt(match[0]) : 0;
+  }, [quranData.todayPortion]);
 
+  // الربط التلقائي (آخر 10 وحدات سابقة للمحفوظ الحالي)
   const rabtPortions = useMemo(() => {
+    if (currentIndex <= 1) return [];
+    const unit = plan === 'new_1' ? 'صفحة' : 'ربع';
     const portions = [];
-    for (let i = 1; i <= 10; i++) {
-      const d = format(addDays(new Date(), -i), 'yyyy-MM-dd');
-      const l = logs[d];
-      if (l?.quran?.todayPortion) {
-        portions.push({ date: d, portion: l.quran.todayPortion });
-      }
+    const limit = Math.max(1, currentIndex - 10);
+    for (let i = currentIndex - 1; i >= limit; i--) {
+      portions.push({ label: `${unit} رقم ${i}`, index: i });
     }
     return portions;
-  }, [logs]);
+  }, [currentIndex, plan]);
 
+  // المراجعة التلقائية (باقي المحفوظ مقسماً على 6 أيام)
   const murajaaPortions = useMemo(() => {
-    const allPortions = (Object.values(logs) as DailyLog[])
-      .filter(l => l.quran?.todayPortion)
-      .sort((a, b) => a.date.localeCompare(b.date));
+    if (currentIndex <= 11) return [];
+    const unit = plan === 'new_1' ? 'صفحة' : 'ربع';
+    const dayOfWeek = new Date().getDay(); // 0-6
+    const murajaaEnd = currentIndex - 11;
     
-    const oldPortions = allPortions.filter(l => {
-      const daysDiff = (new Date().getTime() - new Date(l.date).getTime()) / (1000 * 3600 * 24);
-      return daysDiff >= 32;
-    });
-
-    const dayOfWeek = new Date().getDay(); 
-    return oldPortions
-      .filter((_, idx) => idx % 6 === dayOfWeek % 6)
-      .map(l => ({ portion: l.quran.todayPortion as string }));
-  }, [logs]);
+    // تقسيم المحفوظ القديم إلى 6 مجموعات
+    const chunkSize = Math.ceil(murajaaEnd / 6);
+    const start = (dayOfWeek % 6) * chunkSize + 1;
+    const end = Math.min(murajaaEnd, start + chunkSize - 1);
+    
+    if (start > murajaaEnd) return [];
+    return [{ label: `من ${unit} ${start} إلى ${end}` }];
+  }, [currentIndex, plan]);
 
   const plans = [
     { id: 'new_1', label: 'حفظ (وجه واحد/يوم)', sub: 'ختمة في ٢٠ شهر' },
@@ -91,10 +109,11 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     { id: 'itqan_4', label: 'إتقان (٤ أوجه/يوم)', sub: 'ختمة في ٥ أشهر' },
   ];
 
+  // تعديل الترتيب: التكرار قبل التسجيل
   const hifzSteps = [
-    { id: 'listen', label: 'الاستماع لمجود مع النظر', desc: 'للتأكد من سلامة النطق' },
-    { id: 'record', label: 'التسجيل الصوتي والمطابقة', desc: 'قراءة غيبية ومطابقتها' },
-    { id: 'repeat', label: plan.includes('new') ? 'تكرار الوجه ٤٠ مرة' : 'تكرار الوجه ٣٠ مرة', desc: 'تثبيت الحفظ في الذاكرة العميقة' },
+    { id: 'listen', label: 'الاستماع لمجود مع النظر', desc: 'للتأكد من سلامة النطق', icon: <Clock className="w-4 h-4" /> },
+    { id: 'repeat', label: plan.includes('new') ? 'تكرار الوجه ٤٠ مرة' : 'تكرار الوجه ٣٠ مرة', desc: 'تثبيت الحفظ في الذاكرة العميقة', icon: <Repeat className="w-4 h-4" /> },
+    { id: 'record', label: 'التسجيل الصوتي والمطابقة', desc: 'قراءة غيبية ومطابقتها للتصحيح', icon: <Mic className="w-4 h-4" /> },
   ];
 
   return (
@@ -117,7 +136,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
       {subTab === 'hifz' ? (
         <div className="space-y-6">
-          {/* Plan Settings - Dropdown Version */}
+          {/* Plan Settings */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
             <div className="flex items-center gap-3 mb-4">
               <Settings className="w-5 h-5 text-emerald-500" />
@@ -137,39 +156,54 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
             </div>
           </div>
 
-          {/* Today's Memorization Name */}
+          {/* Today's Memorization - Dropdown Version */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
              <div className="flex items-center gap-3 mb-4">
                <Book className="w-5 h-5 text-emerald-500" />
                <h3 className="font-bold text-slate-800 header-font text-sm">المحفوظ الجديد لليوم</h3>
              </div>
-             <input 
-               type="text"
-               value={quranData.todayPortion || ''}
-               onChange={(e) => updatePortionName(e.target.value)}
-               placeholder="مثال: سورة البقرة - من وجه ٤ إلى ٥"
-               className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-xs font-black header-font focus:border-emerald-500 outline-none transition-all"
-             />
+             
+             <div className="relative">
+                <select 
+                  value={quranData.todayPortion || ''}
+                  onChange={(e) => updatePortionName(e.target.value)}
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-10 text-xs font-black header-font appearance-none outline-none focus:border-emerald-500 transition-all text-slate-700"
+                >
+                  <option value="">اختر موضع الحفظ من المصحف..</option>
+                  {plan === 'new_1' ? (
+                    PAGES_604.map(p => <option key={p.id} value={p.label}>{p.label}</option>)
+                  ) : (
+                    PORTIONS_240.map(p => <option key={p.id} value={p.label}>{p.label}</option>)
+                  )}
+                </select>
+                <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+             </div>
+             <p className="text-[10px] text-slate-400 font-bold mt-3 px-1">
+               * تم توحيد النظام ليعتمد على {plan === 'new_1' ? 'أرقام الصفحات' : 'أرقام الأرباع'} لضمان دقة التتبع.
+             </p>
           </div>
 
           {/* Hifz Checklist */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
             <div className="flex items-center gap-3 mb-6">
-              <Flame className="w-5 h-5 text-orange-500" />
-              <h3 className="font-bold text-slate-800 header-font text-sm">قائمة مهام الحفظ (تكرار اليوم)</h3>
+              <ListChecks className="w-5 h-5 text-emerald-500" />
+              <h3 className="font-bold text-slate-800 header-font text-sm">خطوات الإتقان (بالترتيب)</h3>
             </div>
             <div className="space-y-3">
-              {hifzSteps.map(step => (
+              {hifzSteps.map((step, idx) => (
                 <button 
                   key={step.id}
                   onClick={() => toggleTask(step.id)}
                   className={`w-full flex items-start gap-4 p-4 rounded-2xl border transition-all text-right ${quranData.tasksCompleted?.includes(step.id) ? 'bg-emerald-50 border-emerald-200 opacity-70' : 'bg-slate-50 border-transparent'}`}
                 >
-                  <div className={`mt-1 rounded-lg p-1 ${quranData.tasksCompleted?.includes(step.id) ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                    {quranData.tasksCompleted?.includes(step.id) ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                  <div className={`mt-1 rounded-lg p-2 ${quranData.tasksCompleted?.includes(step.id) ? 'bg-emerald-500 text-white' : 'bg-white text-slate-300 shadow-sm'}`}>
+                    {step.icon}
                   </div>
-                  <div>
-                    <p className={`text-xs font-black header-font ${quranData.tasksCompleted?.includes(step.id) ? 'text-emerald-800 line-through' : 'text-slate-700'}`}>{step.label}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className={`text-xs font-black header-font ${quranData.tasksCompleted?.includes(step.id) ? 'text-emerald-800 line-through' : 'text-slate-700'}`}>{idx + 1}. {step.label}</p>
+                      {quranData.tasksCompleted?.includes(step.id) ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Circle className="w-4 h-4 text-slate-200" />}
+                    </div>
                     <p className="text-[10px] text-slate-400 font-bold mt-1">{step.desc}</p>
                   </div>
                 </button>
@@ -177,60 +211,49 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
             </div>
           </div>
 
-          {/* Yesterday Review */}
-          <div className="bg-amber-50 rounded-3xl p-6 border border-amber-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <History className="w-5 h-5 text-amber-600" />
-                <h3 className="font-bold text-amber-900 header-font text-sm">تكرار الأمس (٥ مرات)</h3>
-              </div>
-              <button onClick={() => toggleTask('yesterday_rep')} className={`p-2 rounded-xl ${quranData.tasksCompleted?.includes('yesterday_rep') ? 'bg-emerald-500 text-white' : 'bg-white text-amber-300 border border-amber-100'}`}>
-                <CheckCircle2 className="w-5 h-5" />
-              </button>
-            </div>
-            {yesterdayLog?.quran?.todayPortion ? (
-              <p className="text-sm font-black text-amber-800 header-font">📖 {yesterdayLog.quran.todayPortion}</p>
-            ) : (
-              <p className="text-[10px] text-amber-600 font-bold italic">لا يوجد محفوظ مسجل ليوم أمس</p>
-            )}
-          </div>
-
-          {/* Rabt (Last 10 Days) */}
+          {/* Rabt - Automatic Schedule */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
             <div className="flex items-center gap-3 mb-6">
               <ArrowLeftRight className="w-5 h-5 text-blue-500" />
-              <h3 className="font-bold text-slate-800 header-font text-sm">دعامة الربط (آخر ١٠ أيام)</h3>
+              <div className="flex flex-col">
+                <h3 className="font-bold text-slate-800 header-font text-sm">دعامة الربط التلقائي</h3>
+                <p className="text-[9px] text-slate-400 font-bold italic">مراجعة الـ 10 مواضع السابقة لموضعك الحالي</p>
+              </div>
             </div>
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
               {rabtPortions.length > 0 ? rabtPortions.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <span className="text-[10px] font-black text-slate-600 header-font">{item.portion}</span>
-                  <span className="text-[9px] text-slate-400 font-bold">{format(new Date(item.date), 'dd MMM', { locale: ar })}</span>
+                  <span className="text-[10px] font-black text-slate-600 header-font">{item.label}</span>
+                  <CheckCircle2 className="w-3 h-3 text-emerald-200" />
                 </div>
               )) : (
-                <div className="text-center py-6 text-[10px] text-slate-400 font-bold italic">ستظهر هنا محفوظات آخر ١٠ أيام للربط</div>
+                <div className="col-span-2 text-center py-6 text-[10px] text-slate-400 font-bold italic">اختر موضع حفظك الحالي ليتم جدولة الربط تلقائياً</div>
               )}
             </div>
           </div>
 
-          {/* Murajaa (Old Hifz) */}
+          {/* Murajaa - Automatic Schedule */}
           <div className="bg-emerald-900 text-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-6">
                 <History className="w-6 h-6 text-emerald-400" />
-                <h3 className="text-lg font-bold header-font">مراجعة المحفوظ القديم</h3>
+                <h3 className="text-lg font-bold header-font">المراجعة السداسية التلقائية</h3>
               </div>
-              <p className="text-[11px] text-emerald-200 font-bold mb-4">خطة مراجعة لختم محفوظك "كل ٦ أيام" غيباً:</p>
+              <p className="text-[11px] text-emerald-200 font-bold mb-6">يتم جدولة محفوظك القديم بالكامل ليختم كل 6 أيام غيباً بناءً على ترتيب المصحف:</p>
+              
               <div className="space-y-3">
                 {murajaaPortions.length > 0 ? murajaaPortions.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 flex items-center justify-between">
-                    <span className="text-xs font-black header-font">{item.portion}</span>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 opacity-50" />
+                  <div key={idx} className="p-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-emerald-300 font-bold mb-1 uppercase tracking-widest">ورد المراجعة لليوم</p>
+                      <span className="text-sm font-black header-font">{item.label}</span>
+                    </div>
+                    <Sparkles className="w-5 h-5 text-emerald-400 animate-pulse" />
                   </div>
                 )) : (
                   <div className="p-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/20">
-                    <p className="text-[10px] text-emerald-300 font-bold">المحفوظات التي مر عليها ٣٢ يوماً ستظهر هنا تلقائياً لتدخل في دورة المراجعة السداسية.</p>
+                    <p className="text-[10px] text-emerald-300 font-bold leading-relaxed">بمجرد أن يتجاوز محفوظك الـ 11 {plan === 'new_1' ? 'صفحة' : 'ربعاً'}، سيبدأ النظام بجدولة مراجعتك القديمة تلقائياً لضمان عدم النسيان.</p>
                   </div>
                 )}
               </div>
