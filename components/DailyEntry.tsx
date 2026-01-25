@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Star, Users, Clock, Book, GraduationCap, Plus, Minus, Heart, ShieldAlert,
@@ -279,21 +280,24 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
         </div>
         <div className="space-y-4">
           {[
-            { label: 'حفظ جديد', field: 'hifzRub' as const },
-            { label: 'قراءة', field: 'revisionRub' as const }
+            { label: 'ورد السماع', field: 'listeningRub' as const },
+            { label: 'ورد القراءة', field: 'revisionRub' as const }
           ].map(q => (
             <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
               <span className="text-sm font-bold text-slate-700 header-font">{q.label}</span>
               <div className="flex items-center gap-3">
-                <button onClick={() => updateSection('quran', { [q.field]: Math.max(0, log.quran[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Minus className="w-4 h-4 text-slate-400" /></button>
+                <button onClick={() => updateSection('quran', { [q.field]: Math.max(0, (log.quran as any)[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Minus className="w-4 h-4 text-slate-400" /></button>
                 <div className="bg-white border border-slate-200 rounded-xl px-4 py-1.5 min-w-[3.5rem] flex items-center justify-center">
-                  <span className="text-xl font-black text-slate-800 header-font tabular-nums">{log.quran[q.field]}</span>
+                  <span className="text-xl font-black text-slate-800 header-font tabular-nums">{(log.quran as any)[q.field]}</span>
                 </div>
-                <button onClick={() => updateSection('quran', { [q.field]: log.quran[q.field] + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Plus className="w-4 h-4 text-slate-400" /></button>
+                <button onClick={() => updateSection('quran', { [q.field]: (log.quran as any)[q.field] + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all"><Plus className="w-4 h-4 text-slate-400" /></button>
               </div>
             </div>
           ))}
         </div>
+        <p className="text-[10px] text-slate-400 font-bold text-center mt-4 leading-relaxed">
+          * نقاط السماع = ضعف نقاط القراءة تقديراً لمجهود التدبر والاستماع.
+        </p>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
@@ -361,8 +365,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
             className={`w-full p-4 rounded-3xl border flex items-center justify-between mt-4 transition-all ${log.nawafil.fasting ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-100' : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-orange-200'}`}
           >
             <div className="flex items-center gap-2">
-              <Sun className="w-5 h-5" />
-              <span className="font-bold text-sm header-font">صيام (إثنين/خميس/نوافل)</span>
+              <span className="font-bold text-sm header-font">صيام (نفل / قضاء)</span>
             </div>
             {log.nawafil.fasting ? <span className="text-xs font-black header-font tracking-tight">+1000 نقطة</span> : <div className="w-5 h-5 border-2 border-slate-300 rounded-full" />}
           </button>
