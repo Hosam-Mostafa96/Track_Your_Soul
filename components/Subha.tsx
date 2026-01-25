@@ -62,6 +62,8 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     : absoluteCount;
 
   const handleIncrement = (e: React.MouseEvent | React.TouchEvent) => {
+    // منع التدوير أو التكبير التلقائي والحركات العشوائية
+    e.preventDefault();
     e.stopPropagation();
     
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -115,7 +117,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     const newDhikr: DhikrType = {
       id: id,
       label: newDhikrLabel.trim(),
-      key: id // استخدام الـ id كـ key لتخزينه في counters
+      key: id 
     };
     const updated = [...customDhikrs, newDhikr];
     setCustomDhikrs(updated);
@@ -126,7 +128,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-24 max-w-md mx-auto">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-24 max-w-md mx-auto text-right" dir="rtl">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-xl">
@@ -197,9 +199,12 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         </div>
       )}
 
+      {/* منطقة النقر المحسنة لمنع التكبير التلقائي والتدوير */}
       <div 
-        onClick={handleIncrement}
-        className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-95 transition-all duration-75 group cursor-pointer overflow-hidden touch-none shadow-inner"
+        onMouseDown={handleIncrement}
+        onTouchStart={handleIncrement}
+        style={{ touchAction: 'manipulation' }}
+        className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-95 transition-all duration-75 group cursor-pointer overflow-hidden shadow-inner select-none no-zoom"
       >
         <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-active:opacity-100 transition-opacity" />
         
@@ -225,8 +230,8 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-rose-50 rounded-xl"><Target className="w-5 h-5 text-rose-500" /></div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold header-font">اهتزاز اللمس</p>
-            <span className="text-xs font-black text-slate-700 header-font">مفعل</span>
+            <p className="text-[10px] text-slate-400 font-bold header-font">منع التكبير</p>
+            <span className="text-xs font-black text-slate-700 header-font">نشط</span>
           </div>
         </div>
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">

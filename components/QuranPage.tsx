@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   Book, 
@@ -6,19 +7,15 @@ import {
   Flame, 
   Zap, 
   Repeat, 
-  Mic, 
   History, 
-  BookOpen,
   ArrowLeftRight,
   Sparkles,
-  Info,
-  ChevronLeft,
+  ChevronDown,
   Settings,
   MessageSquareText,
   Clock
 } from 'lucide-react';
 import { DailyLog } from '../types';
-// Fixed: Replaced subDays with addDays as it was reported as not exported; removed unused startOfDay.
 import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
@@ -54,18 +51,14 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     });
   };
 
-  // Logic for Yesterday's Repetition
   const yesterdayLog = useMemo(() => {
-    // Fixed: Replaced subDays(new Date(), 1) with addDays(new Date(), -1).
     const yesterdayDate = format(addDays(new Date(), -1), 'yyyy-MM-dd');
     return logs[yesterdayDate];
   }, [logs]);
 
-  // Logic for Rabt (Last 10 days)
   const rabtPortions = useMemo(() => {
     const portions = [];
     for (let i = 1; i <= 10; i++) {
-      // Fixed: Replaced subDays(new Date(), i) with addDays(new Date(), -i).
       const d = format(addDays(new Date(), -i), 'yyyy-MM-dd');
       const l = logs[d];
       if (l?.quran?.todayPortion) {
@@ -75,7 +68,6 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     return portions;
   }, [logs]);
 
-  // Logic for Murajaa (Old portions > 32 days, divided by 6)
   const murajaaPortions = useMemo(() => {
     const allPortions = (Object.values(logs) as DailyLog[])
       .filter(l => l.quran?.todayPortion)
@@ -92,6 +84,13 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
       .map(l => ({ portion: l.quran.todayPortion as string }));
   }, [logs]);
 
+  const plans = [
+    { id: 'new_1', label: 'حفظ (وجه واحد/يوم)', sub: 'ختمة في ٢٠ شهر' },
+    { id: 'new_2', label: 'حفظ (وجهين/يوم)', sub: 'ختمة في ١٠ أشهر' },
+    { id: 'itqan_3', label: 'إتقان (٣ أوجه/يوم)', sub: 'ختمة في ٧ أشهر' },
+    { id: 'itqan_4', label: 'إتقان (٤ أوجه/يوم)', sub: 'ختمة في ٥ أشهر' },
+  ];
+
   const hifzSteps = [
     { id: 'listen', label: 'الاستماع لمجود مع النظر', desc: 'للتأكد من سلامة النطق' },
     { id: 'record', label: 'التسجيل الصوتي والمطابقة', desc: 'قراءة غيبية ومطابقتها' },
@@ -99,7 +98,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
   ];
 
   return (
-    <div className="space-y-6 pb-20 animate-in fade-in duration-500">
+    <div className="space-y-6 pb-20 animate-in fade-in duration-500 text-right" dir="rtl">
       {/* Tab Switcher */}
       <div className="bg-white p-1 rounded-2xl shadow-sm border border-slate-100 flex">
         <button 
@@ -118,28 +117,23 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
       {subTab === 'hifz' ? (
         <div className="space-y-6">
-          {/* Plan Settings */}
+          {/* Plan Settings - Dropdown Version */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
             <div className="flex items-center gap-3 mb-4">
               <Settings className="w-5 h-5 text-emerald-500" />
-              <h3 className="font-bold text-slate-800 header-font text-sm">إعدادات الخطة الحالية</h3>
+              <h3 className="font-bold text-slate-800 header-font text-sm">خطة الحفظ الحالية</h3>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'new_1', label: 'حفظ (وجه/يوم)', sub: '٢٠ شهر' },
-                { id: 'new_2', label: 'حفظ (وجهين/يوم)', sub: '١٠ أشهر' },
-                { id: 'itqan_3', label: 'إتقان (٣ أوجه/يوم)', sub: '٧ أشهر' },
-                { id: 'itqan_4', label: 'إتقان (٤ أوجه/يوم)', sub: '٥ أشهر' },
-              ].map(p => (
-                <button 
-                  key={p.id}
-                  onClick={() => onUpdatePlan(p.id as any)}
-                  className={`p-3 rounded-2xl border text-right transition-all ${plan === p.id ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20' : 'bg-slate-50 border-transparent hover:border-slate-200'}`}
-                >
-                  <p className={`text-xs font-black header-font ${plan === p.id ? 'text-emerald-700' : 'text-slate-600'}`}>{p.label}</p>
-                  <p className="text-[9px] text-slate-400 font-bold">{p.sub}</p>
-                </button>
-              ))}
+            <div className="relative">
+              <select 
+                value={plan}
+                onChange={(e) => onUpdatePlan(e.target.value as any)}
+                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-10 text-xs font-black header-font appearance-none outline-none focus:border-emerald-500 transition-all text-slate-700"
+              >
+                {plans.map(p => (
+                  <option key={p.id} value={p.id}>{p.label} - {p.sub}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
             </div>
           </div>
 
