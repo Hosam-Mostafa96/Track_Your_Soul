@@ -31,22 +31,16 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
-  /**
-   * معالجة كافة الأسماء من الشيت وترتيبهم حسب النقاط
-   */
   const processLeaderboard = (data: any[]) => {
     const topMap = new Map();
 
     data.forEach((entry: any) => {
-      // تحديد مفتاح فريد (البريد أو الاسم)
       const emailKey = (entry.email || entry.Email || entry.name || entry.Name || "").toLowerCase().trim();
       if (!emailKey) return;
       
-      // جلب النقاط من مختلف المسميات الممكنة في الشيت (Score, Score, Points, النقاط)
       const score = parseInt(entry.score || entry.Score || entry.points || entry.النقاط || entry.C || 0);
-      if (score < 0) return; // السماح بظهور أصحاب الـ 0 نقاط أيضاً
+      if (score < 0) return;
 
-      // الاحتفاظ بأعلى نتيجة مسجلة لهذا الشخص
       if (!topMap.has(emailKey) || score > topMap.get(emailKey).score) {
         topMap.set(emailKey, { 
           name: entry.name || entry.Name || "متسابق",
@@ -56,7 +50,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       }
     });
 
-    // الترتيب من الأعلى للأدنى
     return Array.from(topMap.values()).sort((a, b) => b.score - a.score);
   };
 
@@ -69,14 +62,15 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     }
     
     try {
+      // إرسال البيانات بشكل مرتب ومحدود لمنع التداخل مع شيت المستخدمين
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({
           action: 'getStats',
           email: user.email.toLowerCase().trim(),
-          name: user.name || "مصلٍ مجهول",
-          score: currentScore
+          score: currentScore,
+          name: user.name.trim()
         })
       });
 
@@ -85,7 +79,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         setNetworkError(false);
         if (data && data.leaderboard) {
           const sortedAll = processLeaderboard(data.leaderboard);
-          setGlobalTop(sortedAll.slice(0, 100)); // عرض أفضل 100 متسابق
+          setGlobalTop(sortedAll.slice(0, 100));
 
           const myEmail = user.email.toLowerCase().trim();
           const myIdx = sortedAll.findIndex(p => p.email === myEmail);

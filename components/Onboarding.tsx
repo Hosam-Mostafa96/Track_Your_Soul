@@ -82,18 +82,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const tempId = localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7);
 
     try {
+      // تم إعادة ترتيب الحقول هنا لتطابق الشيت تماماً: ID(A), Email(B), Name(C), Age(D), Country(E), City(F), Qual(G)
       const response = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'registerUser', 
           id: tempId,
-          name: formData.name,
           email: formData.email.toLowerCase().trim(),
+          name: formData.name.trim(),
           age: formData.age,
           country: formData.country,
-          city: formData.city,
-          qualification: formData.qualification
+          city: formData.city.trim(),
+          qualification: formData.qualification.trim()
         })
       });
 
@@ -122,7 +123,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     } catch (error) {
       console.error("Onboarding sync error:", error);
       setErrorMessage("تعذر الاتصال بالمحراب السحابي حالياً. يمكنك المتابعة وسيتم حفظ بياناتك محلياً.");
-      // السماح بالمتابعة حتى في حالة الخطأ لضمان تجربة المستخدم
       setTimeout(() => setStep(3), 3000);
     } finally {
       setIsSaving(false);
