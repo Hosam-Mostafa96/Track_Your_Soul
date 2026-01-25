@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   Play, 
@@ -15,7 +16,6 @@ import {
   Zap,
   Timer as PomodoroIcon
 } from 'lucide-react';
-// Fixed: Replaced subDays with addDays as it was reported as not exported from date-fns.
 import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { GOOGLE_STATS_API } from '../constants';
@@ -91,13 +91,13 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     const savedSessions = localStorage.getItem('worship_timer_sessions');
     if (savedSessions) {
       const parsed: SessionRecord[] = JSON.parse(savedSessions);
-      // Fixed: Replaced subDays(new Date(), 30) with addDays(new Date(), -30).
       const thirtyDaysAgo = addDays(new Date(), -30).getTime();
       const validSessions = parsed.filter(s => s.timestamp > thirtyDaysAgo);
       setSessions(validSessions);
     }
   }, []);
 
+  // مراقبة نهاية البرومودورو
   useEffect(() => {
     if (timerMode === 'pomodoro' && isRunning && seconds >= pomodoroGoal) {
       handlePomodoroFinish();
@@ -112,10 +112,15 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
       duration: mins,
       timestamp: Date.now()
     };
-    setSessions(prev => [newSession, ...prev]);
+    setSessions(prev => {
+      const updated = [newSession, ...prev];
+      localStorage.setItem('worship_timer_sessions', JSON.stringify(updated));
+      return updated;
+    });
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-    sendStopSignal();
+    onReset();
     onApplyTime(selectedActivity, mins);
+    sendStopSignal();
   };
 
   const sendHeartbeat = async () => {
@@ -156,7 +161,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
       requestWakeLock();
       if (isSync && userEmail) {
         sendHeartbeat();
-        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 5000); // زيادة المدة لتقليل الضغط
+        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 5000);
       }
     } else {
       releaseWakeLock();
@@ -259,7 +264,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
           <button onClick={handleReset} className="p-4 bg-slate-100 text-slate-400 rounded-2xl transition-all hover:bg-slate-200"><RotateCcw className="w-5 h-5" /></button>
           <button onClick={handleToggle} className={`p-8 rounded-full shadow-2xl transition-all ${isRunning ? 'bg-amber-500 shadow-amber-200' : 'bg-emerald-600 shadow-emerald-200'} active:scale-95`}>{isRunning ? <Pause className="w-8 h-8 text-white fill-white" /> : <Play className="w-8 h-8 text-white fill-white ml-1" />}</button>
           {timerMode === 'stopwatch' && (
-            <button onClick={() => { const mins = Math.floor(seconds/60); if(mins < 1) return alert("دقيقة واحدة على الأقل"); onApplyTime(selectedActivity, mins); setSessions(prev => [{id: Math.random().toString(36).substr(7), activity: selectedActivity, duration: mins, timestamp: Date.now()}, ...prev]); }} className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl transition-all hover:bg-emerald-200 disabled:opacity-50"><CheckCircle2 className="w-5 h-5" /></button>
+            <button onClick={() => { const mins = Math.floor(seconds/60); if(mins < 1) return alert("دقيقة واحدة على الأقل"); onApplyTime(selectedActivity, mins); setSessions(prev => { const updated = [{id: Math.random().toString(36).substr(7), activity: selectedActivity, duration: mins, timestamp: Date.now()}, ...prev]; localStorage.setItem('worship_timer_sessions', JSON.stringify(updated)); return updated; }); onReset(); }} className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl transition-all hover:bg-emerald-200 disabled:opacity-50"><CheckCircle2 className="w-5 h-5" /></button>
           )}
           {timerMode === 'pomodoro' && <div className="p-4 text-emerald-600/20"><Zap className="w-5 h-5" /></div>}
         </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, 
@@ -83,12 +82,28 @@ const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(true);
 
+  // حالة المؤقت
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
   const [timerMode, setTimerMode] = useState<'stopwatch' | 'pomodoro'>('stopwatch');
   const [pomodoroGoal, setPomodoroGoal] = useState(25 * 60);
   const [quranPlan, setQuranPlan] = useState<'new_1' | 'new_2' | 'itqan_3' | 'itqan_4'>('new_1');
+
+  // محرك المؤقت الفعلي - تم الإصلاح هنا
+  useEffect(() => {
+    let interval: number | null = null;
+    if (isTimerRunning) {
+      interval = window.setInterval(() => {
+        setTimerSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (interval) clearInterval(interval);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerRunning]);
 
   useEffect(() => {
     const safeLoad = (key: string, fallback: any) => {
@@ -207,7 +222,25 @@ const App: React.FC = () => {
       case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
-      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { const newLog = {...currentLog}; if(field === 'shariDuration' || field === 'readingDuration') { newLog.knowledge = {...newLog.knowledge, [field]: (newLog.knowledge[field] || 0) + mins}; } updateLog(newLog); }} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />;
+      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { 
+        const newLog = {...currentLog}; 
+        // Fix for Type '{ shariDuration: ... } | { duhaDuration: ... }' is not assignable to intersection type error
+        // Separate logic for knowledge and nawafil to properly narrow types
+        if(field === 'shariDuration' || field === 'readingDuration') {
+          const f = field as keyof typeof newLog.knowledge;
+          newLog.knowledge = {
+            ...newLog.knowledge,
+            [f]: ((newLog.knowledge[f] as number) || 0) + mins
+          };
+        } else if(field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
+          const f = field as keyof typeof newLog.nawafil;
+          newLog.nawafil = {
+            ...newLog.nawafil,
+            [f]: ((newLog.nawafil[f] as number) || 0) + mins
+          };
+        }
+        updateLog(newLog); 
+      }} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />;
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
       case 'quran': return <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />;
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => {
