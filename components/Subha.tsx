@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   RotateCcw, 
   ChevronUp, 
@@ -41,6 +41,24 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAddingDhikr, setIsAddingDhikr] = useState(false);
   const [newDhikrLabel, setNewDhikrLabel] = useState('');
+  
+  // صمام أمان لمنع العد المتكرر في اللمسة الواحدة
+  const lastClickTimeRef = useRef<number>(0);
+
+  // محاولة منع التدوير التلقائي عند دخول صفحة السبحة
+  useEffect(() => {
+    if (typeof screen !== 'undefined' && (screen as any).orientation && (screen as any).orientation.lock) {
+      (screen as any).orientation.lock('portrait').catch(() => {
+        console.log('Orientation lock not supported or requires full screen');
+      });
+    }
+    
+    return () => {
+      if (typeof screen !== 'undefined' && (screen as any).orientation && (screen as any).orientation.unlock) {
+        (screen as any).orientation.unlock();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('worship_custom_dhikrs');
@@ -61,17 +79,22 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     ? (safeCounters as any)[selectedType.key] || 0
     : absoluteCount;
 
-  const handleIncrement = (e: React.MouseEvent | React.TouchEvent) => {
-    // منع التدوير أو التكبير التلقائي والحركات العشوائية
-    e.preventDefault();
-    e.stopPropagation();
+  const handleIncrement = (e: React.PointerEvent) => {
+    // منع السلوك الافتراضي مثل التكبير أو اختيار النص
+    if (e.cancelable) e.preventDefault();
     
+    // منع تكرار العد: إذا كانت المسافة بين الضغطتين أقل من 50 مللي ثانية يتم تجاهلها
+    const now = Date.now();
+    if (now - lastClickTimeRef.current < 50) return;
+    lastClickTimeRef.current = now;
+
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try { navigator.vibrate(15); } catch(err) {}
+      try { navigator.vibrate(20); } catch(err) {}
     }
 
     const nextCount = currentCount + 1;
 
+    // اهتزاز أقوى عند كل 100
     if (nextCount > 0 && nextCount % 100 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate([100, 50, 100]); } catch(err) {}
     }
@@ -82,7 +105,6 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         counters: { salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0 }, 
         checklists: { morning: false, evening: false, sleep: false, travel: false } 
       };
-      if (!newLog.athkar.counters) newLog.athkar.counters = { salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0 };
       
       newLog.athkar.counters = {
         ...newLog.athkar.counters,
@@ -128,7 +150,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-24 max-w-md mx-auto text-right" dir="rtl">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-24 max-w-md mx-auto text-right select-none" dir="rtl">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-xl">
@@ -199,16 +221,15 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         </div>
       )}
 
-      {/* منطقة النقر المحسنة لمنع التكبير التلقائي والتدوير */}
+      {/* منطقة النقر المحسنة: تم استخدام onPointerDown لتوحيد اللمس والماوس */}
       <div 
-        onMouseDown={handleIncrement}
-        onTouchStart={handleIncrement}
-        style={{ touchAction: 'manipulation' }}
-        className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-95 transition-all duration-75 group cursor-pointer overflow-hidden shadow-inner select-none no-zoom"
+        onPointerDown={handleIncrement}
+        style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+        className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-95 transition-all duration-75 group cursor-pointer overflow-hidden shadow-inner no-zoom"
       >
-        <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-active:opacity-100 transition-opacity" />
+        <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-active:opacity-100 transition-opacity pointer-events-none" />
         
-        <div className="relative z-10 flex flex-col items-center select-none pointer-events-none">
+        <div className="relative z-10 flex flex-col items-center pointer-events-none">
           <span className="text-[10rem] md:text-[12rem] font-black font-mono text-emerald-950 tracking-tighter tabular-nums drop-shadow-2xl leading-none">
             {currentCount.toLocaleString()}
           </span>
@@ -230,15 +251,15 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-rose-50 rounded-xl"><Target className="w-5 h-5 text-rose-500" /></div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold header-font">منع التكبير</p>
+            <p className="text-[10px] text-slate-400 font-bold header-font">منع التكرار</p>
             <span className="text-xs font-black text-slate-700 header-font">نشط</span>
           </div>
         </div>
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-yellow-50 rounded-xl"><Zap className="w-5 h-5 text-yellow-600" /></div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold header-font">حفظ السحاب</p>
-            <span className="text-xs font-black text-slate-700 header-font">تلقائي</span>
+            <p className="text-[10px] text-slate-400 font-bold header-font">قفل الاتجاه</p>
+            <span className="text-xs font-black text-slate-700 header-font">عمودي</span>
           </div>
         </div>
       </div>
