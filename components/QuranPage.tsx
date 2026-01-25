@@ -264,8 +264,6 @@ const QURAN_PORTIONS_NAMES = [
   "240- الأعلى والغاشية والقصار (حتى الناس)"
 ];
 
-
-
 const QURAN_PAGES_LIST = Array.from({ length: 604 }, (_, i) => `صفحة ${i + 1}`);
 
 const getVerseStarter = (fullName: string) => {

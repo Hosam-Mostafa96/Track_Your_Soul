@@ -16,7 +16,11 @@ import {
   Globe,
   MapPin,
   Map as MapIcon,
-  AlertCircle
+  AlertCircle,
+  Smartphone,
+  Download,
+  Share,
+  X
 } from 'lucide-react';
 import { User as UserType, Book } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
@@ -33,11 +37,12 @@ interface OnboardingProps {
   onComplete: (user: UserType, restoredLogs?: string, restoredBooks?: string) => void;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ onComplete, installPrompt }) => {
   const [step, setStep] = useState(1); 
   const [isSaving, setIsSaving] = useState(false);
   const [emailError, setEmailError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showiOSInstructions, setShowiOSInstructions] = useState(false);
   
   const [formData, setFormData] = useState<UserType>({
     name: '',
@@ -49,9 +54,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     method: 'email'
   });
 
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
   const validateEmail = (email: string) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email.toLowerCase());
+  };
+
+  const handleInstall = async () => {
+    if (isIOS) {
+      setShowiOSInstructions(true);
+      return;
+    }
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +99,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const tempId = localStorage.getItem('worship_anon_id') || Math.random().toString(36).substring(7);
 
     try {
-      // تم إعادة ترتيب الحقول هنا لتطابق الشيت تماماً: ID(A), Email(B), Name(C), Age(D), Country(E), City(F), Qual(G)
       const response = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -147,13 +163,49 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <p className="text-xs text-slate-500 font-bold header-font uppercase tracking-widest leading-relaxed">بوابتك للارتقاء الروحي ومحاسبة النفس</p>
             </div>
 
-            <button 
-              onClick={() => setStep(2)}
-              className="w-full py-5 px-6 bg-emerald-600 text-white rounded-2xl font-black header-font shadow-xl flex items-center justify-center gap-3 group"
-            >
-              ابدأ رحلة المحاسبة الآن
-              <ArrowRight className="w-5 h-5 rotate-180 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <div className="space-y-3">
+              <button 
+                onClick={() => setStep(2)}
+                className="w-full py-5 px-6 bg-emerald-600 text-white rounded-2xl font-black header-font shadow-xl flex items-center justify-center gap-3 group"
+              >
+                ابدأ رحلة المحاسبة الآن
+                <ArrowRight className="w-5 h-5 rotate-180 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              {(installPrompt || isIOS) && (
+                <button 
+                  onClick={handleInstall}
+                  className="w-full py-4 px-6 bg-slate-50 text-slate-600 border border-slate-200 rounded-2xl font-bold header-font flex items-center justify-center gap-3 hover:bg-slate-100 transition-all"
+                >
+                  <Download className="w-5 h-5 text-emerald-600" />
+                  {isIOS ? 'كيفية التثبيت على الهاتف' : 'تثبيت التطبيق على الشاشة'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* نافذة إرشادات iOS - مكررة هنا لضمان ظهورها في الاونبوردينج */}
+        {showiOSInstructions && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+             <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in slide-in-from-bottom duration-500">
+                <button onClick={() => setShowiOSInstructions(false)} className="absolute top-6 left-6 p-2 bg-slate-50 rounded-full text-slate-400"><X className="w-5 h-5" /></button>
+                <div className="flex flex-col items-center text-center space-y-4">
+                   <div className="p-4 bg-emerald-50 rounded-3xl"><Smartphone className="w-10 h-10 text-emerald-600" /></div>
+                   <h3 className="text-xl font-black text-slate-800 header-font">تثبيت على آيفون</h3>
+                   <div className="space-y-4 text-right w-full">
+                      <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
+                         <div className="bg-white p-2 rounded-lg shadow-sm font-bold text-emerald-600 shrink-0">١</div>
+                         <p className="text-sm font-bold text-slate-600 leading-relaxed">اضغط على زر المشاركة <Share className="w-4 h-4 inline text-blue-500 mx-1" /> في متصفح Safari.</p>
+                      </div>
+                      <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
+                         <div className="bg-white p-2 rounded-lg shadow-sm font-bold text-emerald-600 shrink-0">٢</div>
+                         <p className="text-sm font-bold text-slate-600 leading-relaxed">ابحث عن خيار <b>"إضافة إلى الشاشة الرئيسية"</b>.</p>
+                      </div>
+                   </div>
+                   <button onClick={() => setShowiOSInstructions(false)} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black header-font shadow-lg active:scale-95 transition-all">حسناً، فهمت</button>
+                </div>
+             </div>
           </div>
         )}
 

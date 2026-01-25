@@ -20,7 +20,11 @@ import {
   CloudMoon, 
   CheckCircle2,
   BookMarked,
-  ChevronLeft
+  ChevronLeft,
+  Smartphone,
+  Download,
+  Share,
+  Info
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { format, addDays } from 'date-fns';
@@ -40,16 +44,19 @@ interface DashboardProps {
   books: Book[];
   onUpdateBook: (book: Book, pagesReadToday: number) => void;
   onSwitchTab: (tab: any) => void;
+  installPrompt: any;
+  onClearInstallPrompt: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   log, logs, weights, onDateChange, targetScore, onTargetChange, onOpenSettings,
-  books, onUpdateBook, onSwitchTab
+  books, onUpdateBook, onSwitchTab, installPrompt, onClearInstallPrompt
 }) => {
   const [isEditingTarget, setIsEditingTarget] = useState(false);
   const [tempTarget, setTempTarget] = useState(targetScore.toString());
   const [readingInput, setReadingInput] = useState('');
   const [userQuery, setUserQuery] = useState('');
+  const [showiOSInstructions, setShowiOSInstructions] = useState(false);
   
   const prevBadgesActiveState = useRef<Record<string, boolean>>({});
   const isFirstRender = useRef(true);
@@ -58,6 +65,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   const progressPercent = (currentTotalScore / targetScore) * 100;
 
   const activeBook = useMemo(() => books.find(b => !b.isFinished), [books]);
+
+  // التحقق من نوع الجهاز لعرض رسائل مخصصة
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
   
   const handleUpdateReading = () => {
     if (!activeBook || !readingInput) return;
@@ -71,6 +82,20 @@ const Dashboard: React.FC<DashboardProps> = ({
       origin: { y: 0.8 },
       colors: ['#10b981', '#34d399']
     });
+  };
+
+  const handleInstallClick = async () => {
+    if (isIOS) {
+      setShowiOSInstructions(true);
+      return;
+    }
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      onClearInstallPrompt();
+      confetti({ particleCount: 150, spread: 90 });
+    }
   };
 
   const handleSaveTarget = () => {
@@ -124,6 +149,58 @@ const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="space-y-5 animate-in fade-in duration-500 pb-20">
       
+      {/* بطاقة تثبيت التطبيق الذكية - تظهر لمستخدمي الأندرويد والآيفون الذين لم يثبتوا بعد */}
+      {(installPrompt || (isIOS && !isStandalone)) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-5 shadow-sm animate-bounce-slow flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-200 rounded-2xl">
+              <Smartphone className="w-6 h-6 text-amber-700" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-amber-900 header-font leading-tight">ثبّت التطبيق الآن</h4>
+              <p className="text-[10px] text-amber-700 font-bold header-font">لسهولة الوصول وتجربة أسرع 🌙</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleInstallClick}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl font-black text-xs header-font shadow-md active:scale-95 transition-all"
+            >
+              {isIOS ? 'كيفية التثبيت' : 'تثبيت'} <Download className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={onClearInstallPrompt} className="p-1 text-amber-400 hover:text-amber-600"><X className="w-4 h-4" /></button>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة إرشادات iOS */}
+      {showiOSInstructions && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in slide-in-from-bottom duration-500">
+              <button onClick={() => setShowiOSInstructions(false)} className="absolute top-6 left-6 p-2 bg-slate-50 rounded-full text-slate-400"><X className="w-5 h-5" /></button>
+              <div className="flex flex-col items-center text-center space-y-4">
+                 <div className="p-4 bg-emerald-50 rounded-3xl"><Smartphone className="w-10 h-10 text-emerald-600" /></div>
+                 <h3 className="text-xl font-black text-slate-800 header-font">تثبيت على آيفون</h3>
+                 <div className="space-y-4 text-right w-full">
+                    <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
+                       <div className="bg-white p-2 rounded-lg shadow-sm font-bold text-emerald-600 shrink-0">١</div>
+                       <p className="text-sm font-bold text-slate-600 leading-relaxed">اضغط على زر المشاركة <Share className="w-4 h-4 inline text-blue-500 mx-1" /> في متصفح Safari.</p>
+                    </div>
+                    <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
+                       <div className="bg-white p-2 rounded-lg shadow-sm font-bold text-emerald-600 shrink-0">٢</div>
+                       <p className="text-sm font-bold text-slate-600 leading-relaxed">ابحث عن خيار <b>"إضافة إلى الشاشة الرئيسية"</b> أو <b>"Add to Home Screen"</b>.</p>
+                    </div>
+                    <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
+                       <div className="bg-white p-2 rounded-lg shadow-sm font-bold text-emerald-600 shrink-0">٣</div>
+                       <p className="text-sm font-bold text-slate-600 leading-relaxed">اضغط على <b>"إضافة"</b> لتجربة التطبيق بكامل شاشته.</p>
+                    </div>
+                 </div>
+                 <button onClick={() => setShowiOSInstructions(false)} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black header-font shadow-lg active:scale-95 transition-all">حسناً، فهمت</button>
+              </div>
+           </div>
+        </div>
+      )}
+
       {/* المستشار الذكي - تصميم مضغوط */}
       <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[2rem] p-5 shadow-lg relative overflow-hidden">
         <div className="relative z-10 space-y-3">

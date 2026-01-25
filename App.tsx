@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, 
@@ -81,6 +82,29 @@ const App: React.FC = () => {
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // مراقبة حدث تثبيت التطبيق PWA
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      // منع المتصفح من إظهار النافذة التلقائية فوراً
+      e.preventDefault();
+      // تخزين الحدث ليتم تفعيله بنقرة المستخدم
+      setDeferredPrompt(e);
+      console.log('PWA Install prompt event captured');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // التحقق إذا كان التطبيق مثبت بالفعل
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setDeferredPrompt(null);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   // حالة المؤقت
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -90,7 +114,6 @@ const App: React.FC = () => {
   const [pomodoroGoal, setPomodoroGoal] = useState(25 * 60);
   const [quranPlan, setQuranPlan] = useState<'new_1' | 'new_2' | 'itqan_3' | 'itqan_4'>('new_1');
 
-  // محرك المؤقت الفعلي - تم الإصلاح هنا
   useEffect(() => {
     let interval: number | null = null;
     if (isTimerRunning) {
@@ -219,13 +242,11 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} />;
+      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
       case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { 
         const newLog = {...currentLog}; 
-        // Fix for Type '{ shariDuration: ... } | { duhaDuration: ... }' is not assignable to intersection type error
-        // Separate logic for knowledge and nawafil to properly narrow types
         if(field === 'shariDuration' || field === 'readingDuration') {
           const f = field as keyof typeof newLog.knowledge;
           newLog.knowledge = {
@@ -259,7 +280,7 @@ const App: React.FC = () => {
   };
 
   if (!isAppReady) return <div className="min-h-screen bg-emerald-900 flex items-center justify-center"><Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /></div>;
-  if (!user) return <Onboarding installPrompt={null} onComplete={(u, restoredLogs, restoredBooks) => { 
+  if (!user) return <Onboarding installPrompt={deferredPrompt} onComplete={(u, restoredLogs, restoredBooks) => { 
     setUser(u); 
     localStorage.setItem('worship_user', JSON.stringify(u));
     if (restoredLogs) {
