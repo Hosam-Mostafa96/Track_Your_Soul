@@ -181,13 +181,11 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))} disabled={currentDate === format(new Date(), 'yyyy-MM-dd')} className={`p-2 rounded-xl transition-colors ${currentDate === format(new Date(), 'yyyy-MM-dd') ? 'text-slate-200 cursor-not-allowed' : 'hover:bg-slate-50 text-slate-400'}`}><ChevronLeft className="w-5 h-5" /></button>
       </div>
 
-      {/* قسم النوم الجديد */}
+      {/* قسم النوم */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-50 rounded-xl">
-              <Bed className="w-5 h-5 text-indigo-600" />
-            </div>
+            <div className="p-2 bg-indigo-50 rounded-xl"><Bed className="w-5 h-5 text-indigo-600" /></div>
             <h3 className="font-bold text-slate-800 header-font text-lg">سجل النوم</h3>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-100">
@@ -200,42 +198,21 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
           <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold text-slate-400 header-font">من الساعة</label>
-              <input 
-                type="time" 
-                value={sleepStart} 
-                onChange={(e) => setSleepStart(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-              />
+              <input type="time" value={sleepStart} onChange={(e) => setSleepStart(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold text-slate-400 header-font">إلى الساعة</label>
-              <input 
-                type="time" 
-                value={sleepEnd} 
-                onChange={(e) => setSleepEnd(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-              />
+              <input type="time" value={sleepEnd} onChange={(e) => setSleepEnd(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none" />
             </div>
           </div>
-          <button 
-            onClick={addSleepSession}
-            className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-xs header-font flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 transition-all"
-          >
-            <Plus className="w-4 h-4" /> إضافة فترة نوم
-          </button>
+          <button onClick={addSleepSession} className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-xs header-font flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 transition-all"><Plus className="w-4 h-4" /> إضافة فترة نوم</button>
 
           {log.sleep?.sessions?.length > 0 && (
             <div className="space-y-2 mt-4">
               {log.sleep.sessions.map((s) => (
                 <div key={s.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl animate-in slide-in-from-top duration-300">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-indigo-50 rounded-lg"><Moon className="w-3.5 h-3.5 text-indigo-500" /></div>
-                    <span className="text-xs font-bold text-slate-600 header-font">من {s.start} إلى {s.end}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-indigo-700 font-mono">({calculateSleepDuration(s.start, s.end).toFixed(1)} س)</span>
-                    <button onClick={() => removeSleepSession(s.id)} className="p-1.5 text-rose-400 hover:bg-rose-50 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button>
-                  </div>
+                  <div className="flex items-center gap-3"><div className="p-2 bg-indigo-50 rounded-lg"><Moon className="w-3.5 h-3.5 text-indigo-500" /></div><span className="text-xs font-bold text-slate-600 header-font">من {s.start} إلى {s.end}</span></div>
+                  <div className="flex items-center gap-3"><span className="text-[10px] font-black text-indigo-700 font-mono">({calculateSleepDuration(s.start, s.end).toFixed(1)} س)</span><button onClick={() => removeSleepSession(s.id)} className="p-1.5 text-rose-400 hover:bg-rose-50 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button></div>
                 </div>
               ))}
             </div>
@@ -243,6 +220,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         </div>
       </div>
 
+      {/* قسم الصلوات */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2"><Star className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">الصلوات والرواتب</h3></div>
@@ -296,6 +274,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         </div>
       </div>
 
+      {/* قسم السنن المخصصة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6"><div className="flex items-center gap-2"><Tags className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">سنن مخصصة</h3></div><button onClick={() => setIsManagingSunnahs(!isManagingSunnahs)} className={`p-2 rounded-xl transition-all ${isManagingSunnahs ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}><Edit3 className="w-4 h-4" /></button></div>
         {isManagingSunnahs && (
@@ -320,6 +299,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
             )) : <div className="text-center py-4 border-2 border-dashed border-slate-100 rounded-2xl"><p className="text-[10px] text-slate-400 font-bold header-font">لا توجد سنن مخصصة مضافة حالياً</p><button onClick={() => setIsManagingSunnahs(true)} className="text-[10px] text-emerald-600 font-bold underline mt-1">أضف سنتك الخاصة الآن</button></div>}</div>
       </div>
 
+      {/* قسم المجاهدة والذنوب */}
       <div className="flex gap-4">
         <div className="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-2"><span className="text-[10px] font-bold text-slate-500 header-font">معامل المجاهدة</span><Heart className={`w-4 h-4 ${log.jihadFactor > 1 ? 'text-rose-500 fill-rose-500' : 'text-slate-300'}`} /></div>
@@ -336,13 +316,32 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         </button>
       </div>
 
+      {/* قسم ورد القرآن المحدث */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><Book className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">ورد القرآن (بالأرباع)</h3></div>
-        <div className="space-y-4">{[{ label: 'حفظ جديد', field: 'hifzRub' as const }, { label: 'قراءة', field: 'revisionRub' as const }].map(q => (
-            <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl"><span className="text-sm font-bold text-slate-700 header-font">{q.label}</span><div className="flex items-center gap-3"><button onClick={() => updateSection('quran', { [q.field]: Math.max(0, log.quran[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Minus className="w-4 h-4 text-slate-400" /></button><div className="bg-white border border-slate-200 rounded-xl px-4 py-1.5 min-w-[3.5rem] flex items-center justify-center"><span className="text-xl font-black text-slate-800 header-font tabular-nums">{log.quran[q.field]}</span></div><button onClick={() => updateSection('quran', { [q.field]: log.quran[q.field] + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Plus className="w-4 h-4 text-slate-400" /></button></div></div>
-          ))}</div>
+        <div className="space-y-4">
+          {[
+            { label: 'ورد السماع', field: 'listeningRub' as const },
+            { label: 'ورد القراءة', field: 'revisionRub' as const }
+          ].map(q => (
+            <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+              <span className="text-sm font-bold text-slate-700 header-font">{q.label}</span>
+              <div className="flex items-center gap-3">
+                <button onClick={() => updateSection('quran', { [q.field]: Math.max(0, log.quran[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Minus className="w-4 h-4 text-slate-400" /></button>
+                <div className="bg-white border border-slate-200 rounded-xl px-4 py-1.5 min-w-[3.5rem] flex items-center justify-center">
+                  <span className="text-xl font-black text-slate-800 header-font tabular-nums">{log.quran[q.field] || 0}</span>
+                </div>
+                <button onClick={() => updateSection('quran', { [q.field]: (log.quran[q.field] || 0) + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Plus className="w-4 h-4 text-slate-400" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-slate-400 font-bold text-center mt-4 leading-relaxed">
+          * نقاط السماع = ضعف نقاط القراءة تقديراً لمجهود التدبر والاستماع.
+        </p>
       </div>
 
+      {/* بقية الأقسام */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><ScrollText className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">الأذكار والتحصين</h3></div>
         <div className="grid grid-cols-2 gap-3 mb-6">{(['morning', 'evening', 'sleep', 'travel'] as const).map(id => {

@@ -51,7 +51,8 @@ const INITIAL_LOG = (date: string): DailyLog => ({
     [PrayerName.MAGHRIB]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
     [PrayerName.ISHA]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
   },
-  quran: { hifzRub: 0, revisionRub: 0, todayPortion: '', tasksCompleted: [] },
+  // Fix: replaced hifzRub with listeningRub as per types.ts
+  quran: { listeningRub: 0, revisionRub: 0, todayPortion: '', tasksCompleted: [] },
   knowledge: { shariDuration: 0, readingDuration: 0, readingPages: 0 },
   athkar: {
     checklists: { morning: false, evening: false, sleep: false, travel: false },

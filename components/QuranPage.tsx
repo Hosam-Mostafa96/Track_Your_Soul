@@ -135,17 +135,17 @@ const QURAN_PORTIONS_NAMES = [
   "111- النحل: (إن الله يأمر بالعدل والإحسان)",
   "112- النحل: (يوم تأتي كل نفس تجادل عن نفسها)",
   "113- الإسراء: (سبحان الذي أسرى بعبده ليلاً)",
-  "114- الإسراء: (وقضى ربك ألا تعبدوا إلا إياه وبالوالدين إحساناً)",
-  "115- الإسراء: (قل كونوا حجارة أو حديداً)",
-  "116- الإسراء: (ولقد كرمنا بني آدم)",
-  "117- الإسراء: (أولم يروا أن الله الذي خلق السماوات والأرض قادر على أن يخلق مثلهم)",
-  "118- الكهف: (وترى الشمس إذا طلعت تزاور عن كهفهم ذات اليمين)",
-  "119- الكهف: (واضرب لهم مثلاً رجلين جعلنا لأحدهما)",
-  "120- الكهف: (ما أشهدتهم خلق السماوات والأرض ولا خلق أنفسهم)",
-  "121- الكهف: (قال ألم أقل لك إنك لن تستطيع معي صبراً)",
-  "122- الكهف: (وتركنا بعضهم يومئذ يموج في بعض ونفخ في الصور فجمعناهم جمعاً)",
-  "123- مريم: (فحملته فانتبذت به مكاناً قصياً)",
-  "124- مريم: (فخلف من بعدهم خلف أضاعوا الصلاة واتبعوا الشهوات فسوف يلقون غياً)",
+  "114- الإسراء: (وإذ قلنا لك إن ربك أحاط بالناس)",
+  "115- الإسراء: (ولقد كرمنا بني آدم)",
+  "116- الإسراء: (وقل جاء الحق وزهق الباطل)",
+  "117- الكهف: (الحمد لله الذي أنزل على عبده الكتاب)",
+  "118- الكهف: (واضرب لهم مثلاً رجلين جعلنا لأحدهما)",
+  "119- الكهف: (وإذ قال موسى لفتاه لا أبرح حتى)",
+  "120- الكهف: (قال ألم أقل لك إنك لن تستطيع معي صبراً)",
+  "121- الكهف: (يسألونك عن ذي القرنين قل سأتلوا عليكم)",
+  "122- مريم: (كهيعص * ذكر رحمت ربك عبده زكريا)",
+  "123- مريم: (واذكر في الكتاب مريم إذ انتبذت)",
+  "124- مريم: (فلما اعتزلهم وما يعبدون من دون الله)",
   "125- طه: (طه)",
   "126- طه: (منها خلقناكم وفيها نعيدكم ومنها نخرجكم تارة أخرى)",
   "127- طه: (وما أعجلك عن قومك يا موسى)",
@@ -217,11 +217,11 @@ const QURAN_PORTIONS_NAMES = [
   "193- فصلت: (إليه يرد علم الساعة وما تخرج من ثمرات)",
   "194- الشورى: (حم * عسق * كذلك يوحي إليك وإلى)",
   "195- الشورى: (ولو بسط الله الرزق لعباده لبغوا في الأرض)",
-  "196- الشورى: (وما كان لبشر أن يكلمه الله إلا وحياً أو من وراء حجاب أو يرسل رسولاً)",
-  "197- الزخرف: (حم * والكتاب المبين * إنا جعلناه قرآناً)",
-  "198- الزخرف: (ولما ضرب ابن مريم مثلاً إذا قومك منه)",
-  "199- الدخان: (حم * والكتاب المبين * إنا أنزلناه في ليلة)",
-  "200- الجاثية: (حم * تنزيل الكتاب من الله العزيز الحكيم)",
+  "196- الزخرف: (حم * والكتاب المبين * إنا جعلناه قرآناً)",
+  "197- الزخرف: (ولما ضرب ابن مريم مثلاً إذا قومك منه)",
+  "198- الدخان: (حم * والكتاب المبين * إنا أنزلناه في ليلة)",
+  "199- الجاثية: (حم * تنزيل الكتاب من الله العزيز الحكيم)",
+  "200- الجاثية: (هذا بصائر للناس وهدى ورحمة لقوم)",
   "201- الأحقاف: (حم * تنزيل الكتاب من الله العزيز الحكيم)",
   "202- الأحقاف: (وإذ صرفنا إليك نفراً من الجن يستمعون)",
   "203- محمد: (الذين كفروا وصدوا عن سبيل الله أضل)",
@@ -264,6 +264,12 @@ const QURAN_PORTIONS_NAMES = [
   "240- الأعلى والغاشية والقصار (حتى الناس)"
 ];
 
+// دالة مساعدة لاستخراج النص الموجود بين الأقواس (مطلع الربع)
+const getVerseStarter = (fullName: string) => {
+  const match = fullName.match(/\((.*?)\)/);
+  return match ? match[1] : fullName.split(':')[0];
+};
+
 interface QuranPageProps {
   log: DailyLog;
   logs: Record<string, DailyLog>;
@@ -275,7 +281,7 @@ interface QuranPageProps {
 const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, onUpdateLog }) => {
   const [subTab, setSubTab] = useState<'hifz' | 'tadabbur'>('hifz');
 
-  const quranData = log.quran || { hifzRub: 0, revisionRub: 0, todayPortion: '', todayReps: 0, tasksCompleted: [] };
+  const quranData = log.quran || { listeningRub: 0, revisionRub: 0, todayPortion: '', todayReps: 0, tasksCompleted: [] };
 
   const toggleTask = (taskId: string) => {
     const currentTasks = quranData.tasksCompleted || [];
@@ -347,8 +353,8 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     }
     
     return {
-      startName: QURAN_PORTIONS_NAMES[start - 1].split(':')[0],
-      endName: QURAN_PORTIONS_NAMES[end - 1].split(':')[0],
+      startStarter: getVerseStarter(QURAN_PORTIONS_NAMES[start - 1]),
+      endStarter: getVerseStarter(QURAN_PORTIONS_NAMES[end - 1]),
       juz,
       remainingRub,
       individualRub
@@ -431,14 +437,24 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
               
               {murajaaData ? (
                 <div className="space-y-6">
-                  <div className="p-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
-                    <p className="text-[10px] text-emerald-300 font-bold mb-2 uppercase tracking-widest">ورد المراجعة لليوم</p>
-                    <p className="text-sm font-black header-font mb-1 leading-relaxed">
-                      من {murajaaData.startName} إلى {murajaaData.endName}
-                    </p>
-                    <span className="text-[11px] font-bold text-emerald-100 italic bg-white/5 px-3 py-1 rounded-full">
-                      ({murajaaData.juz} أجزاء و {murajaaData.remainingRub} أرباع)
-                    </span>
+                  <div className="p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
+                    <p className="text-[10px] text-emerald-300 font-bold mb-3 uppercase tracking-widest text-center">ورد المراجعة لليوم</p>
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="bg-emerald-500/20 px-4 py-2 rounded-xl text-center">
+                        <span className="text-xs text-emerald-200 font-bold block mb-1">من مطلع:</span>
+                        <span className="text-sm md:text-lg font-black header-font leading-relaxed">({murajaaData.startStarter})</span>
+                      </div>
+                      <div className="h-4 w-px bg-white/20"></div>
+                      <div className="bg-emerald-500/20 px-4 py-2 rounded-xl text-center">
+                        <span className="text-xs text-emerald-200 font-bold block mb-1">إلى مطلع:</span>
+                        <span className="text-sm md:text-lg font-black header-font leading-relaxed">({murajaaData.endStarter})</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-white/10 text-center">
+                      <span className="text-[11px] font-bold text-emerald-100 italic bg-white/5 px-4 py-1.5 rounded-full">
+                        (إجمالي: {murajaaData.juz} أجزاء و {murajaaData.remainingRub} أرباع)
+                      </span>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -447,7 +463,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
                       <button 
                         key={rub.id} 
                         onClick={() => toggleTask(rub.id)}
-                        className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all text-right ${quranData.tasksCompleted?.includes(rub.id) ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-100' : 'bg-white/5 border-white/5 text-slate-300'}`}
+                        className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all text-right ${quranData.tasksCompleted?.includes(rub.id) ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-100 shadow-lg' : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10'}`}
                       >
                         <span className="text-[10px] font-bold header-font">{rub.label}</span>
                         {quranData.tasksCompleted?.includes(rub.id) ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Circle className="w-4 h-4 text-white/20" />}

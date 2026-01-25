@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { 
   BarChart3, 
@@ -76,7 +77,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
     let counts = { prayers: 0, quran: 0, knowledge: 0, fasting: 0, dhikr: 0 };
     periodLogs.forEach(log => {
       counts.prayers += (Object.values(log.prayers) as PrayerEntry[]).filter(p => p.performed).length;
-      counts.quran += (log.quran.hifzRub + log.quran.revisionRub);
+      // Fix: replaced hifzRub with listeningRub as per types.ts
+      counts.quran += ((log.quran.listeningRub || 0) + log.quran.revisionRub);
       counts.knowledge += (log.knowledge.shariDuration + log.knowledge.readingDuration) / 30;
       counts.fasting += log.nawafil.fasting ? 10 : 0;
       counts.dhikr += (Object.values(log.athkar.counters) as number[]).reduce((a, b) => a + b, 0) / 100;
@@ -104,7 +106,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
         log.sleep.sessions.forEach(s => {
           const [sH, sM] = s.start.split(':').map(Number);
           const [eH, eM] = s.end.split(':').map(Number);
-          let mins = (eH * 60 + eM) - (sH * 60 + sM);
+          let mins = (eH * 60 + eM) - (startH * 60 + startM);
           if (mins < 0) mins += 24 * 60;
           totalHours += mins / 60;
         });
@@ -134,7 +136,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
         switch (activityFilter) {
           case 'all': isConnected = calculateTotalScore(log, weights) > 0; break;
           case 'prayers': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.performed); break;
-          case 'quran': isConnected = (log.quran.hifzRub + log.quran.revisionRub) > 0; break;
+          // Fix: replaced hifzRub with listeningRub as per types.ts
+          case 'quran': isConnected = ((log.quran.listeningRub || 0) + log.quran.revisionRub) > 0; break;
           case 'knowledge': isConnected = (log.knowledge.shariDuration + log.knowledge.readingDuration) > 0; break;
           case 'fasting': isConnected = log.nawafil.fasting; break;
           case 'athkar': isConnected = (Object.values(log.athkar.checklists) as boolean[]).some(v => v) || (Object.values(log.athkar.counters) as number[]).some(v => v > 0); break;
