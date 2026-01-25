@@ -13,8 +13,7 @@ import {
   Globe,
   PlusCircle,
   Smartphone,
-  CalendarDays,
-  FileText
+  CalendarDays
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -27,19 +26,11 @@ const Notifications: React.FC<NotificationsProps> = ({ onBack }) => {
   // سجل التحديثات الفعلي للتطبيق
   const notifications = [
     {
-      id: -1,
-      type: 'feature',
-      title: 'وحدة الحفظ المرنة',
-      message: 'يمكنك الآن الاختيار بين حفظ "صفحة واحدة" أو "ربع حزب" يومياً، وسيقوم النظام بتعديل دعامة الربط والمراجعة القديمة تلقائياً لتناسب خطتك الجديدة.',
-      time: new Date(),
-      icon: <FileText className="w-5 h-5 text-emerald-500" />
-    },
-    {
       id: 0,
       type: 'update',
       title: 'تحسينات الواجهة والمواعيد',
       message: 'تم إصلاح تزاحم العنوان في شاشات الهواتف، وتصحيح موعد رمضان القادم (18 فبراير)، وضبط محرك التاريخ الهجري.',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 12),
+      time: new Date(),
       icon: <Smartphone className="w-5 h-5 text-emerald-500" />
     },
     {
@@ -47,8 +38,32 @@ const Notifications: React.FC<NotificationsProps> = ({ onBack }) => {
       type: 'update',
       title: 'تغيير المسمى الرسمي',
       message: 'تم تغيير اسم التطبيق إلى "تطبيق إدارة العبادات والأوراد" ليكون أكثر شمولية ويعبر عن هويته الحقيقية.',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 24),
+      time: new Date(Date.now() - 1000 * 60 * 60 * 2),
       icon: <Settings className="w-5 h-5 text-blue-500" />
+    },
+    {
+      id: 2,
+      type: 'feature',
+      title: 'الأهداف والذكر المخصص',
+      message: 'يمكنك الآن تعديل هدفك الروحي اليومي (13,500 نقطة افتراضياً) وإضافة أذكار مخصصة داخل صفحة السبحة.',
+      time: new Date(Date.now() - 1000 * 60 * 60 * 24),
+      icon: <Target className="w-5 h-5 text-amber-500" />
+    },
+    {
+      id: 3,
+      type: 'feature',
+      title: 'المحراب العالمي 24 ساعة',
+      message: 'تحديث نظام قائمة المتصدرين ليعتمد على جهد الـ 24 ساعة الأخيرة فقط، مما يضمن تنافسية واقعية وحيوية.',
+      time: new Date(Date.now() - 1000 * 60 * 60 * 30),
+      icon: <Trophy className="w-5 h-5 text-orange-500" />
+    },
+    {
+      id: 4,
+      type: 'update',
+      title: 'المزامنة الافتراضية',
+      message: 'تم ضبط المزامنة مع المحراب العالمي لتكون مفعلة تلقائياً لضمان اتصالك الدائم بمجتمع المصلين.',
+      time: new Date(Date.now() - 1000 * 60 * 60 * 48),
+      icon: <Globe className="w-5 h-5 text-blue-500" />
     }
   ];
 
