@@ -104,9 +104,9 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
       let totalHours = 0;
       if (log && log.sleep?.sessions) {
         log.sleep.sessions.forEach(s => {
-          const [sH, sM] = s.start.split(':').map(Number);
-          const [eH, eM] = s.end.split(':').map(Number);
-          let mins = (eH * 60 + eM) - (startH * 60 + startM);
+          const [startH, startM] = s.start.split(':').map(Number);
+          const [endH, endM] = s.end.split(':').map(Number);
+          let mins = (endH * 60 + endM) - (startH * 60 + startM);
           if (mins < 0) mins += 24 * 60;
           totalHours += mins / 60;
         });

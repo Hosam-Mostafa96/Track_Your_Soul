@@ -87,7 +87,7 @@ export interface DailyLog {
   date: string;
   prayers: Record<string, PrayerEntry>;
   quran: { 
-    listeningRub: number; // تم التغيير من hifzRub
+    listeningRub: number; 
     revisionRub: number;
     todayPortion?: string; 
     todayReps?: number; 

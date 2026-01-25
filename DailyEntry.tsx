@@ -327,11 +327,11 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
             <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
               <span className="text-sm font-bold text-slate-700 header-font">{q.label}</span>
               <div className="flex items-center gap-3">
-                <button onClick={() => updateSection('quran', { [q.field]: Math.max(0, log.quran[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Minus className="w-4 h-4 text-slate-400" /></button>
+                <button onClick={() => updateSection('quran', { [q.field]: Math.max(0, (log.quran as any)[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Minus className="w-4 h-4 text-slate-400" /></button>
                 <div className="bg-white border border-slate-200 rounded-xl px-4 py-1.5 min-w-[3.5rem] flex items-center justify-center">
-                  <span className="text-xl font-black text-slate-800 header-font tabular-nums">{log.quran[q.field] || 0}</span>
+                  <span className="text-xl font-black text-slate-800 header-font tabular-nums">{(log.quran as any)[q.field] || 0}</span>
                 </div>
-                <button onClick={() => updateSection('quran', { [q.field]: (log.quran[q.field] || 0) + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Plus className="w-4 h-4 text-slate-400" /></button>
+                <button onClick={() => updateSection('quran', { [q.field]: ((log.quran as any)[q.field] || 0) + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Plus className="w-4 h-4 text-slate-400" /></button>
               </div>
             </div>
           ))}
