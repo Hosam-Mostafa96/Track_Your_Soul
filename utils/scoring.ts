@@ -25,10 +25,22 @@ export const calculatePrayerScore = (entry: PrayerEntry, hasBurden: boolean, wei
 export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT_WEIGHTS) => {
   const prayers = Object.values(log.prayers).reduce((sum, p) => sum + calculatePrayerScore(p as PrayerEntry, log.hasBurden, weights), 0);
   
-  const quranHifzPoints = (log.quran.hifzRub * weights.quranHifz) + (log.quran.revisionRub * weights.quranRevision);
+  // نقاط الحفظ الجديد: نقاط الحفظ الأساسية + (عدد التكرارات * وزن الصفحة)
+  // الربع يعتبر وجهين (صفحتين)
+  const hifzBasePoints = (log.quran.hifzRub * weights.quranHifz);
+  const repsPoints = (log.quran.todayReps || 0) * weights.pointsPerPage;
+  const quranHifzPoints = hifzBasePoints + repsPoints;
+
+  // نقاط مراجعة الورد (الأرباع المختارة يدوياً في صفحة القرآن)
+  const manualRevisionPoints = (log.quran.tasksCompleted || [])
+    .filter(id => id.startsWith('rabt_') || id.startsWith('mur_'))
+    .length * weights.quranRevision;
+
+  // نقاط الورد المسجل في صفحة التسجيل
+  const revisionRubPoints = (log.quran.revisionRub * weights.quranRevision);
   
-  // إضافة نقاط مقابل كل مهمة قرآنية مكتملة (تكرار، تسجيل، إلخ)
-  const quranTasksPoints = (log.quran.tasksCompleted || []).length * 50; 
+  // إضافة نقاط مقابل كل مهمة قرآنية مكتملة (استماع، تسجيل، إلخ)
+  const quranTasksPoints = (log.quran.tasksCompleted || []).filter(id => !id.startsWith('rabt_') && !id.startsWith('mur_')).length * 50; 
   
   const knowledge = (log.knowledge.shariDuration * weights.knowledgeShari) + 
                     (log.knowledge.readingDuration * weights.knowledgeGeneral) +
@@ -47,7 +59,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   
   const deductionMultiplier = 1 - (weights.burdenDeduction / 100);
   
-  const total = (prayers + quranHifzPoints + quranTasksPoints + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
+  const total = (prayers + quranHifzPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
 
   return Math.round(total);
 };

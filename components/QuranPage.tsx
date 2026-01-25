@@ -15,11 +15,12 @@ import {
   MessageSquareText,
   Clock,
   Mic,
-  ListChecks
+  ListChecks,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { DailyLog } from '../types';
 
-// القائمة الكاملة والمطابقة للمصحف المدني (240 ربعاً)
 const QURAN_PORTIONS_NAMES = [
   "1- الفاتحة: (الحمد لله رب العالمين)",
   "2- البقرة: (إن الله لا يستحيي أن يضرب مثلاً)",
@@ -67,7 +68,7 @@ const QURAN_PORTIONS_NAMES = [
   "44- المائدة: (ولقد أخذ الله ميثاق بني إسرائيل)",
   "45- المائدة: (واتل عليهم نبأ ابني آدم بالحق)",
   "46- المائدة: (يا أيها الرسول لا يحزنك الذين يسارعون)",
-  "47- المائدة: (يا أيها الذين آمنوا لا تتخذوا اليهود والنصارى)",
+  "47- المائدة: (يا أيها الذين آمنة لا تتخذوا اليهود والنصارى)",
   "48- المائدة: (يا أيها الرسول بلغ ما أنزل إليك)",
   "49- المائدة: (لتجدن أشد الناس عداوة للذين آمنوا)",
   "50- المائدة: (جعل الله الكعبة البيت الحرام قياماً)",
@@ -132,23 +133,23 @@ const QURAN_PORTIONS_NAMES = [
   "109- النحل: (وإن لكم في الأنعام لعبرة)",
   "110- النحل: (وضرب الله مثلاً رجلين أحدهما أبكم)",
   "111- النحل: (إن الله يأمر بالعدل والإحسان)",
-  "112- النحل: (وقيل للذين اتقوا ماذا أنزل ربكم)",
+  "112- النحل: (يوم تأتي كل نفس تجادل عن نفسها)",
   "113- الإسراء: (سبحان الذي أسرى بعبده ليلاً)",
-  "114- الإسراء: (وإذ قلنا لك إن ربك أحاط بالناس)",
-  "115- الإسراء: (ولقد كرمنا بني آدم وحملناهم)",
-  "116- الإسراء: (وقل جاء الحق وزهق الباطل)",
-  "117- الكهف: (الحمد لله الذي أنزل على عبده الكتاب)",
-  "118- الكهف: (واضرب لهم مثلاً رجلين جعلنا لأحدهما)",
-  "119- الكهف: (وإذ قال موسى لفتاه لا أبرح حتى)",
-  "120- الكهف: (قال ألم أقل لك إنك لن تستطيع معي صبراً)",
-  "121- الكهف: (يسألونك عن ذي القرنين قل سأتلوا عليكم)",
-  "122- مريم: (كهيعص * ذكر رحمت ربك عبده زكريا)",
-  "123- مريم: (واذكر في الكتاب مريم إذ انتبذت)",
-  "124- مريم: (فلما اعتزلهم وما يعبدون من دون الله)",
-  "125- طه: (طه * ما أنزلنا عليك القرآن لتشقى)",
-  "126- طه: (إذ رأت ناراً فقال لأهله امكثوا)",
-  "127- طه: (فاجتباه ربه فتاب عليه وهدى)",
-  "128- طه: (وكذلك أنزلناه قرآناً عربياً وصرفنا)",
+  "114- الإسراء: (وقضى ربك ألا تعبدوا إلا إياه وبالوالدين إحساناً)",
+  "115- الإسراء: (قل كونوا حجارة أو حديداً)",
+  "116- الإسراء: (ولقد كرمنا بني آدم)",
+  "117- الإسراء: (أولم يروا أن الله الذي خلق السماوات والأرض قادر على أن يخلق مثلهم)",
+  "118- الكهف: (وترى الشمس إذا طلعت تزاور عن كهفهم ذات اليمين)",
+  "119- الكهف: (واضرب لهم مثلاً رجلين جعلنا لأحدهما)",
+  "120- الكهف: (ما أشهدتهم خلق السماوات والأرض ولا خلق أنفسهم)",
+  "121- الكهف: (قال ألم أقل لك إنك لن تستطيع معي صبراً)",
+  "122- الكهف: (وتركنا بعضهم يومئذ يموج في بعض ونفخ في الصور فجمعناهم جمعاً)",
+  "123- مريم: (فحملته فانتبذت به مكاناً قصياً)",
+  "124- مريم: (فخلف من بعدهم خلف أضاعوا الصلاة واتبعوا الشهوات فسوف يلقون غياً)",
+  "125- طه: (طه)",
+  "126- طه: (منها خلقناكم وفيها نعيدكم ومنها نخرجكم تارة أخرى)",
+  "127- طه: (وما أعجلك عن قومك يا موسى)",
+  "128- طه: (وعنت الوجوه للحي القيوم)",
   "129- الأنبياء: (اقترب للناس حسابهم وهم في غفلة)",
   "130- الأنبياء: (إن الذين سبقت لهم منا الحسنى)",
   "131- الأنبياء: (واذكر أخا عاد إذ أنذر قومه بالأحقاف)",
@@ -216,19 +217,19 @@ const QURAN_PORTIONS_NAMES = [
   "193- فصلت: (إليه يرد علم الساعة وما تخرج من ثمرات)",
   "194- الشورى: (حم * عسق * كذلك يوحي إليك وإلى)",
   "195- الشورى: (ولو بسط الله الرزق لعباده لبغوا في الأرض)",
-  "196- الزخرف: (حم * والكتاب المبين * إنا جعلناه قرآناً)",
-  "197- الزخرف: (ولما ضرب ابن مريم مثلاً إذا قومك منه)",
-  "198- الدخان: (حم * والكتاب المبين * إنا أنزلناه في ليلة)",
-  "199- الجاثية: (حم * تنزيل الكتاب من الله العزيز الحكيم)",
-  "200- الجاثية: (هذا بصائر للناس وهدى ورحمة لقوم)",
+  "196- الشورى: (وما كان لبشر أن يكلمه الله إلا وحياً أو من وراء حجاب أو يرسل رسولاً)",
+  "197- الزخرف: (حم * والكتاب المبين * إنا جعلناه قرآناً)",
+  "198- الزخرف: (ولما ضرب ابن مريم مثلاً إذا قومك منه)",
+  "199- الدخان: (حم * والكتاب المبين * إنا أنزلناه في ليلة)",
+  "200- الجاثية: (حم * تنزيل الكتاب من الله العزيز الحكيم)",
   "201- الأحقاف: (حم * تنزيل الكتاب من الله العزيز الحكيم)",
   "202- الأحقاف: (وإذ صرفنا إليك نفراً من الجن يستمعون)",
   "203- محمد: (الذين كفروا وصدوا عن سبيل الله أضل)",
-  "204- الفتح: (إنا فتحنا لك فتحاً مبيناً * ليغفر لك الله)",
-  "205- الحجرات: (يا أيها الذين آمنوا لا تقدموا بين يدي)",
-  "206- ق: (ق والقرآن المجيد * بل عجبوا أن جاءهم)",
-  "207- ق: (وجاءت سكرة الموت بالحق ذلك ما كنت منه)",
-  "208- الذاريات: (والذاريات ذرواً * فالحاملات وقراً)",
+  "204- محمد: (يا أيها الذين آمنوا أطيعوا الله وأطيعوا الرسول ولا تبطلوا أعمالكم)",
+  "205- الفتح: (لقد رضي الله عن المؤمنين إذ يبايعونك تحت الشجرة)",
+  "206- الحجرات: (يا أيها الذين آمنوا لا تقدموا بين يدي)",
+  "207- الحجرات: (قالت الأعراب آمنا)",
+  "208- ق: (قال قرينه ربنا ما أطغيته ولكن كان في ضلال بعيد)",
   "209- الذاريات: (قال فما خطبكم أيها المرسلون)",
   "210- الطور: (والطور * وكتاب مسطور * في رق منشور)",
   "211- النجم: (والنجم إذا هوى * ما ضل صاحبكم وما)",
@@ -263,13 +264,6 @@ const QURAN_PORTIONS_NAMES = [
   "240- الأعلى والغاشية والقصار (حتى الناس)"
 ];
 
-// توليد قائمة الصفحات (604 صفحة)
-const PAGES_604 = Array.from({ length: 604 }, (_, i) => ({
-  id: `page_${i + 1}`,
-  label: `الصفحة رقم ${i + 1}`,
-  index: i + 1
-}));
-
 interface QuranPageProps {
   log: DailyLog;
   logs: Record<string, DailyLog>;
@@ -281,7 +275,7 @@ interface QuranPageProps {
 const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, onUpdateLog }) => {
   const [subTab, setSubTab] = useState<'hifz' | 'tadabbur'>('hifz');
 
-  const quranData = log.quran || { hifzRub: 0, revisionRub: 0, todayPortion: '', tasksCompleted: [] };
+  const quranData = log.quran || { hifzRub: 0, revisionRub: 0, todayPortion: '', todayReps: 0, tasksCompleted: [] };
 
   const toggleTask = (taskId: string) => {
     const currentTasks = quranData.tasksCompleted || [];
@@ -302,48 +296,64 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     });
   };
 
-  // استخراج الفهرس الحالي بناءً على القيمة المختارة
+  const updateReps = (val: number) => {
+    onUpdateLog({
+      ...log,
+      quran: { ...quranData, todayReps: Math.max(0, val) }
+    });
+  };
+
   const currentIndex = useMemo(() => {
     if (!quranData.todayPortion) return 0;
     const match = quranData.todayPortion.match(/^\d+/);
     return match ? parseInt(match[0]) : 0;
   }, [quranData.todayPortion]);
 
-  // الربط التلقائي (آخر 10 وحدات سابقة للمحفوظ الحالي)
   const rabtPortions = useMemo(() => {
     if (currentIndex <= 1) return [];
     const portions = [];
     const limit = Math.max(1, currentIndex - 10);
     for (let i = currentIndex - 1; i >= limit; i--) {
-      if (plan === 'new_1') {
-        portions.push({ label: `الصفحة رقم ${i}`, index: i });
-      } else {
-        portions.push({ label: QURAN_PORTIONS_NAMES[i - 1], index: i });
-      }
+      portions.push({ 
+        id: `rabt_${i}`,
+        label: QURAN_PORTIONS_NAMES[i - 1], 
+        index: i 
+      });
     }
     return portions;
-  }, [currentIndex, plan]);
+  }, [currentIndex]);
 
-  // المراجعة التلقائية (باقي المحفوظ مقسماً على 6 أيام)
-  const murajaaPortions = useMemo(() => {
-    if (currentIndex <= 11) return [];
-    const dayOfWeek = new Date().getDay(); // 0-6
+  const murajaaData = useMemo(() => {
+    if (currentIndex <= 11) return null;
+    const dayOfWeek = new Date().getDay(); 
     const murajaaEnd = currentIndex - 11;
     
     const chunkSize = Math.ceil(murajaaEnd / 6);
     const start = (dayOfWeek % 6) * chunkSize + 1;
     const end = Math.min(murajaaEnd, start + chunkSize - 1);
     
-    if (start > murajaaEnd) return [];
-    
-    if (plan === 'new_1') {
-        return [{ label: `من صفحة ${start} إلى ${end}` }];
-    } else {
-        const startName = QURAN_PORTIONS_NAMES[start - 1] ? QURAN_PORTIONS_NAMES[start - 1].split(':')[0] : start.toString();
-        const endName = QURAN_PORTIONS_NAMES[end - 1] ? QURAN_PORTIONS_NAMES[end - 1].split(':')[0] : end.toString();
-        return [{ label: `من ${startName} إلى ${endName}` }];
+    if (start > murajaaEnd) return null;
+
+    const totalRub = end - start + 1;
+    const juz = Math.floor(totalRub / 8);
+    const remainingRub = totalRub % 8;
+
+    const individualRub = [];
+    for(let i = start; i <= end; i++) {
+      individualRub.push({
+        id: `mur_${i}`,
+        label: QURAN_PORTIONS_NAMES[i-1]
+      });
     }
-  }, [currentIndex, plan]);
+    
+    return {
+      startName: QURAN_PORTIONS_NAMES[start - 1].split(':')[0],
+      endName: QURAN_PORTIONS_NAMES[end - 1].split(':')[0],
+      juz,
+      remainingRub,
+      individualRub
+    };
+  }, [currentIndex]);
 
   const plans = [
     { id: 'new_1', label: 'حفظ (وجه واحد/يوم)', sub: 'ختمة في ٢٠ شهر' },
@@ -360,163 +370,99 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-500 text-right" dir="rtl">
-      {/* Tab Switcher */}
       <div className="bg-white p-1 rounded-2xl shadow-sm border border-slate-100 flex">
-        <button 
-          onClick={() => setSubTab('hifz')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${subTab === 'hifz' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}
-        >
-          <Repeat className="w-4 h-4" /> برنامج الحفظ والإتقان
-        </button>
-        <button 
-          onClick={() => setSubTab('tadabbur')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${subTab === 'tadabbur' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}
-        >
-          <Sparkles className="w-4 h-4" /> محراب التدبر
-        </button>
+        <button onClick={() => setSubTab('hifz')} className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${subTab === 'hifz' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}><Repeat className="w-4 h-4" /> برنامج الحفظ والإتقان</button>
+        <button onClick={() => setSubTab('tadabbur')} className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${subTab === 'tadabbur' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}><Sparkles className="w-4 h-4" /> محراب التدبر</button>
       </div>
 
       {subTab === 'hifz' ? (
         <div className="space-y-6">
-          {/* Plan Settings */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3 mb-4">
-              <Settings className="w-5 h-5 text-emerald-500" />
-              <h3 className="font-bold text-slate-800 header-font text-sm">خطة الحفظ الحالية</h3>
-            </div>
-            <div className="relative">
-              <select 
-                value={plan}
-                onChange={(e) => onUpdatePlan(e.target.value as any)}
-                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-10 text-xs font-black header-font appearance-none outline-none focus:border-emerald-500 transition-all text-slate-700"
-              >
-                {plans.map(p => (
-                  <option key={p.id} value={p.id}>{p.label} - {p.sub}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-            </div>
+            <div className="flex items-center gap-3 mb-4"><Settings className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-sm">خطة الحفظ الحالية</h3></div>
+            <div className="relative"><select value={plan} onChange={(e) => onUpdatePlan(e.target.value as any)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-10 text-xs font-black header-font appearance-none outline-none focus:border-emerald-500 transition-all text-slate-700">{plans.map(p => (<option key={p.id} value={p.id}>{p.label} - {p.sub}</option>))}</select><ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" /></div>
           </div>
 
-          {/* Today's Memorization - Dropdown Version */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-             <div className="flex items-center gap-3 mb-4">
-               <Book className="w-5 h-5 text-emerald-500" />
-               <h3 className="font-bold text-slate-800 header-font text-sm">المحفوظ الجديد لليوم</h3>
-             </div>
+             <div className="flex items-center gap-3 mb-4"><Book className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-sm">المحفوظ الجديد لليوم</h3></div>
+             <div className="relative mb-6"><select value={quranData.todayPortion || ''} onChange={(e) => updatePortionName(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-10 text-xs font-black header-font appearance-none outline-none focus:border-emerald-500 transition-all text-slate-700"><option value="">اختر موضع الحفظ من المصحف المدني..</option>{QURAN_PORTIONS_NAMES.map((name, idx) => (<option key={idx} value={name}>{name}</option>))}</select><ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" /></div>
              
-             <div className="relative">
-                <select 
-                  value={quranData.todayPortion || ''}
-                  onChange={(e) => updatePortionName(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-10 text-xs font-black header-font appearance-none outline-none focus:border-emerald-500 transition-all text-slate-700"
-                >
-                  <option value="">اختر موضع الحفظ من المصحف المدني..</option>
-                  {plan === 'new_1' ? (
-                    PAGES_604.map(p => <option key={p.id} value={p.label}>{p.label}</option>)
-                  ) : (
-                    QURAN_PORTIONS_NAMES.map((name, idx) => <option key={idx} value={name}>{name}</option>)
-                  )}
-                </select>
-                <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-             </div>
-             <p className="text-[10px] text-slate-400 font-bold mt-3 px-1">
-               * يعتمد النظام على {plan === 'new_1' ? 'أرقام الصفحات' : 'عناوين الأرباع'} المعتمدة لسهولة التعرف.
-             </p>
-          </div>
-
-          {/* Hifz Checklist */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3 mb-6">
-              <ListChecks className="w-5 h-5 text-emerald-500" />
-              <h3 className="font-bold text-slate-800 header-font text-sm">خطوات الإتقان (بالترتيب)</h3>
-            </div>
-            <div className="space-y-3">
-              {hifzSteps.map((step, idx) => (
-                <button 
-                  key={step.id}
-                  onClick={() => toggleTask(step.id)}
-                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border transition-all text-right ${quranData.tasksCompleted?.includes(step.id) ? 'bg-emerald-50 border-emerald-200 opacity-70' : 'bg-slate-50 border-transparent'}`}
-                >
-                  <div className={`mt-1 rounded-lg p-2 ${quranData.tasksCompleted?.includes(step.id) ? 'bg-emerald-500 text-white' : 'bg-white text-slate-300 shadow-sm'}`}>
-                    {step.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className={`text-xs font-black header-font ${quranData.tasksCompleted?.includes(step.id) ? 'text-emerald-800 line-through' : 'text-slate-700'}`}>{idx + 1}. {step.label}</p>
-                      {quranData.tasksCompleted?.includes(step.id) ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Circle className="w-4 h-4 text-slate-200" />}
+             {quranData.todayPortion && (
+               <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100 animate-in zoom-in duration-300">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2"><Repeat className="w-4 h-4 text-emerald-600" /><span className="text-xs font-black text-emerald-800 header-font">عدد مرات تكرار الوجه</span></div>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => updateReps((quranData.todayReps || 0) - 1)} className="p-1.5 bg-white rounded-lg border border-emerald-200 text-emerald-600"><Minus className="w-4 h-4" /></button>
+                      <span className="text-xl font-black font-mono text-emerald-900">{quranData.todayReps || 0}</span>
+                      <button onClick={() => updateReps((quranData.todayReps || 0) + 1)} className="p-1.5 bg-white rounded-lg border border-emerald-200 text-emerald-600"><Plus className="w-4 h-4" /></button>
                     </div>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1">{step.desc}</p>
                   </div>
-                </button>
-              ))}
-            </div>
+                  <p className="text-[10px] text-emerald-600 font-bold text-center leading-relaxed">
+                    * يتم احتساب (العدد × وزن قراءة صفحة) وإضافته لبركة رصيدك.
+                  </p>
+               </div>
+             )}
           </div>
 
-          {/* Rabt - Automatic Schedule */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3 mb-6">
-              <ArrowLeftRight className="w-5 h-5 text-blue-500" />
-              <div className="flex flex-col">
-                <h3 className="font-bold text-slate-800 header-font text-sm">دعامة الربط التلقائي</h3>
-                <p className="text-[9px] text-slate-400 font-bold italic">مراجعة الـ 10 مواضع السابقة لموضعك الحالي</p>
-              </div>
-            </div>
+            <div className="flex items-center gap-3 mb-6"><ListChecks className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-sm">خطوات الإتقان (بالترتيب)</h3></div>
+            <div className="space-y-3">{hifzSteps.map((step, idx) => (<button key={step.id} onClick={() => toggleTask(step.id)} className={`w-full flex items-start gap-4 p-4 rounded-2xl border transition-all text-right ${quranData.tasksCompleted?.includes(step.id) ? 'bg-emerald-50 border-emerald-200 opacity-70' : 'bg-slate-50 border-transparent'}`}><div className={`mt-1 rounded-lg p-2 ${quranData.tasksCompleted?.includes(step.id) ? 'bg-emerald-500 text-white' : 'bg-white text-slate-300 shadow-sm'}`}>{step.icon}</div><div className="flex-1"><div className="flex items-center justify-between"><p className={`text-xs font-black header-font ${quranData.tasksCompleted?.includes(step.id) ? 'text-emerald-800 line-through' : 'text-slate-700'}`}>{idx + 1}. {step.label}</p>{quranData.tasksCompleted?.includes(step.id) ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Circle className="w-4 h-4 text-slate-200" />}</div><p className="text-[10px] text-slate-400 font-bold mt-1">{step.desc}</p></div></button>))}</div>
+          </div>
+
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div className="flex items-center gap-3 mb-6"><ArrowLeftRight className="w-5 h-5 text-blue-500" /><div className="flex flex-col"><h3 className="font-bold text-slate-800 header-font text-sm">دعامة الربط التلقائي</h3><p className="text-[9px] text-slate-400 font-bold italic">مراجعة الـ 10 أرباع السابقة لموضعك الحالي</p></div></div>
             <div className="grid grid-cols-1 gap-2">
-              {rabtPortions.length > 0 ? rabtPortions.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <span className="text-[10px] font-black text-slate-600 header-font truncate max-w-[90%]">{item.label}</span>
-                  <CheckCircle2 className="w-3 h-3 text-emerald-200" />
-                </div>
-              )) : (
-                <div className="text-center py-6 text-[10px] text-slate-400 font-bold italic">اختر موضع حفظك الحالي ليتم جدولة الربط تلقائياً</div>
-              )}
+              {rabtPortions.length > 0 ? rabtPortions.map((item) => (
+                <button 
+                  key={item.id} 
+                  onClick={() => toggleTask(item.id)}
+                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${quranData.tasksCompleted?.includes(item.id) ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-transparent'}`}
+                >
+                  <span className={`text-[10px] font-black header-font transition-all ${quranData.tasksCompleted?.includes(item.id) ? 'text-emerald-800' : 'text-slate-600'}`}>{item.label}</span>
+                  {quranData.tasksCompleted?.includes(item.id) ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Circle className="w-4 h-4 text-slate-200" />}
+                </button>
+              )) : (<div className="text-center py-6 text-[10px] text-slate-400 font-bold italic">اختر موضع حفظك الحالي ليتم جدولة الربط تلقائياً</div>)}
             </div>
           </div>
 
-          {/* Murajaa - Automatic Schedule */}
-          <div className="bg-emerald-900 text-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
+          <div className="bg-slate-900 text-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6">
-                <History className="w-6 h-6 text-emerald-400" />
-                <h3 className="text-lg font-bold header-font">المراجعة السداسية التلقائية</h3>
-              </div>
-              <p className="text-[11px] text-emerald-200 font-bold mb-6">يتم جدولة محفوظك القديم بالكامل ليختم كل 6 أيام غيباً بناءً على ترتيب المصحف:</p>
+              <div className="flex items-center gap-3 mb-6"><History className="w-6 h-6 text-emerald-400" /><h3 className="text-lg font-bold header-font">مراجعة المحفوظ القديم</h3></div>
               
-              <div className="space-y-3">
-                {murajaaPortions.length > 0 ? murajaaPortions.map((item, idx) => (
-                  <div key={idx} className="p-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] text-emerald-300 font-bold mb-1 uppercase tracking-widest">ورد المراجعة لليوم</p>
-                      <span className="text-sm font-black header-font leading-relaxed">{item.label}</span>
-                    </div>
-                    <Sparkles className="w-5 h-5 text-emerald-400 animate-pulse" />
+              {murajaaData ? (
+                <div className="space-y-6">
+                  <div className="p-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
+                    <p className="text-[10px] text-emerald-300 font-bold mb-2 uppercase tracking-widest">ورد المراجعة لليوم</p>
+                    <p className="text-sm font-black header-font mb-1 leading-relaxed">
+                      من {murajaaData.startName} إلى {murajaaData.endName}
+                    </p>
+                    <span className="text-[11px] font-bold text-emerald-100 italic bg-white/5 px-3 py-1 rounded-full">
+                      ({murajaaData.juz} أجزاء و {murajaaData.remainingRub} أرباع)
+                    </span>
                   </div>
-                )) : (
-                  <div className="p-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/20">
-                    <p className="text-[10px] text-emerald-300 font-bold leading-relaxed">بمجرد أن يتجاوز محفوظك الـ 11 {plan === 'new_1' ? 'صفحة' : 'ربعاً'}، سيبدأ النظام بجدولة مراجعتك القديمة تلقائياً لضمان عدم النسيان.</p>
+
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-slate-400 mr-2 mb-3">قائمة الأرباع المجدولة (اضغط عند الإتمام):</p>
+                    {murajaaData.individualRub.map((rub) => (
+                      <button 
+                        key={rub.id} 
+                        onClick={() => toggleTask(rub.id)}
+                        className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all text-right ${quranData.tasksCompleted?.includes(rub.id) ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-100' : 'bg-white/5 border-white/5 text-slate-300'}`}
+                      >
+                        <span className="text-[10px] font-bold header-font">{rub.label}</span>
+                        {quranData.tasksCompleted?.includes(rub.id) ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Circle className="w-4 h-4 text-white/20" />}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10"><p className="text-[10px] text-emerald-300 font-bold leading-relaxed">بمجرد أن يتجاوز محفوظك الـ 11 ربعاً، سيبدأ النظام بجدولة مراجعتك القديمة تلقائياً لضمان عدم النسيان.</p></div>
+              )}
             </div>
           </div>
         </div>
       ) : (
-        <div className="space-y-6 animate-in slide-in-from-left duration-500">
-          <div className="bg-white rounded-[2.5rem] p-12 shadow-sm border border-slate-100 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[40vh]">
-             <div className="absolute top-0 right-0 p-4 opacity-5"><MessageSquareText className="w-24 h-24" /></div>
-             <div className="relative z-10 flex flex-col items-center">
-               <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                 <Clock className="w-10 h-10 text-emerald-600" />
-               </div>
-               <h2 className="text-3xl font-black text-slate-800 header-font mb-4">قريباً...</h2>
-               <p className="text-sm text-slate-500 leading-relaxed font-bold header-font max-w-xs mx-auto">
-                 نعمل حالياً على بناء محراب التدبر بمنهجية متكاملة تعينك على فهم كتاب الله وتطبيقه في حياتك اليومية.
-               </p>
-             </div>
-          </div>
-        </div>
+        <div className="space-y-6 animate-in slide-in-from-left duration-500"><div className="bg-white rounded-[2.5rem] p-12 shadow-sm border border-slate-100 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[40vh]"><div className="absolute top-0 right-0 p-4 opacity-5"><MessageSquareText className="w-24 h-24" /></div><div className="relative z-10 flex flex-col items-center"><div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-6 animate-pulse"><Clock className="w-10 h-10 text-emerald-600" /></div><h2 className="text-3xl font-black text-slate-800 header-font mb-4">قريباً...</h2><p className="text-sm text-slate-500 leading-relaxed font-bold header-font max-w-xs mx-auto">نعمل حالياً على بناء محراب التدبر بمنهجية متكاملة تعينك على فهم كتاب الله وتطبيقه في حياتك اليومية.</p></div></div></div>
       )}
     </div>
   );

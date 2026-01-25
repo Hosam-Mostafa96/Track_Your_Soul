@@ -89,8 +89,9 @@ export interface DailyLog {
   quran: { 
     hifzRub: number; 
     revisionRub: number;
-    todayPortion?: string; // اسم الوجه أو السورة
-    tasksCompleted?: string[]; // قائمة المهام المنجزة
+    todayPortion?: string; 
+    todayReps?: number; // عدد تكرارات الوجه الجديد
+    tasksCompleted?: string[]; 
   };
   knowledge: { shariDuration: number; readingDuration: number; readingPages?: number };
   athkar: {
