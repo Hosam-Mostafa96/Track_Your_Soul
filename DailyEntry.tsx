@@ -338,7 +338,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><Book className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">ورد القرآن (بالأرباع)</h3></div>
-        <div className="space-y-4">{[{ label: 'حفظ جديد', field: 'hifzRub' as const }, { label: 'مراجعة', field: 'revisionRub' as const }].map(q => (
+        <div className="space-y-4">{[{ label: 'حفظ جديد', field: 'hifzRub' as const }, { label: 'قراءة', field: 'revisionRub' as const }].map(q => (
             <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl"><span className="text-sm font-bold text-slate-700 header-font">{q.label}</span><div className="flex items-center gap-3"><button onClick={() => updateSection('quran', { [q.field]: Math.max(0, log.quran[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Minus className="w-4 h-4 text-slate-400" /></button><div className="bg-white border border-slate-200 rounded-xl px-4 py-1.5 min-w-[3.5rem] flex items-center justify-center"><span className="text-xl font-black text-slate-800 header-font tabular-nums">{log.quran[q.field]}</span></div><button onClick={() => updateSection('quran', { [q.field]: log.quran[q.field] + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Plus className="w-4 h-4 text-slate-400" /></button></div></div>
           ))}</div>
       </div>
