@@ -17,8 +17,10 @@ export const DEFAULT_WEIGHTS: AppWeights = {
     adhkar_after: 100,
     wudu: 50
   },
-  quranHifz: 40,
-  quranRevision: 15,
+  quranHifz: 100, // الربع الجديد
+  quranRevision: 25, // مراجعة ربع
+  quranPageRepetition: 5, // تكرار الوجه الواحد (مرة واحدة)
+  quranRubRepetition: 25, // تكرار ربع كامل (مرة واحدة)
   knowledgeShari: 2,
   knowledgeGeneral: 1,
   athkarChecklist: 100,
@@ -27,7 +29,7 @@ export const DEFAULT_WEIGHTS: AppWeights = {
   fastingDay: 1000,
   burdenDeduction: 30,
   customSunnahs: [],
-  pointsPerPage: 2 // تم التعديل من 10 إلى 2 نقطة لكل صفحة
+  pointsPerPage: 2
 };
 
 export const TRANQUILITY_MULTIPLIERS = {

@@ -72,6 +72,8 @@ export interface AppWeights {
   surroundingSunnahs: Record<string, number>;
   quranHifz: number;
   quranRevision: number;
+  quranPageRepetition: number; // وزن تكرار الوجه الواحد
+  quranRubRepetition: number;  // وزن تكرار الربع الواحد
   knowledgeShari: number;
   knowledgeGeneral: number;
   athkarChecklist: number;

@@ -5,7 +5,8 @@ import {
   Settings2, ChevronDown, ChevronUp, Save, RotateCcw,
   Star, Users, Clock, Book, GraduationCap, Zap, 
   LockKeyhole, Globe, Flame, BookOpen, ListChecks,
-  Activity, Mail, MapPin, Calendar, Sparkles, Skull
+  Activity, Mail, MapPin, Calendar, Sparkles, Skull,
+  Repeat
 } from 'lucide-react';
 import { AppWeights, User as UserType } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
@@ -168,10 +169,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <BookOpen className="w-4 h-4 text-amber-500" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">ورد القرآن (لكل ربع)</h4>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">ورد القرآن</h4>
               </div>
-              {weightInput('الحفظ الجديد', localWeights.quranHifz, (val) => setLocalWeights({ ...localWeights, quranHifz: val }), <Zap className="w-4 h-4" />)}
-              {weightInput('المراجعة والورد', localWeights.quranRevision, (val) => setLocalWeights({ ...localWeights, quranRevision: val }), <Activity className="w-4 h-4" />)}
+              {weightInput('الحفظ الجديد (ربع)', localWeights.quranHifz, (val) => setLocalWeights({ ...localWeights, quranHifz: val }), <Zap className="w-4 h-4" />)}
+              {weightInput('المراجعة (ربع)', localWeights.quranRevision, (val) => setLocalWeights({ ...localWeights, quranRevision: val }), <Activity className="w-4 h-4" />)}
+              {weightInput('تكرار الوجه الواحد', localWeights.quranPageRepetition, (val) => setLocalWeights({ ...localWeights, quranPageRepetition: val }), <RotateCcw className="w-4 h-4" />)}
+              {/* Fix: Added Repeat to lucide-react imports */}
+              {weightInput('تكرار الربع الكامل', localWeights.quranRubRepetition, (val) => setLocalWeights({ ...localWeights, quranRubRepetition: val }), <Repeat className="w-4 h-4" />)}
             </div>
 
             {/* قسم النوافل والوقت */}
@@ -182,28 +186,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               </div>
               {weightInput('القيام/الضحى (دقيقة)', localWeights.nawafilPerMin, (val) => setLocalWeights({ ...localWeights, nawafilPerMin: val }), <Clock className="w-4 h-4" />)}
               {weightInput('صيام اليوم الكامل', localWeights.fastingDay, (val) => setLocalWeights({ ...localWeights, fastingDay: val }), <Flame className="w-4 h-4" />)}
-            </div>
-
-            {/* قسم العلم والأذكار */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <GraduationCap className="w-4 h-4 text-purple-500" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">طلب العلم والأذكار</h4>
-              </div>
-              {weightInput('العلم الشرعي (دقيقة)', localWeights.knowledgeShari, (val) => setLocalWeights({ ...localWeights, knowledgeShari: val }), <GraduationCap className="w-4 h-4" />)}
-              {weightInput('القراءة العامة (دقيقة)', localWeights.knowledgeGeneral, (val) => setLocalWeights({ ...localWeights, knowledgeGeneral: val }), <Book className="w-4 h-4" />)}
-              {weightInput('نقاط لكل صفحة كتاب', localWeights.pointsPerPage, (val) => setLocalWeights({ ...localWeights, pointsPerPage: val }), <BookOpen className="w-4 h-4" />)}
-              {weightInput('الأذكار (لكل قائمة كاملة)', localWeights.athkarChecklist, (val) => setLocalWeights({ ...localWeights, athkarChecklist: val }), <ListChecks className="w-4 h-4" />)}
-              {weightInput('الذكر (لكل ١٠ عدات)', localWeights.athkarCounter, (val) => setLocalWeights({ ...localWeights, athkarCounter: val }), <Activity className="w-4 h-4" />)}
-            </div>
-
-            {/* قسم الذنوب والمجاهدة */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Skull className="w-4 h-4 text-rose-500" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">الذنوب والمجاهدة</h4>
-              </div>
-              {weightInput('نسبة خصم الذنوب (%)', localWeights.burdenDeduction, (val) => setLocalWeights({ ...localWeights, burdenDeduction: val }), <Skull className="w-4 h-4" />)}
             </div>
 
             <div className="flex gap-4 pt-4">
@@ -223,13 +205,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
             </div>
           </div>
         )}
-      </div>
-
-      <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-4 shadow-sm">
-        <LockKeyhole className="w-6 h-6 text-emerald-600 shrink-0" />
-        <p className="text-[11px] text-emerald-800 font-bold leading-relaxed header-font">
-          تطبيق "ميزان" يوثق رحلتك الروحية. بياناتك الأساسية تُرسل للمحراب العالمي لتمكين المنافسة، بينما تظل تفاصيل أورادك اليومية محفوظة بخصوصية تامة على جهازك.
-        </p>
       </div>
     </div>
   );

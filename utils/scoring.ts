@@ -28,15 +28,15 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   // نقاط الحفظ الجديد (لكل ربع)
   const quranHifzPoints = (log.quran.hifzRub || 0) * weights.quranHifz;
 
-  // التكرار للوجه الجديد (في صفحة القرآن)
-  const repsPoints = (log.quran.todayReps || 0) * (weights.pointsPerPage || 2);
+  // التكرار للوجه الجديد (في صفحة القرآن) - ضرب كل تكرارة في وزنها
+  const repsPoints = (log.quran.todayReps || 0) * (weights.quranPageRepetition || 5);
 
-  // نقاط مراجعة الورد (الأرباع المحددة يدوياً في صفحة القرآن)
+  // نقاط مراجعة الورد والربط (الأرباع المحددة يدوياً) - هنا تحسب كأرباع
   const manualRevisionPoints = (log.quran.tasksCompleted || [])
     .filter(id => id.startsWith('rabt_') || id.startsWith('mur_'))
     .length * weights.quranRevision;
 
-  // نقاط الورد المسجل رقمياً (في صفحة التسجيل)
+  // نقاط الورد المسجل رقمياً (أرباع)
   const revisionRubPoints = (log.quran.revisionRub || 0) * weights.quranRevision;
   
   const quranTasksPoints = (log.quran.tasksCompleted || []).filter(id => !id.startsWith('rabt_') && !id.startsWith('mur_')).length * 50; 
