@@ -5,7 +5,7 @@ import {
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
   CalendarDays, ChevronRight, ChevronLeft, Edit3, Trash2, X, Check,
-  Skull, Bed
+  Skull, Bed, BookOpen
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights, SleepSession } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
@@ -34,10 +34,6 @@ const PRAYER_SUNNAHS: Record<string, {id: string, label: string}[]> = {
 
 const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdateWeights, currentDate, onDateChange }) => {
   const [activePrayer, setActivePrayer] = useState<PrayerName>(PrayerName.FAJR);
-  const [isManagingSunnahs, setIsManagingSunnahs] = useState(false);
-  const [newSunnahName, setNewSunnahName] = useState('');
-  const [newSunnahPoints, setNewSunnahPoints] = useState(50);
-  
   const [sleepStart, setSleepStart] = useState('22:00');
   const [sleepEnd, setSleepEnd] = useState('04:30');
 
@@ -55,14 +51,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
       ? currentSunnahs.filter(id => id !== sunnahId)
       : [...currentSunnahs, sunnahId];
     updatePrayer(prayerName as PrayerName, { surroundingSunnahIds: newSunnahs });
-  };
-
-  const toggleCustomSunnah = (sunnahId: string) => {
-    const current = log.customSunnahIds || [];
-    const newIds = current.includes(sunnahId)
-      ? current.filter(id => id !== sunnahId)
-      : [...current, sunnahId];
-    onUpdate({ ...log, customSunnahIds: newIds });
   };
 
   const addSleepSession = () => {
@@ -87,39 +75,12 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
   const calculateSleepDuration = (start: string, end: string) => {
     const [startH, startM] = start.split(':').map(Number);
     const [endH, endM] = end.split(':').map(Number);
-    
     let totalMins = (endH * 60 + endM) - (startH * 60 + startM);
-    if (totalMins < 0) totalMins += 24 * 60; // Crosses midnight
-    
+    if (totalMins < 0) totalMins += 24 * 60;
     return totalMins / 60;
   };
 
   const totalSleepHours = (log.sleep?.sessions || []).reduce((acc, s) => acc + calculateSleepDuration(s.start, s.end), 0);
-
-  const addSunnah = () => {
-    if (!newSunnahName.trim()) return;
-    const newSunnah: CustomSunnah = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newSunnahName,
-      points: newSunnahPoints
-    };
-    onUpdateWeights({
-      ...weights,
-      customSunnahs: [...(weights.customSunnahs || []), newSunnah]
-    });
-    setNewSunnahName('');
-    setNewSunnahPoints(50);
-  };
-
-  const removeSunnah = (id: string) => {
-    onUpdateWeights({
-      ...weights,
-      customSunnahs: (weights.customSunnahs || []).filter(s => s.id !== id)
-    });
-    if (log.customSunnahIds.includes(id)) {
-      onUpdate({ ...log, customSunnahIds: log.customSunnahIds.filter(cid => cid !== id) });
-    }
-  };
 
   const getTranquilityLabel = (level: number) => {
     const labels = ['غافل', 'شرود كثير', 'حضور أدنى', 'خاشع غالباً', 'خاشع جداً', 'إحسان (كأنك تراه)'];
@@ -245,7 +206,84 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         </div>
       </div>
 
-      {/* بقية الأقسام */}
+      {/* استرجاع وتطوير قسم طلب العلم والقراءة */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-full -translate-y-12 translate-x-12 opacity-50"></div>
+        <div className="flex items-center gap-3 mb-6 relative z-10">
+          <div className="p-2 bg-purple-100 rounded-xl">
+            <GraduationCap className="w-6 h-6 text-purple-600" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 header-font text-lg">طلب العلم والقراءة</h3>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">تنمية العقل والروح</p>
+          </div>
+        </div>
+
+        <div className="space-y-4 relative z-10">
+          {/* العلم الشرعي */}
+          <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-2xl border border-purple-100">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <span className="text-sm font-black text-purple-900 header-font">طلب علم شرعي</span>
+              </div>
+              <span className="text-[9px] font-black text-purple-500 bg-white px-2 py-0.5 rounded-full border border-purple-100">10 نقاط / دقيقة</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 header-font">المدة بالدقائق:</span>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => updateSection('knowledge', { shariDuration: Math.max(0, log.knowledge.shariDuration - 10) })} 
+                  className="p-2 bg-white border border-purple-200 rounded-xl shadow-sm active:scale-90 transition-all"
+                >
+                  <Minus className="w-4 h-4 text-purple-600" />
+                </button>
+                <div className="bg-white border-2 border-purple-100 rounded-xl px-4 py-1.5 min-w-[4rem] flex items-center justify-center">
+                  <span className="text-xl font-black text-purple-900 font-mono">{log.knowledge.shariDuration || 0}</span>
+                </div>
+                <button 
+                  onClick={() => updateSection('knowledge', { shariDuration: (log.knowledge.shariDuration || 0) + 10 })} 
+                  className="p-2 bg-white border border-purple-200 rounded-xl shadow-sm active:scale-90 transition-all"
+                >
+                  <Plus className="w-4 h-4 text-purple-600" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* القراءة العامة */}
+          <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl border border-blue-100">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-black text-blue-900 header-font">قراءة كتب عامة</span>
+              </div>
+              <span className="text-[9px] font-black text-blue-500 bg-white px-2 py-0.5 rounded-full border border-blue-100">درجتان / دقيقة</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 header-font">المدة بالدقائق:</span>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => updateSection('knowledge', { readingDuration: Math.max(0, log.knowledge.readingDuration - 10) })} 
+                  className="p-2 bg-white border border-blue-200 rounded-xl shadow-sm active:scale-90 transition-all"
+                >
+                  <Minus className="w-4 h-4 text-blue-600" />
+                </button>
+                <div className="bg-white border-2 border-blue-100 rounded-xl px-4 py-1.5 min-w-[4rem] flex items-center justify-center">
+                  <span className="text-xl font-black text-blue-900 font-mono">{log.knowledge.readingDuration || 0}</span>
+                </div>
+                <button 
+                  onClick={() => updateSection('knowledge', { readingDuration: (log.knowledge.readingDuration || 0) + 10 })} 
+                  className="p-2 bg-white border border-blue-200 rounded-xl shadow-sm active:scale-90 transition-all"
+                >
+                  <Plus className="w-4 h-4 text-blue-600" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><ScrollText className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">الأذكار والتحصين</h3></div>
         <div className="grid grid-cols-2 gap-3 mb-6">{(['morning', 'evening', 'sleep', 'travel'] as const).map(id => {

@@ -21,8 +21,8 @@ export const DEFAULT_WEIGHTS: AppWeights = {
   quranRevision: 25, // مراجعة ربع
   quranPageRepetition: 5, // تكرار الوجه الواحد (مرة واحدة)
   quranRubRepetition: 25, // تكرار ربع كامل (مرة واحدة)
-  knowledgeShari: 2,
-  knowledgeGeneral: 1,
+  knowledgeShari: 10, // دقيقة العلم الشرعي بـ 10 نقاط
+  knowledgeGeneral: 2, // دقيقة القراءة العامة بـ درجتين
   athkarChecklist: 100,
   athkarCounter: 1,
   nawafilPerMin: 5,

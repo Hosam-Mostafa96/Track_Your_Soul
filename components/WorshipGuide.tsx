@@ -179,7 +179,7 @@ const WorshipGuide: React.FC = () => {
               </div>
               <span className="text-lg font-black text-emerald-600 font-mono">+{DEFAULT_WEIGHTS.athkarCounter * 10}</span>
             </div>
-            <p className="text-[9px] text-slate-400 font-bold mr-6">(استغفار، صلاة على النبي، حوقلة، تahlيل..)</p>
+            <p className="text-[9px] text-slate-400 font-bold mr-6">(استغفار، صلاة على النبي، حوقلة، تهليل..)</p>
           </div>
         </div>
       </div>
@@ -207,13 +207,14 @@ const WorshipGuide: React.FC = () => {
               <GraduationCap className="w-6 h-6 text-purple-600 mx-auto mb-2" />
               <h4 className="text-[10px] font-black text-slate-700 header-font">العلم الشرعي</h4>
               <span className="text-lg font-black text-purple-700 font-mono">+{DEFAULT_WEIGHTS.knowledgeShari}/د</span>
+              <p className="text-[8px] text-purple-500 font-bold mt-1">(أي دقيقة = 10 نقاط)</p>
             </div>
             <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-center">
               <BookOpen className="w-6 h-6 text-blue-600 mx-auto mb-2" />
               <h4 className="text-[10px] font-black text-slate-700 header-font">القراءة العامة</h4>
               <div className="flex flex-col gap-1 mt-1">
                 <span className="text-xs font-black text-blue-700 font-mono">+{DEFAULT_WEIGHTS.knowledgeGeneral}/د</span>
-                <span className="text-[9px] font-bold text-blue-500">+{DEFAULT_WEIGHTS.pointsPerPage}/صفحة</span>
+                <span className="text-[9px] text-blue-500">+{DEFAULT_WEIGHTS.pointsPerPage}/صفحة</span>
               </div>
             </div>
           </div>
@@ -223,33 +224,6 @@ const WorshipGuide: React.FC = () => {
                <span className="text-sm font-bold header-font">صيام يوم كامل</span>
              </div>
              <span className="text-lg font-black font-mono">+{DEFAULT_WEIGHTS.fastingDay}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* السنن المخصصة والعوامل البيئية */}
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-6">
-          <Tags className="w-5 h-5 text-emerald-500" />
-          <h3 className="font-bold text-slate-800 header-font text-lg">السنن المخصصة والمجاهدة</h3>
-        </div>
-        <div className="space-y-4">
-          <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-2xl">
-            <h4 className="text-sm font-bold text-slate-700 mb-2 header-font">السنن المخصصة</h4>
-            <p className="text-[11px] text-slate-500 leading-relaxed font-bold">يمكنك إضافة عاداتك الخاصة (مثل بر الوالدين، صلة رحم) وتحديد نقاط لكل منها في "الإعدادات".</p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
-              <Zap className="w-5 h-5 text-rose-500 mb-2" />
-              <h4 className="text-[10px] font-bold text-rose-800 uppercase header-font">معامل المجاهدة</h4>
-              <p className="text-[11px] text-rose-700 font-bold">+5% أو +10% زيادة على إجمالي نقاط اليوم تقديراً للجهد في الظروف الصعبة.</p>
-            </div>
-            <div className="bg-rose-100 p-4 rounded-2xl border border-rose-200">
-              <Skull className="w-5 h-5 text-rose-600 mb-2" />
-              <h4 className="text-[10px] font-bold text-rose-900 uppercase header-font">اقتراف ذنوب</h4>
-              <p className="text-[11px] text-rose-800 font-bold">خصم نسبة مئوية (تحددها من الإعدادات) من إجمالي اليوم في حال تسجيل التقصير.</p>
-            </div>
           </div>
         </div>
       </div>
