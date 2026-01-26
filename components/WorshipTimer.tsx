@@ -60,7 +60,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const lastHeartbeatTimeRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
 
-  // مترجم الأنشطة لضمان ظهورها في نبض المحراب
+  // مترجم الأنشطة لضمان ظهورها في نبض المحراب العالمي
   const getActivityPulseKey = (activityId: string) => {
     switch(activityId) {
       case 'qiyamDuration': return 'qiyam';
@@ -139,24 +139,31 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const sendHeartbeat = async () => {
     if (!isSync || !isRunning || !userEmail || !navigator.onLine) return;
     const now = Date.now();
-    if (now - lastHeartbeatTimeRef.current < 1500) return; 
+    if (now - lastHeartbeatTimeRef.current < 2500) return; 
     lastHeartbeatTimeRef.current = now;
 
     setSyncStatus('sending');
+    
+    // جلب البيانات اللازمة للهوية السحابية
+    const anonId = localStorage.getItem('worship_anon_id') || "";
+    const userDataStr = localStorage.getItem('worship_user');
+    const userName = userDataStr ? JSON.parse(userDataStr).name : "متسابق";
+
     try {
         const res = await fetch(GOOGLE_STATS_API, { 
             method: 'POST', 
-            keepalive: true,
+            mode: 'no-cors', // لضمان الإرسال السريع وتجاوز الـ CORS في وضع الـ Heartbeat
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ 
               action: 'heartbeat', 
-              activity: getActivityPulseKey(selectedActivity), // استخدام المترجم هنا
+              activity: getActivityPulseKey(selectedActivity),
+              id: anonId, // إضافة المعرف الفريد
+              name: userName, // إضافة اسم المستخدم
               email: userEmail.toLowerCase().trim(),
               timestamp: now 
             }) 
         });
-        if (res.ok) setSyncStatus('idle');
-        else setSyncStatus('error');
+        setSyncStatus('idle');
     } catch (e) {
       setSyncStatus('error');
     }
@@ -164,12 +171,17 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
 
   const sendStopSignal = async () => {
     if (!isSync || !userEmail || !navigator.onLine) return;
+    const anonId = localStorage.getItem('worship_anon_id') || "";
     try {
         await fetch(GOOGLE_STATS_API, { 
           method: 'POST', 
-          keepalive: true,
+          mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-          body: JSON.stringify({ action: 'stop', email: userEmail.toLowerCase().trim() }) 
+          body: JSON.stringify({ 
+            action: 'stop', 
+            id: anonId,
+            email: userEmail.toLowerCase().trim() 
+          }) 
         });
     } catch (e) {}
   };
@@ -179,7 +191,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
       requestWakeLock();
       if (isSync && userEmail) {
         sendHeartbeat();
-        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 2000);
+        // نبضة كل 4 ثوانٍ هي التوازن المثالي لسيرفرات جوجل
+        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 4000);
       }
     } else {
       releaseWakeLock();

@@ -60,14 +60,17 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       setIsRefreshing(true);
       if (globalTop.length === 0) setIsLoading(true);
     }
+
+    // جلب المعرف الفريد لضمان مطابقة السيرفر
+    const anonId = localStorage.getItem('worship_anon_id') || "";
     
     try {
-      // إرسال البيانات بشكل مرتب ومحدود لمنع التداخل مع شيت المستخدمين
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({
           action: 'getStats',
+          id: anonId, // المعرف الفريد
           email: user.email.toLowerCase().trim(),
           score: currentScore,
           name: user.name.trim()
@@ -101,8 +104,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    // تم تخفيض الوقت من 30000 إلى 2000 (ثانيتين) لتحديث الإحصائيات فوراً
-    const interval = setInterval(() => fetchGlobalData(true), 2000); 
+    const interval = setInterval(() => fetchGlobalData(true), 3000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
