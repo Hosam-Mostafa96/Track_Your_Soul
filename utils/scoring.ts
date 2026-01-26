@@ -25,12 +25,20 @@ export const calculatePrayerScore = (entry: PrayerEntry, hasBurden: boolean, wei
 export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT_WEIGHTS) => {
   const prayers = Object.values(log.prayers).reduce((sum, p) => sum + calculatePrayerScore(p as PrayerEntry, log.hasBurden, weights), 0);
   
+  // نقاط الحفظ الجديد (لكل ربع)
   const quranHifzPoints = (log.quran.hifzRub || 0) * weights.quranHifz;
+
+  // التكرار للوجه الجديد (في صفحة القرآن) - ضرب كل تكرارة في وزنها
   const repsPoints = (log.quran.todayReps || 0) * (weights.quranPageRepetition || 5);
+
+  // نقاط مراجعة الورد والربط (الأرباع المحددة يدوياً) - هنا تحسب كأرباع
   const manualRevisionPoints = (log.quran.tasksCompleted || [])
     .filter(id => id.startsWith('rabt_') || id.startsWith('mur_'))
     .length * weights.quranRevision;
+
+  // نقاط الورد المسجل رقمياً (أرباع)
   const revisionRubPoints = (log.quran.revisionRub || 0) * weights.quranRevision;
+  
   const quranTasksPoints = (log.quran.tasksCompleted || []).filter(id => !id.startsWith('rabt_') && !id.startsWith('mur_')).length * 50; 
   
   const knowledge = (log.knowledge.shariDuration * weights.knowledgeShari) + 
@@ -38,9 +46,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
                     ((log.knowledge.readingPages || 0) * (weights.pointsPerPage || 0));
   
   const athkarCheck = Object.values(log.athkar.checklists).filter(Boolean).length * weights.athkarChecklist;
-  
-  // حساب كافة العدادات ديناميكياً
-  const athkarCount = Object.values(log.athkar.counters || {}).reduce((sum, count) => sum + ((count as number) * weights.athkarCounter), 0);
+  const athkarCount = Object.values(log.athkar.counters).reduce((sum, count) => sum + ((count as number) * weights.athkarCounter), 0);
   
   const nawafilPrayers = (log.nawafil.duhaDuration + log.nawafil.witrDuration + log.nawafil.qiyamDuration) * weights.nawafilPerMin;
   const fasting = log.nawafil.fasting ? weights.fastingDay : 0;

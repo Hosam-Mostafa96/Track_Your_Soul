@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Star, Users, Clock, Book, GraduationCap, Plus, Minus, Heart, ShieldAlert,
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
-  CalendarDays, ChevronRight, ChevronLeft, Trash2, X, Check,
-  Bed, BookOpen
+  CalendarDays, ChevronRight, ChevronLeft, Edit3, Trash2, X, Check,
+  Skull, Bed, BookOpen
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights, SleepSession } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
@@ -32,31 +32,10 @@ const PRAYER_SUNNAHS: Record<string, {id: string, label: string}[]> = {
   [PrayerName.ISHA]: [{id: 'isha_post', label: 'سنة العشاء (ركعتان بعدية)'}]
 };
 
-const DEFAULT_DHIKR_LIST = [
-  { id: 'salawat', label: 'الصلاة على النبي' },
-  { id: 'hawqalah', label: 'الحوقلة' },
-  { id: 'tahlil', label: 'لا إله إلا الله' },
-  { id: 'baqiyat', label: 'الباقيات الصالحات' },
-  { id: 'istighfar', label: 'الاستغفار' }
-];
-
 const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdateWeights, currentDate, onDateChange }) => {
   const [activePrayer, setActivePrayer] = useState<PrayerName>(PrayerName.FAJR);
   const [sleepStart, setSleepStart] = useState('22:00');
   const [sleepEnd, setSleepEnd] = useState('04:30');
-  
-  const [isAddingSunnah, setIsAddingSunnah] = useState(false);
-  const [newSunnahName, setNewSunnahName] = useState('');
-  const [newSunnahPoints, setNewSunnahPoints] = useState('50');
-
-  const [isAddingDhikr, setIsAddingDhikr] = useState(false);
-  const [newDhikrName, setNewDhikrName] = useState('');
-  const [customDhikrs, setCustomDhikrs] = useState<{id: string, label: string, key: string}[]>([]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('worship_custom_dhikrs');
-    if (saved) setCustomDhikrs(JSON.parse(saved));
-  }, []);
 
   const updateSection = (section: keyof DailyLog, data: any) => {
     onUpdate({ ...log, [section]: { ...(log[section] as any), ...data } });
@@ -66,71 +45,91 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
     onUpdate({ ...log, prayers: { ...log.prayers, [name]: { ...log.prayers[name], ...data } } });
   };
 
-  const handleAddCustomDhikr = () => {
-    if (!newDhikrName.trim()) return;
-    const id = 'custom_' + Math.random().toString(36).substr(2, 9);
-    const newDhikr = { id, label: newDhikrName.trim(), key: id };
-    const updated = [...customDhikrs, newDhikr];
-    setCustomDhikrs(updated);
-    localStorage.setItem('worship_custom_dhikrs', JSON.stringify(updated));
-    setNewDhikrName('');
-    setIsAddingDhikr(false);
+  const toggleSunnah = (prayerName: PrayerName, sunnahId: string) => {
+    const currentSunnahs = log.prayers[prayerName].surroundingSunnahIds || [];
+    const newSunnahs = currentSunnahs.includes(sunnahId)
+      ? currentSunnahs.filter(id => id !== sunnahId)
+      : [...currentSunnahs, sunnahId];
+    updatePrayer(prayerName as PrayerName, { surroundingSunnahIds: newSunnahs });
   };
 
-  const handleDeleteCustomDhikr = (id: string) => {
-    if (window.confirm('هل تريد حذف هذا الذكر نهائياً؟')) {
-      const updated = customDhikrs.filter(d => d.id !== id);
-      setCustomDhikrs(updated);
-      localStorage.setItem('worship_custom_dhikrs', JSON.stringify(updated));
+  const addSleepSession = () => {
+    const newSession: SleepSession = {
+      id: Math.random().toString(36).substr(2, 9),
+      start: sleepStart,
+      end: sleepEnd
+    };
+    onUpdate({
+      ...log,
+      sleep: { sessions: [...(log.sleep?.sessions || []), newSession] }
+    });
+  };
+
+  const removeSleepSession = (id: string) => {
+    onUpdate({
+      ...log,
+      sleep: { sessions: (log.sleep?.sessions || []).filter(s => s.id !== id) }
+    });
+  };
+
+  const calculateSleepDuration = (start: string, end: string) => {
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+    let totalMins = (endH * 60 + endM) - (startH * 60 + startM);
+    if (totalMins < 0) totalMins += 24 * 60;
+    return totalMins / 60;
+  };
+
+  const totalSleepHours = (log.sleep?.sessions || []).reduce((acc, s) => acc + calculateSleepDuration(s.start, s.end), 0);
+
+  const getTranquilityLabel = (level: number) => {
+    const labels = ['غافل', 'شرود كثير', 'حضور أدنى', 'خاشع غالباً', 'خاشع جداً', 'إحسان (كأنك تراه)'];
+    return labels[level] || 'مستوى الخشوع';
+  };
+
+  const getSunnahIcon = (id: string) => {
+    switch(id) {
+      case 'adhan': return <MessageSquare className="w-3 h-3" />;
+      case 'dua_adhan': return <Clock className="w-3 h-3" />;
+      case 'early': return <Zap className="w-3 h-3 text-amber-500" />;
+      case 'first_row': return <MapPin className="w-3 h-3" />;
+      case 'takbir': return <Flame className="w-3 h-3 text-orange-500" />;
+      case 'adhkar_after': return <CheckCircle2 className="w-3 h-3 text-emerald-500" />;
+      case 'wudu': return <Droplets className="w-3 h-3 text-blue-400" />;
+      default: return <Sparkle className="w-3 h-3" />;
     }
   };
 
-  const counterItem = (label: string, field: string, icon: any, isCustom = false) => (
-    <div key={field} className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-transparent hover:border-slate-200 transition-all">
-      <div className="flex items-center gap-2 flex-1">
+  const counterItem = (label: string, field: keyof DailyLog['athkar']['counters'], icon: any) => (
+    <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-transparent hover:border-slate-200 transition-all">
+      <div className="flex items-center gap-2">
         <span className="text-emerald-600">{icon}</span>
-        <span className="text-xs font-bold text-slate-700 header-font truncate">{label}</span>
+        <span className="text-xs font-bold text-slate-700 header-font">{label}</span>
       </div>
       <div className="flex items-center gap-2">
         <button 
-          onClick={() => updateSection('athkar', { counters: { ...log.athkar.counters, [field]: Math.max(0, (log.athkar.counters[field] || 0) - 10) } })} 
+          onClick={() => updateSection('athkar', { counters: { ...log.athkar.counters, [field]: Math.max(0, log.athkar.counters[field] - 10) } })} 
           className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 active:scale-90 transition-all"
         >
           <Minus className="w-4 h-4 text-slate-500" />
         </button>
         <div className="bg-emerald-100/50 border border-emerald-200/50 rounded-xl px-3 py-1 min-w-[3.5rem] flex items-center justify-center">
-          <span className="text-lg font-black text-emerald-800 header-font tabular-nums">{log.athkar.counters[field] || 0}</span>
+          <span className="text-lg font-black text-emerald-800 header-font tabular-nums">{log.athkar.counters[field]}</span>
         </div>
         <button 
-          onClick={() => updateSection('athkar', { counters: { ...log.athkar.counters, [field]: (log.athkar.counters[field] || 0) + 10 } })} 
+          onClick={() => updateSection('athkar', { counters: { ...log.athkar.counters, [field]: log.athkar.counters[field] + 10 } })} 
           className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 active:scale-90 transition-all"
         >
           <Plus className="w-4 h-4 text-slate-500" />
         </button>
-        {isCustom && (
-          <button onClick={() => handleDeleteCustomDhikr(field)} className="p-2 text-rose-300 hover:text-rose-500 transition-colors">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        )}
       </div>
     </div>
   );
 
-  const toggleSunnah = (prayerName: PrayerName, sunnahId: string) => {
-    const currentSunnahs = log.prayers[prayerName].surroundingSunnahIds || [];
-    const newSunnahs = currentSunnahs.includes(sunnahId) ? currentSunnahs.filter(id => id !== sunnahId) : [...currentSunnahs, sunnahId];
-    updatePrayer(prayerName as PrayerName, { surroundingSunnahIds: newSunnahs });
-  };
-
-  const addSleepSession = () => {
-    const newSession: SleepSession = { id: Math.random().toString(36).substr(2, 9), start: sleepStart, end: sleepEnd };
-    onUpdate({ ...log, sleep: { sessions: [...(log.sleep?.sessions || []), newSession] } });
-  };
-
   const isPerformed = log.prayers[activePrayer].performed;
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in duration-500 text-right" dir="rtl">
+    <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       {/* سطر التاريخ */}
       <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-4">
         <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), -1), 'yyyy-MM-dd'))} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><ChevronRight className="w-5 h-5" /></button>
@@ -142,6 +141,22 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
           </div>
         </div>
         <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))} disabled={currentDate === format(new Date(), 'yyyy-MM-dd')} className={`p-2 rounded-xl transition-colors ${currentDate === format(new Date(), 'yyyy-MM-dd') ? 'text-slate-200 cursor-not-allowed' : 'hover:bg-slate-50 text-slate-400'}`}><ChevronLeft className="w-5 h-5" /></button>
+      </div>
+
+      {/* قسم النوم */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2"><div className="p-2 bg-indigo-50 rounded-xl"><Bed className="w-5 h-5 text-indigo-600" /></div><h3 className="font-bold text-slate-800 header-font text-lg">سجل النوم</h3></div>
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-100"><span className="text-xs font-black font-mono">{totalSleepHours.toFixed(1)}</span><span className="text-[9px] font-bold header-font">ساعة</span></div>
+        </div>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="flex flex-col gap-1"><label className="text-[10px] font-bold text-slate-400 header-font">من الساعة</label><input type="time" value={sleepStart} onChange={(e) => setSleepStart(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none" /></div>
+            <div className="flex flex-col gap-1"><label className="text-[10px] font-bold text-slate-400 header-font">إلى الساعة</label><input type="time" value={sleepEnd} onChange={(e) => setSleepEnd(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none" /></div>
+          </div>
+          <button onClick={addSleepSession} className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-xs header-font flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 active:scale-95 transition-all"><Plus className="w-4 h-4" /> إضافة فترة نوم</button>
+          {log.sleep?.sessions?.length > 0 && (<div className="space-y-2 mt-4">{log.sleep.sessions.map((s) => (<div key={s.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl animate-in slide-in-from-top duration-300"><div className="flex items-center gap-3"><div className="p-2 bg-indigo-50 rounded-lg"><Moon className="w-3.5 h-3.5 text-indigo-500" /></div><span className="text-xs font-bold text-slate-600 header-font">من {s.start} إلى {s.end}</span></div><div className="flex items-center gap-3"><span className="text-[10px] font-black text-indigo-700 font-mono">({calculateSleepDuration(s.start, s.end).toFixed(1)} س)</span><button onClick={() => removeSleepSession(s.id)} className="p-1.5 text-rose-400 hover:bg-rose-50 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button></div></div>))}</div>)}
+        </div>
       </div>
 
       {/* قسم الصلوات */}
@@ -164,71 +179,127 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
             <button onClick={() => updatePrayer(activePrayer as any, { inCongregation: !log.prayers[activePrayer].inCongregation })} className={`w-12 h-6 rounded-full transition-all relative ${log.prayers[activePrayer].inCongregation ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${log.prayers[activePrayer].inCongregation ? 'left-1' : 'left-7'}`}></div></button>
           </div>
           <div className="space-y-3"><div className="flex items-center gap-2 px-1"><Sparkle className="w-4 h-4 text-amber-500" /><h4 className="font-bold text-slate-700 text-[11px] header-font uppercase tracking-wider">السنن الرواتب</h4></div><div className="grid grid-cols-1 gap-2">{(PRAYER_SUNNAHS[activePrayer] || []).map((sunnah) => (<button key={sunnah.id} onClick={() => toggleSunnah(activePrayer as any, sunnah.id)} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${log.prayers[activePrayer].surroundingSunnahIds?.includes(sunnah.id) ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500'}`}><span className="text-xs font-bold header-font">{sunnah.label}</span></button>))}</div></div>
-          <div className="space-y-3 pt-2 border-t border-slate-100"><div className="flex items-center gap-2 px-1"><MapPin className="w-4 h-4 text-emerald-500" /><h4 className="font-bold text-slate-700 text-[11px] header-font uppercase tracking-wider">سنن ما حول الصلاة</h4></div><div className="flex flex-wrap gap-2">{SURROUNDING_SUNNAH_LIST.map((sunnah) => (<button key={sunnah.id} onClick={() => toggleSunnah(activePrayer as any, sunnah.id)} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] font-bold header-font ${log.prayers[activePrayer].surroundingSunnahIds?.includes(sunnah.id) ? 'bg-emerald-100 border-emerald-300 text-emerald-700' : 'bg-white border-slate-100 text-slate-400'}`}>{sunnah.label}</button>))}</div></div>
+          <div className="space-y-3 pt-2 border-t border-slate-100"><div className="flex items-center gap-2 px-1"><MapPin className="w-4 h-4 text-emerald-500" /><h4 className="font-bold text-slate-700 text-[11px] header-font uppercase tracking-wider">سنن ما حول الصلاة</h4></div><div className="flex flex-wrap gap-2">{SURROUNDING_SUNNAH_LIST.map((sunnah) => (<button key={sunnah.id} onClick={() => toggleSunnah(activePrayer as any, sunnah.id)} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] font-bold header-font ${log.prayers[activePrayer].surroundingSunnahIds?.includes(sunnah.id) ? 'bg-emerald-100 border-emerald-300 text-emerald-700' : 'bg-white border-slate-100 text-slate-400'}`}>{getSunnahIcon(sunnah.id)} {sunnah.label}</button>))}</div></div>
+          <div className="space-y-4 px-2 pt-4"><div className="flex justify-between items-center"><div className="flex items-center gap-2"><Heart className="w-4 h-4 text-rose-500" /><span className="text-sm font-bold text-slate-700 header-font">مستوى الخشوع</span></div><span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">{getTranquilityLabel(log.prayers[activePrayer].tranquility)}</span></div><input type="range" min="0" max="5" step="1" value={log.prayers[activePrayer].tranquility} onChange={(e) => updatePrayer(activePrayer as any, { tranquility: parseInt(e.target.value) })} className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-500" /></div>
         </div>
       </div>
 
-      {/* قسم الأذكار والتحصين مع إدارة الأذكار المخصصة */}
+      {/* قسم ورد القرآن */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2"><ScrollText className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">الأذكار والتحصين</h3></div>
-          <button 
-            onClick={() => setIsAddingDhikr(!isAddingDhikr)}
-            className={`p-2 rounded-xl transition-all ${isAddingDhikr ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-600'}`}
-          >
-            {isAddingDhikr ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          </button>
+        <div className="flex items-center gap-2 mb-6"><Book className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">ورد القرآن (بالأرباع)</h3></div>
+        <div className="space-y-4">
+          {[
+            { label: 'حفظ جديد', field: 'hifzRub' as const },
+            { label: 'ورد المراجعة', field: 'revisionRub' as const }
+          ].map(q => (
+            <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+              <span className="text-sm font-bold text-slate-700 header-font">{q.label}</span>
+              <div className="flex items-center gap-3">
+                <button onClick={() => updateSection('quran', { [q.field]: Math.max(0, (log.quran as any)[q.field] - 1) })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Minus className="w-4 h-4 text-slate-400" /></button>
+                <div className="bg-white border border-slate-200 rounded-xl px-4 py-1.5 min-w-[3.5rem] flex items-center justify-center">
+                  <span className="text-xl font-black text-slate-800 header-font tabular-nums">{(log.quran as any)[q.field] || 0}</span>
+                </div>
+                <button onClick={() => updateSection('quran', { [q.field]: ((log.quran as any)[q.field] || 0) + 1 })} className="p-2 bg-white border border-slate-200 rounded-xl shadow-sm"><Plus className="w-4 h-4 text-slate-400" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* استرجاع وتطوير قسم طلب العلم والقراءة */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-full -translate-y-12 translate-x-12 opacity-50"></div>
+        <div className="flex items-center gap-3 mb-6 relative z-10">
+          <div className="p-2 bg-purple-100 rounded-xl">
+            <GraduationCap className="w-6 h-6 text-purple-600" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 header-font text-lg">طلب العلم والقراءة</h3>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">تنمية العقل والروح</p>
+          </div>
         </div>
 
-        {isAddingDhikr && (
-          <div className="mb-6 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100 animate-in zoom-in duration-200">
-            <p className="text-[10px] font-black text-emerald-700 mb-3 header-font uppercase tracking-widest">إضافة ذكر جديد (سيظهر في السبحة أيضاً)</p>
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="اسم الذكر (مثلاً: سبحان الله وبحمده)" 
-                value={newDhikrName}
-                onChange={(e) => setNewDhikrName(e.target.value)}
-                className="flex-1 px-4 py-3 bg-white border border-emerald-100 rounded-xl text-xs font-bold outline-none"
-              />
-              <button onClick={handleAddCustomDhikr} className="p-3 bg-emerald-600 text-white rounded-xl active:scale-90 transition-all"><Check className="w-4 h-4" /></button>
+        <div className="space-y-4 relative z-10">
+          {/* العلم الشرعي */}
+          <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-2xl border border-purple-100">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <span className="text-sm font-black text-purple-900 header-font">طلب علم شرعي</span>
+              </div>
+              <span className="text-[9px] font-black text-purple-500 bg-white px-2 py-0.5 rounded-full border border-purple-100">10 نقاط / دقيقة</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 header-font">المدة بالدقائق:</span>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => updateSection('knowledge', { shariDuration: Math.max(0, log.knowledge.shariDuration - 10) })} 
+                  className="p-2 bg-white border border-purple-200 rounded-xl shadow-sm active:scale-90 transition-all"
+                >
+                  <Minus className="w-4 h-4 text-purple-600" />
+                </button>
+                <div className="bg-white border-2 border-purple-100 rounded-xl px-4 py-1.5 min-w-[4rem] flex items-center justify-center">
+                  <span className="text-xl font-black text-purple-900 font-mono">{log.knowledge.shariDuration || 0}</span>
+                </div>
+                <button 
+                  onClick={() => updateSection('knowledge', { shariDuration: (log.knowledge.shariDuration || 0) + 10 })} 
+                  className="p-2 bg-white border border-purple-200 rounded-xl shadow-sm active:scale-90 transition-all"
+                >
+                  <Plus className="w-4 h-4 text-purple-600" />
+                </button>
+              </div>
             </div>
           </div>
-        )}
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {(['morning', 'evening', 'sleep', 'travel'] as const).map(id => {
-            const labels: Record<string, {label: string, icon: any}> = { morning: { label: 'صباح', icon: <Sun className="w-4 h-4" /> }, evening: { label: 'مساء', icon: <Moon className="w-4 h-4" /> }, sleep: { label: 'نوم', icon: <Coffee className="w-4 h-4" /> }, travel: { label: 'سفر', icon: <MapPin className="w-4 h-4" /> } };
-            return (<button key={id} onClick={() => updateSection('athkar', { checklists: { ...log.athkar.checklists, [id]: !log.athkar.checklists[id] } })} className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${log.athkar.checklists[id] ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{labels[id].icon} <span className="text-xs font-bold header-font">{labels[id].label}</span></button>);
-          })}
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1 mb-2">
-            <Zap className="w-4 h-4 text-amber-500" />
-            <h4 className="text-[11px] font-black text-slate-400 uppercase header-font">العدادات الأساسية</h4>
-          </div>
-          {DEFAULT_DHIKR_LIST.map(d => counterItem(d.label, d.id, <Zap className="w-4 h-4" />))}
-          
-          {customDhikrs.length > 0 && (
-            <>
-              <div className="flex items-center gap-2 px-1 mt-6 mb-2">
-                <Sparkle className="w-4 h-4 text-emerald-500" />
-                <h4 className="text-[11px] font-black text-slate-400 uppercase header-font">أذكارك المخصوصة</h4>
+          {/* القراءة العامة */}
+          <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl border border-blue-100">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-black text-blue-900 header-font">قراءة كتب عامة</span>
               </div>
-              {customDhikrs.map(d => counterItem(d.label, d.key, <Sparkle className="w-4 h-4" />, true))}
-            </>
-          )}
+              <span className="text-[9px] font-black text-blue-500 bg-white px-2 py-0.5 rounded-full border border-blue-100">درجتان / دقيقة</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 header-font">المدة بالدقائق:</span>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => updateSection('knowledge', { readingDuration: Math.max(0, log.knowledge.readingDuration - 10) })} 
+                  className="p-2 bg-white border border-blue-200 rounded-xl shadow-sm active:scale-90 transition-all"
+                >
+                  <Minus className="w-4 h-4 text-blue-600" />
+                </button>
+                <div className="bg-white border-2 border-blue-100 rounded-xl px-4 py-1.5 min-w-[4rem] flex items-center justify-center">
+                  <span className="text-xl font-black text-blue-900 font-mono">{log.knowledge.readingDuration || 0}</span>
+                </div>
+                <button 
+                  onClick={() => updateSection('knowledge', { readingDuration: (log.knowledge.readingDuration || 0) + 10 })} 
+                  className="p-2 bg-white border border-blue-200 rounded-xl shadow-sm active:scale-90 transition-all"
+                >
+                  <Plus className="w-4 h-4 text-blue-600" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* باقي الأقسام كما هي */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-2 mb-6"><ScrollText className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">الأذكار والتحصين</h3></div>
+        <div className="grid grid-cols-2 gap-3 mb-6">{(['morning', 'evening', 'sleep', 'travel'] as const).map(id => {
+            const labels: Record<string, {label: string, icon: any}> = { morning: { label: 'صباح', icon: <Sun className="w-4 h-4" /> }, evening: { label: 'مساء', icon: <Moon className="w-4 h-4" /> }, sleep: { label: 'نوم', icon: <Coffee className="w-4 h-4" /> }, travel: { label: 'سفر', icon: <MapPin className="w-4 h-4" /> } };
+            return (<button key={id} onClick={() => updateSection('athkar', { checklists: { ...log.athkar.checklists, [id]: !log.athkar.checklists[id] } })} className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${log.athkar.checklists[id] ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{labels[id].icon} <span className="text-xs font-bold header-font">{labels[id].label}</span></button>);
+          })}</div>
+        <div className="space-y-3">{counterItem('الصلاة على النبي', 'salawat', <Zap className="w-4 h-4" />)}{counterItem('الحوقلة', 'hawqalah', <Zap className="w-4 h-4" />)}{counterItem('لا إله إلا الله', 'tahlil', <Zap className="w-4 h-4" />)}{counterItem('الباقيات الصالحات', 'baqiyat', <Zap className="w-4 h-4" />)}{counterItem('الاستغفار', 'istighfar', <Zap className="w-4 h-4" />)}</div>
+      </div>
+      
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><Clock className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">نوافل الصلاة والقيام</h3></div>
         <div className="space-y-4">{(['duhaDuration', 'witrDuration', 'qiyamDuration'] as const).map(field => {
             const labels: Record<string, string> = { duhaDuration: 'صلاة الضحى (دقيقة)', witrDuration: 'الوتر (دقيقة)', qiyamDuration: 'قيام الليل (دقيقة)' };
             return (<div key={field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl"><span className="text-xs font-bold text-slate-700 header-font">{labels[field]}</span><div className="flex items-center gap-3"><button onClick={() => updateSection('nawafil', { [field]: Math.max(0, log.nawafil[field] - 5) })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm"><Minus className="w-4 h-4 text-slate-400" /></button><div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center"><span className="text-base font-black text-slate-800 header-font tabular-nums">{log.nawafil[field]}</span></div><button onClick={() => updateSection('nawafil', { [field]: log.nawafil[field] + 5 })} className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm"><Plus className="w-4 h-4 text-slate-400" /></button></div></div>);
           })}
+          <button onClick={() => updateSection('nawafil', { fasting: !log.nawafil.fasting })} className={`w-full p-4 rounded-3xl border flex items-center justify-between mt-4 transition-all ${log.nawafil.fasting ? 'bg-orange-500 border-orange-500 text-white shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-500'}`}><div className="flex items-center gap-2"><Sun className="w-5 h-5" /><span className="font-bold text-sm header-font">صيام (نفل / قضاء)</span></div>{log.nawafil.fasting ? <CheckCircle2 className="w-5 h-5" /> : <div className="w-5 h-5 border-2 border-slate-300 rounded-full" />}</button>
         </div>
       </div>
     </div>

@@ -72,8 +72,8 @@ export interface AppWeights {
   surroundingSunnahs: Record<string, number>;
   quranHifz: number;
   quranRevision: number;
-  quranPageRepetition: number;
-  quranRubRepetition: number;
+  quranPageRepetition: number; // وزن تكرار الوجه الواحد
+  quranRubRepetition: number;  // وزن تكرار الربع الواحد
   knowledgeShari: number;
   knowledgeGeneral: number;
   athkarChecklist: number;
@@ -98,7 +98,7 @@ export interface DailyLog {
   knowledge: { shariDuration: number; readingDuration: number; readingPages?: number };
   athkar: {
     checklists: { morning: boolean; evening: boolean; sleep: boolean; travel: boolean };
-    counters: Record<string, number>; // تم التعديل لتصبح ديناميكية
+    counters: { salawat: number; hawqalah: number; tahlil: number; baqiyat: number; istighfar: number };
   };
   nawafil: { duhaDuration: number; witrDuration: number; qiyamDuration: number; fasting: boolean; custom: Array<{ id: string; value: number }> };
   sleep: { sessions: SleepSession[] };

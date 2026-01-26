@@ -42,10 +42,25 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
   const [isAddingDhikr, setIsAddingDhikr] = useState(false);
   const [newDhikrLabel, setNewDhikrLabel] = useState('');
   
+  // صمام أمان لمنع العد المتكرر في اللمسة الواحدة
   const lastClickTimeRef = useRef<number>(0);
 
+  // محاولة منع التدوير التلقائي عند دخول صفحة السبحة
   useEffect(() => {
-    // جلب الأذكار المخصصة المضافة من صفحة التسجيل
+    if (typeof screen !== 'undefined' && (screen as any).orientation && (screen as any).orientation.lock) {
+      (screen as any).orientation.lock('portrait').catch(() => {
+        console.log('Orientation lock not supported or requires full screen');
+      });
+    }
+    
+    return () => {
+      if (typeof screen !== 'undefined' && (screen as any).orientation && (screen as any).orientation.unlock) {
+        (screen as any).orientation.unlock();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const saved = localStorage.getItem('worship_custom_dhikrs');
     if (saved) {
       setCustomDhikrs(JSON.parse(saved));
@@ -56,13 +71,19 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     return [...DEFAULT_DHIKR_TYPES, ...customDhikrs];
   }, [customDhikrs]);
 
+  const safeCounters = log?.athkar?.counters || {
+    salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0
+  };
+
   const currentCount = selectedType.key 
-    ? (log.athkar.counters[selectedType.key] || 0)
+    ? (safeCounters as any)[selectedType.key] || 0
     : absoluteCount;
 
   const handleIncrement = (e: React.PointerEvent) => {
+    // منع السلوك الافتراضي مثل التكبير أو اختيار النص
     if (e.cancelable) e.preventDefault();
     
+    // منع تكرار العد: إذا كانت المسافة بين الضغطتين أقل من 50 مللي ثانية يتم تجاهلها
     const now = Date.now();
     if (now - lastClickTimeRef.current < 50) return;
     lastClickTimeRef.current = now;
@@ -73,16 +94,23 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
 
     const nextCount = currentCount + 1;
 
+    // اهتزاز أقوى عند كل 100
     if (nextCount > 0 && nextCount % 100 === 0 && typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate([100, 50, 100]); } catch(err) {}
     }
 
     if (selectedType.key) {
       const newLog = { ...log };
+      if (!newLog.athkar) newLog.athkar = { 
+        counters: { salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0 }, 
+        checklists: { morning: false, evening: false, sleep: false, travel: false } 
+      };
+      
       newLog.athkar.counters = {
         ...newLog.athkar.counters,
         [selectedType.key]: nextCount
       };
+      
       onUpdateLog(newLog);
     } else {
       setAbsoluteCount(nextCount);
@@ -108,7 +136,11 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
   const handleAddCustomDhikr = () => {
     if (!newDhikrLabel.trim()) return;
     const id = 'custom_' + Math.random().toString(36).substr(2, 9);
-    const newDhikr: DhikrType = { id, label: newDhikrLabel.trim(), key: id };
+    const newDhikr: DhikrType = {
+      id: id,
+      label: newDhikrLabel.trim(),
+      key: id 
+    };
     const updated = [...customDhikrs, newDhikr];
     setCustomDhikrs(updated);
     localStorage.setItem('worship_custom_dhikrs', JSON.stringify(updated));
@@ -129,7 +161,10 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
             <p className="text-[10px] text-slate-400 font-bold uppercase header-font">وردك محفوظ تلقائياً</p>
           </div>
         </div>
-        <button onClick={handleReset} className="p-3 bg-rose-50 rounded-full text-rose-500 active:scale-90 transition-all shadow-sm">
+        <button 
+          onClick={handleReset} 
+          className="p-3 bg-rose-50 rounded-full text-rose-500 active:scale-90 transition-all shadow-sm hover:bg-rose-100"
+        >
           <RotateCcw className="w-5 h-5" />
         </button>
       </div>
@@ -160,9 +195,9 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
               ))}
               <button 
                 onClick={() => { setIsAddingDhikr(true); setIsDropdownOpen(false); }}
-                className="w-full flex items-center justify-center gap-2 px-6 py-5 bg-emerald-50 text-emerald-700 text-xs font-black header-font"
+                className="w-full flex items-center justify-center gap-2 px-6 py-5 bg-emerald-50 text-emerald-700 text-xs font-black header-font hover:bg-emerald-100 transition-colors"
               >
-                <Plus className="w-4 h-4" /> إضافة ذكر جديد
+                <Plus className="w-4 h-4" /> إضافة ذكر مخصص
               </button>
             </div>
           </div>
@@ -177,7 +212,7 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
               value={newDhikrLabel}
               onChange={(e) => setNewDhikrLabel(e.target.value)}
               placeholder="اكتب الذكر الجديد هنا.."
-              className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none"
+              className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-emerald-500"
               autoFocus
             />
             <button onClick={handleAddCustomDhikr} className="p-3 bg-emerald-600 text-white rounded-xl"><Check className="w-4 h-4" /></button>
@@ -186,13 +221,16 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
         </div>
       )}
 
+      {/* منطقة النقر المحسنة: تم استخدام onPointerDown لتوحيد اللمس والماوس */}
       <div 
         onPointerDown={handleIncrement}
-        style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
-        className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-95 transition-all duration-75 group cursor-pointer overflow-hidden shadow-inner"
+        style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+        className="w-full aspect-square bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-[3rem] border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center relative active:scale-95 transition-all duration-75 group cursor-pointer overflow-hidden shadow-inner no-zoom"
       >
+        <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-active:opacity-100 transition-opacity pointer-events-none" />
+        
         <div className="relative z-10 flex flex-col items-center pointer-events-none">
-          <span className="text-[10rem] md:text-[12rem] font-black font-mono text-emerald-950 tracking-tighter tabular-nums leading-none">
+          <span className="text-[10rem] md:text-[12rem] font-black font-mono text-emerald-950 tracking-tighter tabular-nums drop-shadow-2xl leading-none">
             {currentCount.toLocaleString()}
           </span>
           <div className="mt-8 flex items-center gap-3">
@@ -201,16 +239,28 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
             <Sparkles className="w-6 h-6 text-emerald-400 animate-pulse" />
           </div>
         </div>
+
+        {currentCount > 0 && currentCount % 100 === 0 && (
+           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+             <div className="w-64 h-64 border-8 border-emerald-400 rounded-full animate-ping opacity-20"></div>
+           </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-rose-50 rounded-xl"><Target className="w-5 h-5 text-rose-500" /></div>
-          <div><p className="text-[10px] text-slate-400 font-bold header-font">منع التكرار</p><span className="text-xs font-black text-slate-700 header-font">نشط</span></div>
+          <div>
+            <p className="text-[10px] text-slate-400 font-bold header-font">منع التكرار</p>
+            <span className="text-xs font-black text-slate-700 header-font">نشط</span>
+          </div>
         </div>
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-3">
           <div className="p-2 bg-yellow-50 rounded-xl"><Zap className="w-5 h-5 text-yellow-600" /></div>
-          <div><p className="text-[10px] text-slate-400 font-bold header-font">مزامنة الورد</p><span className="text-xs font-black text-slate-700 header-font">تلقائي</span></div>
+          <div>
+            <p className="text-[10px] text-slate-400 font-bold header-font">قفل الاتجاه</p>
+            <span className="text-xs font-black text-slate-700 header-font">عمودي</span>
+          </div>
         </div>
       </div>
     </div>
