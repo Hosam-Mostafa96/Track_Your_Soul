@@ -126,7 +126,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const sendHeartbeat = async () => {
     if (!isSync || !isRunning || !userEmail || !navigator.onLine) return;
     const now = Date.now();
-    if (now - lastHeartbeatTimeRef.current < 2000) return; 
+    // تقليل الانتظار بين النبضات لدقة أعلى
+    if (now - lastHeartbeatTimeRef.current < 1000) return; 
     lastHeartbeatTimeRef.current = now;
 
     try {
@@ -161,7 +162,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
       requestWakeLock();
       if (isSync && userEmail) {
         sendHeartbeat();
-        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 5000);
+        // تم تقليله من 5000 إلى 2000ms (ثانيتين) لتحديث المحراب فوراً
+        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 2000);
       }
     } else {
       releaseWakeLock();
