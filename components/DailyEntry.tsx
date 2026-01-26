@@ -113,7 +113,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, customSunnahs = 
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl transition-all font-bold header-font text-xs ${isPerformed ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'bg-slate-100 text-slate-500'}`}
           >
             {isPerformed ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-            {isPerformed ? 'تمت الصلاة' :'اضغط للتفعيل'}
+            {isPerformed ? 'تمت الصلاة' :'اضغط هنا'}
           </button>
         </div>
 
