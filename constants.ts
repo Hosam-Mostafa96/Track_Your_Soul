@@ -2,7 +2,7 @@
 import { SurroundingSunnah, AppWeights } from './types';
 
 // الرابط الموحد للمزامنة والمحراب العالمي
-export const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbyfs6nlm36Z9dH-Ez6Q-FOLb9NrsTjdsmzbeYMlnX5MCIFV8w8SkL0qksT27x9pOfkQxQ/exec";
+export const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbxVefZkiMuMD4CtIqTpbk_QBhd1yeRc6EWXU6IlwfrkSk3sV6cM4oSEmz8-L0fIZNoxFQ/exec";
 
 export const DEFAULT_WEIGHTS: AppWeights = {
   fardCongregation: 2700,
