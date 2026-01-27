@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { GOOGLE_STATS_API } from '../constants';
+import { GOOGLE_STATS_API, DEFAULT_WEIGHTS } from '../constants';
 import confetti from 'canvas-confetti';
 
 interface WorshipTimerProps {
@@ -60,7 +60,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
   const [syncStatus, setSyncStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   
   const syncIntervalRef = useRef<number | null>(null);
-  const lastSyncTimeRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
 
   const requestWakeLock = async () => {
@@ -103,20 +102,31 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     }
   }, []);
 
+  // وظيفة المزامنة المتوافقة مع الكود الجديد للسيرفر
   const syncWithPulse = async () => {
     if (!isSync || !userEmail || !navigator.onLine) return;
     
     setSyncStatus('sending');
+    
+    // حساب النقاط المكتسبة حالياً من المؤقت لإضافتها للنقاط الإجمالية
+    // ليظهر الترتيب محدثاً في قائمة المتصدرين فوراً
+    const elapsedMins = seconds / 60;
+    let activityPoints = 0;
+    if (selectedActivity === 'shariDuration') activityPoints = elapsedMins * DEFAULT_WEIGHTS.knowledgeShari;
+    else if (selectedActivity === 'readingDuration') activityPoints = elapsedMins * DEFAULT_WEIGHTS.knowledgeGeneral;
+    else activityPoints = elapsedMins * DEFAULT_WEIGHTS.nawafilPerMin;
+
+    const liveTotalScore = Math.round(currentScore + activityPoints);
+
     try {
-      // إرسال طلب getStats الذي يقوم بتحديث بيانات المستخدم في Google Sheets
       const response = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
-          action: 'getStats',
+          action: 'getStats', // الإجراء الوحيد الذي يحدث البيانات ويجلب المتصدرين
           email: userEmail.toLowerCase().trim(),
           name: userName || "متسابق",
-          score: currentScore // إرسال النقاط الحالية ليتم تحديثها فوراً
+          score: liveTotalScore // إرسال النقاط الحية
         })
       });
 
@@ -135,10 +145,10 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     if (isRunning) {
       requestWakeLock();
       if (isSync && userEmail) {
-        // نبضة أولية فور البدء
+        // مزامنة فورية عند البدء
         syncWithPulse();
-        // تكرار المزامنة كل 10 ثوانٍ لضمان بقاء المستخدم نشطاً في "نبض المحراب"
-        syncIntervalRef.current = window.setInterval(syncWithPulse, 10000);
+        // تكرار كل 15 ثانية لضمان "نبض" مستمر في السيرفر
+        syncIntervalRef.current = window.setInterval(syncWithPulse, 15000);
       }
     } else {
       releaseWakeLock();
@@ -150,7 +160,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     return () => {
       if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
     };
-  }, [isRunning, isSync, userEmail, currentScore]);
+  }, [isRunning, isSync, userEmail, currentScore, selectedActivity]);
 
   const handleToggle = () => {
     onToggle();
@@ -207,14 +217,14 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </div>
-            <span className="text-[9px] font-black text-emerald-700 header-font uppercase tracking-tighter">نشط الآن</span>
+            <span className="text-[9px] font-black text-emerald-700 header-font uppercase tracking-tighter">بث حي</span>
           </div>
         )}
 
         <div className="absolute top-6 left-6">
           <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold shadow-sm border transition-all ${!isSync ? 'text-slate-400 bg-slate-50 border-slate-100' : syncStatus === 'error' ? 'text-rose-500 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'}`}>
             {isSync ? (isOnline ? (syncStatus === 'sending' ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />) : <WifiOff className="w-3.5 h-3.5" />) : <Globe className="w-3.5 h-3.5" />}
-            {isSync && isOnline && (syncStatus === 'sending' ? 'يتم التزامن..' : 'محراب متصل')}
+            {isSync && isOnline && (syncStatus === 'sending' ? 'مزامنة..' : 'المحراب متصل')}
             {!isSync && 'غير متصل'}
           </div>
         </div>
