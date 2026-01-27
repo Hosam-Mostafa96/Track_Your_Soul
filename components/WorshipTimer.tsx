@@ -102,14 +102,11 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     }
   }, []);
 
-  // وظيفة المزامنة المتوافقة مع الكود الجديد للسيرفر
   const syncWithPulse = async () => {
     if (!isSync || !userEmail || !navigator.onLine) return;
     
     setSyncStatus('sending');
     
-    // حساب النقاط المكتسبة حالياً من المؤقت لإضافتها للنقاط الإجمالية
-    // ليظهر الترتيب محدثاً في قائمة المتصدرين فوراً
     const elapsedMins = seconds / 60;
     let activityPoints = 0;
     if (selectedActivity === 'shariDuration') activityPoints = elapsedMins * DEFAULT_WEIGHTS.knowledgeShari;
@@ -123,10 +120,10 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
-          action: 'getStats', // الإجراء الوحيد الذي يحدث البيانات ويجلب المتصدرين
+          action: 'getStats', 
           email: userEmail.toLowerCase().trim(),
           name: userName || "متسابق",
-          score: liveTotalScore // إرسال النقاط الحية
+          score: liveTotalScore
         })
       });
 
@@ -145,10 +142,8 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     if (isRunning) {
       requestWakeLock();
       if (isSync && userEmail) {
-        // مزامنة فورية عند البدء
         syncWithPulse();
-        // تكرار كل 15 ثانية لضمان "نبض" مستمر في السيرفر
-        syncIntervalRef.current = window.setInterval(syncWithPulse, 15000);
+        syncIntervalRef.current = window.setInterval(syncWithPulse, 20000);
       }
     } else {
       releaseWakeLock();
@@ -194,7 +189,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
             <div className="p-2 bg-amber-100 rounded-xl"><AlertTriangle className="w-5 h-5 text-amber-600" /></div>
             <div>
               <p className="text-xs font-bold text-amber-900 header-font">المزامنة معطلة</p>
-              <p className="text-[9px] text-amber-700 font-bold">لن تظهر في نبض المحراب العالمي.</p>
+              <p className="text-[9px] text-amber-700 font-bold">لن تظهر في القائمة العالمية.</p>
             </div>
           </div>
           <button onClick={() => window.location.hash = 'profile'} className="text-[10px] font-black text-amber-600 underline header-font">تفعيل الآن</button>
@@ -211,20 +206,10 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
           <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: timerMode === 'pomodoro' ? `${Math.min(100, (seconds / pomodoroGoal) * 100)}%` : isRunning ? `${(seconds % 60) * 1.66}%` : '0%' }} />
         </div>
         
-        {isRunning && isSync && (
-          <div className="absolute top-6 right-6 flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 shadow-sm animate-pulse">
-            <div className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </div>
-            <span className="text-[9px] font-black text-emerald-700 header-font uppercase tracking-tighter">بث حي</span>
-          </div>
-        )}
-
         <div className="absolute top-6 left-6">
           <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold shadow-sm border transition-all ${!isSync ? 'text-slate-400 bg-slate-50 border-slate-100' : syncStatus === 'error' ? 'text-rose-500 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'}`}>
             {isSync ? (isOnline ? (syncStatus === 'sending' ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />) : <WifiOff className="w-3.5 h-3.5" />) : <Globe className="w-3.5 h-3.5" />}
-            {isSync && isOnline && (syncStatus === 'sending' ? 'مزامنة..' : 'المحراب متصل')}
+            {isSync && isOnline && (syncStatus === 'sending' ? 'مزامنة..' : 'متصل')}
             {!isSync && 'غير متصل'}
           </div>
         </div>

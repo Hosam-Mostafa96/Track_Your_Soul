@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Sun, GraduationCap, Activity, Loader2, Star, RefreshCw, Sparkles, Quote, Medal, AlertCircle, Users } from 'lucide-react';
+import { Trophy, Crown, Loader2, Star, RefreshCw, Sparkles, Quote, Medal, AlertCircle } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -11,9 +11,6 @@ interface LeaderboardProps {
 }
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync }) => {
-  const [liveStats, setLiveStats] = useState({
-    qiyam: 0, duha: 0, knowledge: 0, athkar: 0, totalUsers: 0
-  });
   const [globalTop, setGlobalTop] = useState<any[]>([]);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,16 +58,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       if (globalTop.length === 0) setIsLoading(true);
     }
 
-    // جلب المعرف الفريد لضمان مطابقة السيرفر
-    const anonId = localStorage.getItem('worship_anon_id') || "";
-    
     try {
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({
           action: 'getStats',
-          id: anonId, // المعرف الفريد
           email: user.email.toLowerCase().trim(),
           score: currentScore,
           name: user.name.trim()
@@ -87,8 +80,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           const myEmail = user.email.toLowerCase().trim();
           const myIdx = sortedAll.findIndex(p => p.email === myEmail);
           setUserRank(myIdx !== -1 ? myIdx + 1 : null);
-
-          if (data.stats) setLiveStats(data.stats);
         }
       } else {
         throw new Error("Server error");
@@ -104,7 +95,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 3000); 
+    const interval = setInterval(() => fetchGlobalData(true), 15000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
@@ -147,44 +138,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           </div>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-5 px-2">
-             <div className="flex items-center gap-2.5">
-               <div className="relative flex items-center justify-center">
-                 <div className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping absolute"></div>
-                 <div className="w-2.5 h-2.5 bg-rose-500 rounded-full relative"></div>
-               </div>
-               <h3 className="text-sm font-black text-slate-800 header-font">نبض المحراب الآن</h3>
-             </div>
-             <button onClick={() => fetchGlobalData()} disabled={isRefreshing} className={`p-2 rounded-xl bg-slate-50 transition-all ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-300'}`}>
-               <RefreshCw className="w-4 h-4" />
-             </button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'يقيمون الليل', val: liveStats.qiyam, icon: <Activity className="w-4 h-4" />, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-              { label: 'يصلون الضحى', val: liveStats.duha, icon: <Sun className="w-4 h-4" />, color: 'text-amber-500', bg: 'bg-amber-50' },
-              { label: 'في طلب علم', val: liveStats.knowledge, icon: <GraduationCap className="w-4 h-4" />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-              { label: 'ذاكرون لله', val: liveStats.athkar, icon: <Activity className="w-4 h-4" />, color: 'text-rose-500', bg: 'bg-rose-50' }
-            ].map((s, i) => (
-              <div key={i} className="flex items-center gap-3 p-4 rounded-2xl border border-slate-50 bg-slate-50/20 group">
-                <div className={`p-2.5 rounded-xl ${s.bg} ${s.color} shrink-0 shadow-sm group-hover:scale-105 transition-transform`}>{s.icon}</div>
-                <div className="flex flex-col">
-                  <span className="text-lg font-black text-slate-800 font-mono leading-none">{s.val}</span>
-                  <span className="text-[9px] font-bold text-slate-400 header-font mt-1">{s.label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="space-y-4">
           <div className="flex items-center justify-between px-3">
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500" />
-              <h2 className="text-xl font-black header-font text-slate-800">قائمة المتصدرين</h2>
+              <h2 className="text-xl font-black header-font text-slate-800">قائمة المتصدرين اليوم</h2>
             </div>
-            <span className="text-[10px] font-black header-font bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full">{globalTop.length} متسابق</span>
+            <button 
+              onClick={() => fetchGlobalData()} 
+              disabled={isRefreshing}
+              className={`p-2 rounded-xl bg-white border border-slate-100 transition-all ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-400'}`}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
           </div>
           
           {globalTop.length > 0 ? (
@@ -223,12 +189,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                {isLoading ? (
                  <div className="flex flex-col items-center gap-2">
                    <Loader2 className="w-8 h-8 animate-spin text-emerald-300" />
-                   <span className="text-[10px] text-slate-400 font-bold header-font">جاري جلب قائمة المتصدرين..</span>
+                   <span className="text-[10px] text-slate-400 font-bold header-font">جاري جلب القائمة..</span>
                  </div>
                ) : (
                  <div className="flex flex-col items-center gap-2">
                    <p className="text-[10px] text-slate-400 font-bold header-font">لا توجد أسماء في القائمة حالياً.</p>
-                   <p className="text-[8px] text-slate-300 font-bold header-font tracking-tight">تأكد من الاتصال بالإنترنت والمزامنة.</p>
+                   <p className="text-[8px] text-slate-300 font-bold header-font tracking-tight">تأكد من الاتصال بالإنترنت.</p>
                  </div>
                )}
             </div>
