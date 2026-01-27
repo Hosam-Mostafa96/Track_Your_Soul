@@ -87,20 +87,13 @@ const App: React.FC = () => {
   // مراقبة حدث تثبيت التطبيق PWA
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
-      // منع المتصفح من إظهار النافذة التلقائية فوراً
       e.preventDefault();
-      // تخزين الحدث ليتم تفعيله بنقرة المستخدم
       setDeferredPrompt(e);
-      console.log('PWA Install prompt event captured');
     };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // التحقق إذا كان التطبيق مثبت بالفعل
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setDeferredPrompt(null);
     }
-
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
@@ -245,23 +238,33 @@ const App: React.FC = () => {
       case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
-      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { 
-        const newLog = {...currentLog}; 
-        if(field === 'shariDuration' || field === 'readingDuration') {
-          const f = field as keyof typeof newLog.knowledge;
-          newLog.knowledge = {
-            ...newLog.knowledge,
-            [f]: ((newLog.knowledge[f] as number) || 0) + mins
-          };
-        } else if(field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
-          const f = field as keyof typeof newLog.nawafil;
-          newLog.nawafil = {
-            ...newLog.nawafil,
-            [f]: ((newLog.nawafil[f] as number) || 0) + mins
-          };
-        }
-        updateLog(newLog); 
-      }} userEmail={user?.email} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />;
+      case 'timer': return <WorshipTimer 
+        isSync={isGlobalSyncEnabled} 
+        seconds={timerSeconds} 
+        isRunning={isTimerRunning} 
+        selectedActivity={activeActivity} 
+        onToggle={() => setIsTimerRunning(!isTimerRunning)} 
+        onReset={() => setTimerSeconds(0)} 
+        onActivityChange={setActiveActivity} 
+        onApplyTime={(field, mins) => { 
+          const newLog = {...currentLog}; 
+          if(field === 'shariDuration' || field === 'readingDuration') {
+            const f = field as keyof typeof newLog.knowledge;
+            newLog.knowledge = { ...newLog.knowledge, [f]: ((newLog.knowledge[f] as number) || 0) + mins };
+          } else if(field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
+            const f = field as keyof typeof newLog.nawafil;
+            newLog.nawafil = { ...newLog.nawafil, [f]: ((newLog.nawafil[f] as number) || 0) + mins };
+          }
+          updateLog(newLog); 
+        }} 
+        userEmail={user?.email} 
+        userName={user?.name}
+        currentScore={todayScore}
+        timerMode={timerMode} 
+        onTimerModeChange={setTimerMode} 
+        pomodoroGoal={pomodoroGoal} 
+        onPomodoroGoalChange={setPomodoroGoal} 
+      />;
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
       case 'quran': return <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />;
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => {

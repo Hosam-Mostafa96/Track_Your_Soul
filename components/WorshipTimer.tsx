@@ -16,7 +16,8 @@ import {
   Zap,
   Timer as PomodoroIcon,
   Globe,
-  AlertTriangle
+  AlertTriangle,
+  Activity
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -33,6 +34,8 @@ interface WorshipTimerProps {
   onApplyTime: (field: string, mins: number) => void;
   isSync: boolean;
   userEmail?: string;
+  userName?: string;
+  currentScore: number;
   timerMode: 'stopwatch' | 'pomodoro';
   onTimerModeChange: (mode: 'stopwatch' | 'pomodoro') => void;
   pomodoroGoal: number;
@@ -47,29 +50,18 @@ interface SessionRecord {
 }
 
 const WorshipTimer: React.FC<WorshipTimerProps> = ({ 
-  seconds, isRunning, selectedActivity, onToggle, onReset, onActivityChange, onApplyTime, isSync, userEmail,
+  seconds, isRunning, selectedActivity, onToggle, onReset, onActivityChange, onApplyTime, isSync, userEmail, userName, currentScore,
   timerMode, onTimerModeChange, pomodoroGoal, onPomodoroGoalChange
 }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [customMinutes, setCustomMinutes] = useState('25');
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'sending' | 'error'>('idle');
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   
-  const heartbeatIntervalRef = useRef<number | null>(null);
-  const lastHeartbeatTimeRef = useRef<number>(0);
+  const syncIntervalRef = useRef<number | null>(null);
+  const lastSyncTimeRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
-
-  // مترجم الأنشطة لضمان ظهورها في نبض المحراب العالمي
-  const getActivityPulseKey = (activityId: string) => {
-    switch(activityId) {
-      case 'qiyamDuration': return 'qiyam';
-      case 'duhaDuration': return 'duha';
-      case 'shariDuration': 
-      case 'readingDuration': return 'knowledge';
-      default: return 'athkar';
-    }
-  };
 
   const requestWakeLock = async () => {
     if ('wakeLock' in navigator) {
@@ -111,109 +103,60 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     }
   }, []);
 
-  useEffect(() => {
-    if (timerMode === 'pomodoro' && isRunning && seconds >= pomodoroGoal) {
-      handlePomodoroFinish();
-    }
-  }, [seconds, timerMode, isRunning, pomodoroGoal]);
-
-  const handlePomodoroFinish = () => {
-    const mins = Math.floor(pomodoroGoal / 60);
-    const newSession: SessionRecord = {
-      id: Math.random().toString(36).substring(7),
-      activity: selectedActivity,
-      duration: mins,
-      timestamp: Date.now()
-    };
-    setSessions(prev => {
-      const updated = [newSession, ...prev];
-      localStorage.setItem('worship_timer_sessions', JSON.stringify(updated));
-      return updated;
-    });
-    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-    onReset();
-    onApplyTime(selectedActivity, mins);
-    sendStopSignal();
-  };
-
-  const sendHeartbeat = async () => {
-    if (!isSync || !isRunning || !userEmail || !navigator.onLine) return;
-    const now = Date.now();
-    if (now - lastHeartbeatTimeRef.current < 2500) return; 
-    lastHeartbeatTimeRef.current = now;
-
-    setSyncStatus('sending');
+  const syncWithPulse = async () => {
+    if (!isSync || !userEmail || !navigator.onLine) return;
     
-    // جلب البيانات اللازمة للهوية السحابية
-    const anonId = localStorage.getItem('worship_anon_id') || "";
-    const userDataStr = localStorage.getItem('worship_user');
-    const userName = userDataStr ? JSON.parse(userDataStr).name : "متسابق";
-
+    setSyncStatus('sending');
     try {
-        const res = await fetch(GOOGLE_STATS_API, { 
-            method: 'POST', 
-            mode: 'no-cors', // لضمان الإرسال السريع وتجاوز الـ CORS في وضع الـ Heartbeat
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ 
-              action: 'heartbeat', 
-              activity: getActivityPulseKey(selectedActivity),
-              id: anonId, // إضافة المعرف الفريد
-              name: userName, // إضافة اسم المستخدم
-              email: userEmail.toLowerCase().trim(),
-              timestamp: now 
-            }) 
-        });
-        setSyncStatus('idle');
+      // إرسال طلب getStats الذي يقوم بتحديث بيانات المستخدم في Google Sheets
+      const response = await fetch(GOOGLE_STATS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'getStats',
+          email: userEmail.toLowerCase().trim(),
+          name: userName || "متسابق",
+          score: currentScore // إرسال النقاط الحالية ليتم تحديثها فوراً
+        })
+      });
+
+      if (response.ok) {
+        setSyncStatus('success');
+        setTimeout(() => setSyncStatus('idle'), 2000);
+      } else {
+        setSyncStatus('error');
+      }
     } catch (e) {
       setSyncStatus('error');
     }
-  };
-
-  const sendStopSignal = async () => {
-    if (!isSync || !userEmail || !navigator.onLine) return;
-    const anonId = localStorage.getItem('worship_anon_id') || "";
-    try {
-        await fetch(GOOGLE_STATS_API, { 
-          method: 'POST', 
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-          body: JSON.stringify({ 
-            action: 'stop', 
-            id: anonId,
-            email: userEmail.toLowerCase().trim() 
-          }) 
-        });
-    } catch (e) {}
   };
 
   useEffect(() => {
     if (isRunning) {
       requestWakeLock();
       if (isSync && userEmail) {
-        sendHeartbeat();
-        // نبضة كل 4 ثوانٍ هي التوازن المثالي لسيرفرات جوجل
-        heartbeatIntervalRef.current = window.setInterval(sendHeartbeat, 4000);
+        // نبضة أولية فور البدء
+        syncWithPulse();
+        // تكرار المزامنة كل 10 ثوانٍ لضمان بقاء المستخدم نشطاً في "نبض المحراب"
+        syncIntervalRef.current = window.setInterval(syncWithPulse, 10000);
       }
     } else {
       releaseWakeLock();
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-        heartbeatIntervalRef.current = null;
-        sendStopSignal();
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
+        syncIntervalRef.current = null;
       }
     }
     return () => {
-      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+      if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
     };
-  }, [isRunning, isSync, selectedActivity, userEmail]);
+  }, [isRunning, isSync, userEmail, currentScore]);
 
   const handleToggle = () => {
-    if (isRunning) sendStopSignal();
     onToggle();
   };
 
   const handleReset = () => {
-    sendStopSignal();
     onReset();
     releaseWakeLock();
   };
@@ -238,9 +181,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
       {!isSync && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between shadow-sm animate-in slide-in-from-top-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-100 rounded-xl">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
-            </div>
+            <div className="p-2 bg-amber-100 rounded-xl"><AlertTriangle className="w-5 h-5 text-amber-600" /></div>
             <div>
               <p className="text-xs font-bold text-amber-900 header-font">المزامنة معطلة</p>
               <p className="text-[9px] text-amber-700 font-bold">لن تظهر في نبض المحراب العالمي.</p>
@@ -266,14 +207,14 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </div>
-            <span className="text-[9px] font-black text-emerald-700 header-font uppercase tracking-tighter">Live Pulse</span>
+            <span className="text-[9px] font-black text-emerald-700 header-font uppercase tracking-tighter">نشط الآن</span>
           </div>
         )}
 
         <div className="absolute top-6 left-6">
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold shadow-sm border ${!isSync ? 'text-slate-400 bg-slate-50 border-slate-100' : isOnline ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-rose-500 bg-rose-50 border-rose-100'}`}>
-            {isSync ? (isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />) : <Globe className="w-3.5 h-3.5" />}
-            {isSync && isOnline && (syncStatus === 'sending' ? 'جاري البث..' : 'متصل بالمحراب')}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold shadow-sm border transition-all ${!isSync ? 'text-slate-400 bg-slate-50 border-slate-100' : syncStatus === 'error' ? 'text-rose-500 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'}`}>
+            {isSync ? (isOnline ? (syncStatus === 'sending' ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />) : <WifiOff className="w-3.5 h-3.5" />) : <Globe className="w-3.5 h-3.5" />}
+            {isSync && isOnline && (syncStatus === 'sending' ? 'يتم التزامن..' : 'محراب متصل')}
             {!isSync && 'غير متصل'}
           </div>
         </div>
@@ -318,7 +259,6 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
         </div>
       </div>
 
-      {/* جلساتك الأخيرة */}
       <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-2"><History className="w-5 h-5 text-slate-400" /><h3 className="text-sm font-black text-slate-800 header-font">جلساتك الأخيرة</h3></div></div>
         {sessions.length > 0 ? (
