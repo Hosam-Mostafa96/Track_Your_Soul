@@ -18,7 +18,10 @@ import {
   ShieldAlert,
   MapPin,
   Sparkle,
-  Smile
+  Smile,
+  ShieldCheck,
+  RefreshCw,
+  Wrench
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -36,7 +39,7 @@ import {
   Cell
 } from 'recharts';
 import { DailyLog, AppWeights, User, PrayerEntry, Book } from '../types';
-import { endOfDay, format, addDays } from 'date-fns';
+import { endOfDay, format, addDays, formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { calculateTotalScore } from '../utils/scoring';
 import { GOOGLE_STATS_API } from '../constants';
@@ -46,11 +49,13 @@ interface StatisticsProps {
   logs: Record<string, DailyLog>;
   weights: AppWeights;
   books: Book[]; 
+  lastSyncTime?: string | null;
+  onManualSync?: (force?: boolean) => void;
 }
 
 type ActivityType = 'all' | 'prayers' | 'quran' | 'knowledge' | 'fasting' | 'athkar' | 'sleep' | 'burden' | 'takbir' | 'mood';
 
-const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) => {
+const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, lastSyncTime, onManualSync }) => {
   const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'all'>('month');
   const [activityFilter, setActivityFilter] = useState<ActivityType>('all');
   const [isExporting, setIsExporting] = useState(false);
@@ -103,7 +108,6 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
       const d = addDays(new Date(), -i);
       const dStr = format(d, 'yyyy-MM-dd');
       const log = logs[dStr];
-      
       let totalHours = 0;
       if (log && log.sleep?.sessions) {
         log.sleep.sessions.forEach(s => {
@@ -114,11 +118,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
           totalHours += mins / 60;
         });
       }
-      
-      data.push({
-        date: format(d, 'dd MMM', { locale: ar }),
-        hours: parseFloat(totalHours.toFixed(1))
-      });
+      data.push({ date: format(d, 'dd MMM', { locale: ar }), hours: parseFloat(totalHours.toFixed(1)) });
     }
     return data;
   }, [logs]);
@@ -140,9 +140,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
           case 'all': isConnected = calculateTotalScore(log, weights) > 0; break;
           case 'mood': isConnected = (log.mood || 0) >= 4; break; 
           case 'prayers': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.performed); break;
-          case 'takbir': 
-            isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.surroundingSunnahIds?.includes('takbir')); 
-            break;
+          case 'takbir': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.surroundingSunnahIds?.includes('takbir')); break;
           case 'quran': isConnected = ((log.quran.hifzRub || 0) + log.quran.revisionRub) > 0; break;
           case 'knowledge': isConnected = (log.knowledge.shariDuration + log.knowledge.readingDuration) > 0; break;
           case 'fasting': isConnected = log.nawafil.fasting; break;
@@ -156,45 +154,68 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
     });
   }, [logs, weights, activityFilter]);
 
-  const handleCloudBackup = async () => {
+  const handleCloudBackup = async (force = false) => {
     if (!user?.email || !navigator.onLine) return;
+    if (force && !window.confirm("سيقوم هذا الإجراء بإعادة ترتيب بياناتك في السحابة وإصلاح أي تداخل في السجلات. هل أنت متأكد؟")) return;
+    
     setIsExporting(true);
-    try {
-      const email = user.email.toLowerCase().trim();
-      const res = await fetch(GOOGLE_STATS_API, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ 
-          action: 'syncLogs', 
-          email: email, 
-          logs: JSON.stringify(logs),
-          books: JSON.stringify(books)
-        }) 
-      });
-      if (res.ok) {
-        alert("تم حفظ نسخة احتياطية سحابية بنجاح.");
-      } else {
-        throw new Error("Failed to backup");
-      }
-    } catch (e) { 
-      console.error("Backup error:", e);
-      alert("حدث خطأ أثناء المزامنة، يرجى التحقق من الاتصال."); 
-    } finally { 
-      setIsExporting(false); 
+    if (onManualSync) {
+      await onManualSync(force);
+      setIsExporting(false);
+      if(force) alert("تمت عملية الإصلاح والرفع القسري بنجاح.");
+    } else {
+      try {
+        const res = await fetch(GOOGLE_STATS_API, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ 
+            action: 'syncLogs', 
+            email: user.email.toLowerCase().trim(), 
+            logs: JSON.stringify(logs),
+            books: JSON.stringify(books),
+            forceUpdate: force
+          }) 
+        });
+        if (res.ok) alert(force ? "تم الإصلاح بنجاح." : "تم المزامنة بنجاح.");
+      } catch (e) { alert("خطأ في المزامنة."); }
+      finally { setIsExporting(false); }
     }
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 text-right" dir="rtl">
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-emerald-100 rounded-xl"><BarChart3 className="w-6 h-6 text-emerald-600" /></div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 header-font">بصمتك الروحية والبدنية</h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase header-font">أنماط الاتصال والانقطاع</p>
+      {/* بطاقة السحابة والمزامنة */}
+      <div className="bg-emerald-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
+              <ShieldCheck className="w-8 h-8 text-emerald-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold header-font">أمان بياناتك السحابية</h2>
+              <p className="text-[10px] text-emerald-200 font-bold">
+                {lastSyncTime ? `آخر مزامنة: ${formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true, locale: ar })}` : 'لم يتم المزامنة بعد'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => handleCloudBackup(true)} 
+              title="إصلاح تداخل السجلات السحابية"
+              className="p-3 bg-white/5 hover:bg-white/10 text-emerald-200 rounded-2xl transition-all active:scale-95"
+            >
+              <Wrench className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => handleCloudBackup(false)} 
+              disabled={isExporting}
+              className={`p-3 rounded-2xl transition-all ${isExporting ? 'bg-emerald-500/50' : 'bg-emerald-500 hover:bg-emerald-400 shadow-lg active:scale-95'}`}
+            >
+              {isExporting ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCw className="w-6 h-6" />}
+            </button>
           </div>
         </div>
-        <button onClick={handleCloudBackup} disabled={isExporting} title="نسخة احتياطية سحابية" className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all flex flex-col items-center gap-1">{isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CloudUpload className="w-5 h-5" />}<span className="text-[7px] font-bold header-font">مزامنة</span></button>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
@@ -214,14 +235,9 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
         </div>
         <div className="grid grid-cols-10 gap-2 mb-4">
           {consistencyGrid.map((day, i) => (
-            <div 
-              key={i} 
-              title={`${day.dateStr}`} 
-              className={`aspect-square rounded-md transition-all duration-300 hover:scale-110 cursor-help ${day.colorClass} shadow-sm border border-black/5`}
-            ></div>
+            <div key={i} title={`${day.dateStr}`} className={`aspect-square rounded-md transition-all duration-300 hover:scale-110 cursor-help ${day.colorClass} shadow-sm border border-black/5`}></div>
           ))}
         </div>
-        <p className="text-[9px] text-slate-400 font-bold text-center italic mt-2">استخدم الفلاتر أعلاه لمشاهدة التزامك بتكبيرة الإحرام أو فترات "السكينة" القلبية.</p>
       </div>
 
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 overflow-hidden relative group">

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   LayoutDashboard, 
   PenLine, 
@@ -26,7 +26,7 @@ import { ar } from 'date-fns/locale';
 
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User, Book } from './types';
 import { calculateTotalScore } from './utils/scoring';
-import { DEFAULT_WEIGHTS } from './constants';
+import { DEFAULT_WEIGHTS, GOOGLE_STATS_API } from './constants';
 import Dashboard from './components/Dashboard';
 import DailyEntry from './DailyEntry';
 import WorshipHistory from './components/WorshipHistory';
@@ -90,15 +90,13 @@ const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [lastCloudSync, setLastCloudSync] = useState<string | null>(localStorage.getItem('last_cloud_sync_time'));
 
-  // معرف أحدث إشعار متاح حالياً (يجب أن يطابق أعلى id في Notifications.tsx)
   const LATEST_NOTIF_ID = 5;
+  const syncTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
+    const handleBeforeInstallPrompt = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
@@ -112,13 +110,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     let interval: number | null = null;
-    if (isTimerRunning) {
-      interval = window.setInterval(() => {
-        setTimerSeconds(prev => prev + 1);
-      }, 1000);
-    } else if (interval) {
-      clearInterval(interval);
-    }
+    if (isTimerRunning) { interval = window.setInterval(() => setTimerSeconds(prev => prev + 1), 1000); }
     return () => { if (interval) clearInterval(interval); };
   }, [isTimerRunning]);
 
@@ -126,11 +118,9 @@ const App: React.FC = () => {
     const safeLoad = (key: string, fallback: any) => {
       try {
         const item = localStorage.getItem(key);
-        if (!item) return fallback;
-        return JSON.parse(item);
+        return item ? JSON.parse(item) : fallback;
       } catch (e) { return fallback; }
     };
-
     setLogs(safeLoad('worship_logs', {}));
     setBooks(safeLoad('worship_books', []));
     setTargetScore(safeLoad('worship_target', 13500));
@@ -138,71 +128,81 @@ const App: React.FC = () => {
     setIsGlobalSyncEnabled(safeLoad('worship_global_sync', true));
     setWeights(safeLoad('worship_weights', DEFAULT_WEIGHTS));
     setQuranPlan(localStorage.getItem('worship_quran_plan') as any || 'new_1');
-    
-    // التحقق من وجود إشعارات غير مقروءة
     const lastSeen = localStorage.getItem('last_seen_notification_id');
-    if (!lastSeen || parseInt(lastSeen) < LATEST_NOTIF_ID) {
-      setHasNewNotifications(true);
-    }
-
+    if (!lastSeen || parseInt(lastSeen) < LATEST_NOTIF_ID) setHasNewNotifications(true);
     setIsAppReady(true);
   }, []);
+
+  // وظيفة المزامنة التلقائية مع معالجة استباقية للتداخل في Google Sheets
+  const syncToCloud = async (currentLogs: any, currentBooks: any, force = false) => {
+    if (!user?.email || !navigator.onLine || !isGlobalSyncEnabled) return;
+    
+    // صمام أمان لمنع مسح البيانات السحابية ببيانات فارغة إذا لم تكن مقصودة
+    const logsCount = Object.keys(currentLogs).length;
+    if (!force && logsCount === 0) {
+      console.warn("Skipping sync: Local logs are empty. Use force sync to overwrite.");
+      return;
+    }
+
+    try {
+      const email = user.email.toLowerCase().trim();
+      // هيكل الطلب الموحد لضمان الترتيب الصحيح للأعمدة في Google Sheets
+      const payload = { 
+        action: 'syncLogs', 
+        email, 
+        logs: JSON.stringify(currentLogs),
+        books: JSON.stringify(currentBooks),
+        timestamp: new Date().toISOString(),
+        forceUpdate: force,
+        appVersion: '2.2.1'
+      };
+
+      const res = await fetch(GOOGLE_STATS_API, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload) 
+      });
+
+      if (res.ok) {
+        const now = new Date().toISOString();
+        setLastCloudSync(now);
+        localStorage.setItem('last_cloud_sync_time', now);
+      }
+    } catch (e) { console.error("Sync failed", e); }
+  };
 
   const updateLog = (updated: DailyLog) => {
     const newLogs = { ...logs, [updated.date]: updated };
     setLogs(newLogs);
     localStorage.setItem('worship_logs', JSON.stringify(newLogs));
+    
+    // جدولة المزامنة التلقائية مع Debounce
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = window.setTimeout(() => syncToCloud(newLogs, books), 5000);
   };
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
   const todayScore = calculateTotalScore(currentLog, weights);
 
   const hijriDate = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
-      day: 'numeric', month: 'long', year: 'numeric'
-    });
+    const formatter = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' });
     const parts = formatter.formatToParts(new Date());
-    let day = '', month = '';
-    parts.forEach(p => {
-      if(p.type === 'day') day = p.value;
-      if(p.type === 'month') month = p.value;
-    });
-    return `${day} ${month} 1447هـ`;
+    let d = '', m = '';
+    parts.forEach(p => { if(p.type === 'day') d = p.value; if(p.type === 'month') m = p.value; });
+    return `${d} ${m} 1447هـ`;
   }, []);
 
   const daysToRamadan = useMemo(() => {
-    const ramadanDate = new Date('2026-02-18'); 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diff = differenceInDays(ramadanDate, today);
+    const diff = differenceInDays(new Date('2026-02-18'), new Date().setHours(0,0,0,0));
     return Math.max(0, diff);
   }, []);
-
-  const navItems = [
-    {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
-    {id: 'entry', icon: PenLine, label: 'تسجيل'},
-    {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
-    {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
-    {id: 'subha', icon: Orbit, label: 'السبحة'},
-    {id: 'quran', icon: BookOpen, label: 'القرآن'},
-    {id: 'heart', icon: Heart, label: 'التزكية'},
-    {id: 'library', icon: Library, label: 'المكتبة'},
-    {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-    {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
-    {id: 'contact', icon: Send, label: 'تواصل'},
-  ];
 
   const handleUpdateBook = (book: Book, pagesReadToday: number) => {
     const updated = books.map(b => {
       if (b.id === book.id) {
         const newPages = Math.min(b.currentPages + pagesReadToday, b.totalPages);
         const isNowFinished = newPages >= b.totalPages;
-        return {
-          ...b,
-          currentPages: newPages,
-          isFinished: isNowFinished,
-          finishDate: isNowFinished ? new Date().toISOString() : b.finishDate
-        };
+        return { ...b, currentPages: newPages, isFinished: isNowFinished, finishDate: isNowFinished ? new Date().toISOString() : b.finishDate };
       }
       return b;
     });
@@ -211,6 +211,7 @@ const App: React.FC = () => {
     const newLog = { ...currentLog };
     newLog.knowledge = { ...newLog.knowledge, readingPages: (newLog.knowledge.readingPages || 0) + pagesReadToday };
     updateLog(newLog);
+    syncToCloud(logs, updated);
   };
 
   const handleAddBook = (title: string, totalPages: number) => {
@@ -218,6 +219,7 @@ const App: React.FC = () => {
     const updated = [...books, newBook];
     setBooks(updated);
     localStorage.setItem('worship_books', JSON.stringify(updated));
+    syncToCloud(logs, updated);
   };
 
   const handleDeleteBook = (id: string) => {
@@ -225,6 +227,7 @@ const App: React.FC = () => {
       const updated = books.filter(b => b.id !== id);
       setBooks(updated);
       localStorage.setItem('worship_books', JSON.stringify(updated));
+      syncToCloud(logs, updated);
     }
   };
 
@@ -238,7 +241,7 @@ const App: React.FC = () => {
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
       case 'quran': return <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />;
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const book = books.find(b => b.id === id); if (book) handleUpdateBook(book, pages); }} />;
-      case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} />;
+      case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
       case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} />;
       case 'history': return <WorshipHistory logs={logs} weights={weights} />;
@@ -268,7 +271,19 @@ const App: React.FC = () => {
       </header>
       <main className="px-4 -mt-8 relative z-20 max-w-2xl mx-auto">{renderContent()}</main>
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[98vw] no-scrollbar">
-        {navItems.map((tab) => (<button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.8rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}><tab.icon className="w-5 h-5" /><span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span></button>))}
+        {[
+          {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
+          {id: 'entry', icon: PenLine, label: 'تسجيل'},
+          {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
+          {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
+          {id: 'subha', icon: Orbit, label: 'السبحة'},
+          {id: 'quran', icon: BookOpen, label: 'القرآن'},
+          {id: 'heart', icon: Heart, label: 'التزكية'},
+          {id: 'library', icon: Library, label: 'المكتبة'},
+          {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
+          {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
+          {id: 'contact', icon: Send, label: 'تواصل'},
+        ].map((tab) => (<button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.8rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}><tab.icon className="w-5 h-5" /><span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span></button>))}
       </nav>
     </div>
   );
