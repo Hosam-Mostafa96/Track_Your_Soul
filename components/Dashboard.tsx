@@ -190,7 +190,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      {/* المستشار الذكي */}
+      {/* 1. المستشار الذكي */}
       <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[2rem] p-5 shadow-lg relative overflow-hidden">
         <div className="relative z-10 space-y-3">
           <div className="flex items-center gap-3 text-white">
@@ -203,7 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* الهدف اليومي */}
+      {/* 2. الهدف اليومي */}
       <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3">
@@ -231,7 +231,91 @@ const Dashboard: React.FC<DashboardProps> = ({
         <p className="text-[10px] text-slate-400 font-bold text-center">لقد أنجزت {Math.round(progressPercent)}% من هدفك الروحي</p>
       </div>
 
-      {/* مخطط الاستمرارية المطوّر */}
+      {/* 3. متابعة القراءة اليومية (تم تصغير المربع) */}
+      <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 relative overflow-hidden">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex gap-3">
+            <div className="p-2 bg-emerald-50 rounded-xl"><BookMarked className="w-5 h-5 text-emerald-600" /></div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 header-font leading-tight">متابعة القراءة</h3>
+              <p className="text-[9px] text-slate-400 font-bold header-font">دوّن صفحاتك المقروءة</p>
+            </div>
+          </div>
+          <button onClick={() => onSwitchTab('library')} className="flex items-center gap-1 text-emerald-600 font-bold text-[10px] header-font hover:underline">المكتبة <ChevronLeft className="w-3 h-3" /></button>
+        </div>
+        {activeBook ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-end">
+                <h4 className="text-[11px] font-bold text-slate-700 truncate max-w-[150px]">{activeBook.title}</h4>
+                <span className="text-[10px] font-black text-emerald-600 header-font">{Math.round((activeBook.currentPages / activeBook.totalPages) * 100)}%</span>
+              </div>
+              <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden shadow-inner">
+                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(activeBook.currentPages / activeBook.totalPages) * 100}%` }}></div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-slate-50 rounded-xl p-1 border border-transparent focus-within:bg-white focus-within:border-emerald-100 transition-all">
+                <input 
+                  type="number" 
+                  value={readingInput} 
+                  onChange={(e) => setReadingInput(e.target.value)} 
+                  placeholder="عدد الصفحات" 
+                  className="w-full bg-transparent px-3 py-2 text-xs font-bold header-font outline-none text-center placeholder:text-slate-300" 
+                />
+              </div>
+              <button onClick={handleUpdateReading} className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-md active:scale-90 transition-all shrink-0"><Check className="w-5 h-5 stroke-[3]" /></button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-4 border-2 border-dashed border-slate-100 rounded-2xl"><p className="text-[10px] text-slate-400 font-bold header-font">أضف كتاباً من المكتبة للبدء</p></div>
+        )}
+      </div>
+
+      {/* 4. أوسمة الأبرار اليوم */}
+      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-3 mb-6"><Award className="w-6 h-6 text-amber-500" /><h3 className="text-xl font-bold text-slate-800 header-font">أوسمة الأبرار اليوم</h3></div>
+        <div className="grid grid-cols-2 gap-3 md:gap-4">
+          {badges.map((badge) => (
+            <div key={badge.id} className={`relative flex flex-col items-center text-center p-5 rounded-[1.8rem] transition-all duration-300 border ${badge.active ? `bg-gradient-to-br ${badge.color} text-white border-transparent shadow-md` : 'bg-white border-slate-50 grayscale opacity-40'}`}>
+              {badge.active && <div className="absolute top-2 left-2 bg-white/20 p-1 rounded-full backdrop-blur-md"><CheckCircle2 className="w-3 h-3 text-white" /></div>}
+              <div className={`p-3 rounded-2xl mb-3 ${badge.active ? 'bg-white/20 text-white' : 'bg-slate-50 text-slate-300'}`}>{badge.active ? badge.icon : <Lock className="w-5 h-5" />}</div>
+              <h4 className="text-[12px] font-bold header-font mb-1 leading-tight">{badge.title}</h4>
+              <p className={`text-[8px] font-bold leading-relaxed px-1 opacity-80`}>{badge.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 5. مؤشر الطمأنينة القلبية (Mood Tracker) */}
+      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-amber-50 rounded-2xl"><CloudSun className="w-6 h-6 text-amber-600" /></div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 header-font">مؤشر الطمأنينة القلبية</h3>
+            <p className="text-[10px] text-slate-400 font-bold header-font">كيف وجدت قلبك اليوم بعد أورادك؟</p>
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center gap-2">
+          {moodConfig.map((m) => (
+            <button
+              key={m.value}
+              onClick={() => handleUpdateMood(m.value)}
+              className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all duration-300 ${log.mood === m.value ? `${m.bg} border-${m.color.split('-')[1]}-200 shadow-sm scale-110` : 'bg-white border-slate-50 grayscale opacity-40 hover:grayscale-0 hover:opacity-100'}`}
+            >
+              <div className={`${m.color} transition-transform duration-300 ${log.mood === m.value ? 'scale-125' : ''}`}>
+                {m.icon}
+              </div>
+              <span className={`text-[9px] font-black header-font ${log.mood === m.value ? m.color : 'text-slate-400'}`}>
+                {m.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 6. مخطط التطور الأسبوعي (في النهاية) */}
       <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -279,78 +363,6 @@ const Dashboard: React.FC<DashboardProps> = ({
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* مؤشر الطمأنينة القلبية (Mood Tracker) */}
-      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-amber-50 rounded-2xl"><CloudSun className="w-6 h-6 text-amber-600" /></div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 header-font">مؤشر الطمأنينة القلبية</h3>
-            <p className="text-[10px] text-slate-400 font-bold header-font">كيف وجدت قلبك اليوم بعد أورادك؟</p>
-          </div>
-        </div>
-        
-        <div className="flex justify-between items-center gap-2">
-          {moodConfig.map((m) => (
-            <button
-              key={m.value}
-              onClick={() => handleUpdateMood(m.value)}
-              className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all duration-300 ${log.mood === m.value ? `${m.bg} border-${m.color.split('-')[1]}-200 shadow-sm scale-110` : 'bg-white border-slate-50 grayscale opacity-40 hover:grayscale-0 hover:opacity-100'}`}
-            >
-              <div className={`${m.color} transition-transform duration-300 ${log.mood === m.value ? 'scale-125' : ''}`}>
-                {m.icon}
-              </div>
-              <span className={`text-[9px] font-black header-font ${log.mood === m.value ? m.color : 'text-slate-400'}`}>
-                {m.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* قسم تتبع القراءة */}
-      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100 relative">
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex gap-4">
-            <div className="p-3 bg-emerald-50 rounded-2xl"><BookMarked className="w-7 h-7 text-emerald-600" /></div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-800 header-font leading-tight">متابعة القراءة اليومية</h3>
-              <p className="text-[11px] text-slate-400 font-bold header-font">دوّن ما نهلت منه اليوم</p>
-            </div>
-          </div>
-          <button onClick={() => onSwitchTab('library')} className="flex items-center gap-1 text-emerald-600 font-bold text-xs header-font hover:underline">المكتبة <ChevronLeft className="w-4 h-4" /></button>
-        </div>
-        {activeBook ? (
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex justify-between items-end"><h4 className="text-sm font-bold text-slate-800 header-font">خريطة التزكية</h4><div className="text-right"><span className="text-xs font-black text-emerald-600 header-font">الإنجاز: {Math.round((activeBook.currentPages / activeBook.totalPages) * 100)}%</span></div></div>
-              <p className="text-[10px] font-bold text-slate-400 font-mono text-left mb-1">{activeBook.currentPages} / {activeBook.totalPages} صفحة</p>
-              <div className="w-full bg-slate-50 h-4 rounded-full overflow-hidden p-0.5 shadow-inner"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(activeBook.currentPages / activeBook.totalPages) * 100}%` }}></div></div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button onClick={handleUpdateReading} className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all shrink-0"><Check className="w-8 h-8 stroke-[3]" /></button>
-              <div className="flex-1 bg-slate-50 rounded-[1.5rem] p-1 border border-transparent focus-within:bg-white focus-within:border-emerald-100 transition-all"><input type="number" value={readingInput} onChange={(e) => setReadingInput(e.target.value)} placeholder="صفحات اليوم" className="w-full bg-transparent px-6 py-5 text-lg font-bold header-font outline-none text-center placeholder:text-slate-300" /></div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-6 border-2 border-dashed border-slate-100 rounded-3xl"><p className="text-xs text-slate-400 font-bold header-font">لا يوجد كتاب نشط.. أضف كتاباً من المكتبة</p></div>
-        )}
-      </div>
-
-      {/* أوسمة الأبرار اليوم */}
-      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-3 mb-6"><Award className="w-6 h-6 text-amber-500" /><h3 className="text-xl font-bold text-slate-800 header-font">أوسمة الأبرار اليوم</h3></div>
-        <div className="grid grid-cols-2 gap-3 md:gap-4">
-          {badges.map((badge) => (
-            <div key={badge.id} className={`relative flex flex-col items-center text-center p-5 rounded-[1.8rem] transition-all duration-300 border ${badge.active ? `bg-gradient-to-br ${badge.color} text-white border-transparent shadow-md` : 'bg-white border-slate-50 grayscale opacity-40'}`}>
-              {badge.active && <div className="absolute top-2 left-2 bg-white/20 p-1 rounded-full backdrop-blur-md"><CheckCircle2 className="w-3 h-3 text-white" /></div>}
-              <div className={`p-3 rounded-2xl mb-3 ${badge.active ? 'bg-white/20 text-white' : 'bg-slate-50 text-slate-300'}`}>{badge.active ? badge.icon : <Lock className="w-5 h-5" />}</div>
-              <h4 className="text-[12px] font-bold header-font mb-1 leading-tight">{badge.title}</h4>
-              <p className={`text-[8px] font-bold leading-relaxed px-1 opacity-80`}>{badge.desc}</p>
-            </div>
-          ))}
         </div>
       </div>
 

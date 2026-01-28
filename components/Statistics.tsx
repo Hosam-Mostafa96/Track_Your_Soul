@@ -17,7 +17,8 @@ import {
   Moon,
   ShieldAlert,
   MapPin,
-  Sparkle
+  Sparkle,
+  Smile
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -47,7 +48,7 @@ interface StatisticsProps {
   books: Book[]; 
 }
 
-type ActivityType = 'all' | 'prayers' | 'quran' | 'knowledge' | 'fasting' | 'athkar' | 'sleep' | 'burden' | 'takbir';
+type ActivityType = 'all' | 'prayers' | 'quran' | 'knowledge' | 'fasting' | 'athkar' | 'sleep' | 'burden' | 'takbir' | 'mood';
 
 const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) => {
   const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'all'>('month');
@@ -56,6 +57,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
 
   const activityOptions: { id: ActivityType; label: string; icon: any; color: string }[] = [
     { id: 'all', label: 'الالتزام العام', icon: <Activity className="w-3 h-3" />, color: 'emerald' },
+    { id: 'mood', label: 'الحالة القلبية', icon: <Smile className="w-3 h-3" />, color: 'amber' },
     { id: 'prayers', label: 'الصلوات', icon: <CheckCircle2 className="w-3 h-3" />, color: 'blue' },
     { id: 'takbir', label: 'تكبيرة الإحرام', icon: <Sparkle className="w-3 h-3" />, color: 'amber' },
     { id: 'quran', label: 'القرآن', icon: <BookOpen className="w-3 h-3" />, color: 'emerald' },
@@ -136,6 +138,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
       if (log) {
         switch (activityFilter) {
           case 'all': isConnected = calculateTotalScore(log, weights) > 0; break;
+          case 'mood': isConnected = (log.mood || 0) >= 4; break; 
           case 'prayers': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.performed); break;
           case 'takbir': 
             isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.surroundingSunnahIds?.includes('takbir')); 
@@ -148,7 +151,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
           case 'burden': isConnected = log.hasBurden; break;
         }
       }
-      const activeColor = { all: 'bg-emerald-500', prayers: 'bg-blue-500', takbir: 'bg-amber-500', quran: 'bg-emerald-600', knowledge: 'bg-purple-500', fasting: 'bg-orange-500', athkar: 'bg-rose-500', sleep: 'bg-indigo-500', burden: 'bg-rose-600' }[activityFilter];
+      const activeColor = { all: 'bg-emerald-500', mood: 'bg-amber-400', prayers: 'bg-blue-500', takbir: 'bg-amber-500', quran: 'bg-emerald-600', knowledge: 'bg-purple-500', fasting: 'bg-orange-500', athkar: 'bg-rose-500', sleep: 'bg-indigo-500', burden: 'bg-rose-600' }[activityFilter];
       return { date, isConnected, colorClass: isConnected ? activeColor : 'bg-slate-100', dateStr };
     });
   }, [logs, weights, activityFilter]);
@@ -218,7 +221,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books }) =
             ></div>
           ))}
         </div>
-        <p className="text-[9px] text-slate-400 font-bold text-center italic mt-2">استخدم الفلاتر أعلاه لمشاهدة التزامك بتكبيرة الإحرام أو أدائك في أيام العبء الروحي.</p>
+        <p className="text-[9px] text-slate-400 font-bold text-center italic mt-2">استخدم الفلاتر أعلاه لمشاهدة التزامك بتكبيرة الإحرام أو فترات "السكينة" القلبية.</p>
       </div>
 
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 overflow-hidden relative group">
