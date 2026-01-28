@@ -18,7 +18,8 @@ import {
   Send,
   Calendar,
   BookMarked,
-  Lightbulb
+  Lightbulb,
+  Heart
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -41,6 +42,7 @@ import BookLibrary from './components/BookLibrary';
 import Subha from './components/Subha';
 import QuranPage from './components/QuranPage';
 import Notifications from './components/Notifications';
+import HeartTazkiya from './components/HeartTazkiya';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -61,6 +63,11 @@ const INITIAL_LOG = (date: string): DailyLog => ({
     duhaDuration: 0, witrDuration: 0, qiyamDuration: 0, fasting: false, custom: []
   },
   sleep: { sessions: [] },
+  heartStates: {
+    deeds: { sincerity: [], reliance: [], patience: [], gratitude: [], love: [] },
+    diseases: { pride: [], envy: [], showingOff: [], malice: [] }
+  },
+  mood: 3,
   customSunnahIds: [],
   jihadFactor: JihadFactor.NORMAL,
   hasBurden: false,
@@ -71,7 +78,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide' | 'notifications';
+  type Tab = 'dashboard' | 'entry' | 'heart' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide' | 'notifications';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
@@ -84,22 +91,15 @@ const App: React.FC = () => {
   const [hasNewNotifications, setHasNewNotifications] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // مراقبة حدث تثبيت التطبيق PWA
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setDeferredPrompt(null);
-    }
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  // حالة المؤقت
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeActivity, setActiveActivity] = useState('qiyamDuration');
@@ -113,12 +113,10 @@ const App: React.FC = () => {
       interval = window.setInterval(() => {
         setTimerSeconds(prev => prev + 1);
       }, 1000);
-    } else {
-      if (interval) clearInterval(interval);
+    } else if (interval) {
+      clearInterval(interval);
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => { if (interval) clearInterval(interval); };
   }, [isTimerRunning]);
 
   useEffect(() => {
@@ -126,8 +124,7 @@ const App: React.FC = () => {
       try {
         const item = localStorage.getItem(key);
         if (!item) return fallback;
-        const parsed = JSON.parse(item);
-        return parsed;
+        return JSON.parse(item);
       } catch (e) { return fallback; }
     };
 
@@ -152,9 +149,7 @@ const App: React.FC = () => {
 
   const hijriDate = useMemo(() => {
     const formatter = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
+      day: 'numeric', month: 'long', year: 'numeric'
     });
     const parts = formatter.formatToParts(new Date());
     let day = '', month = '';
@@ -180,6 +175,7 @@ const App: React.FC = () => {
     {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
     {id: 'subha', icon: Orbit, label: 'السبحة'},
     {id: 'quran', icon: BookOpen, label: 'القرآن'},
+    {id: 'heart', icon: Heart, label: 'التزكية'},
     {id: 'library', icon: Library, label: 'المكتبة'},
     {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
     {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
@@ -202,31 +198,20 @@ const App: React.FC = () => {
     });
     setBooks(updated);
     localStorage.setItem('worship_books', JSON.stringify(updated));
-    
     const newLog = { ...currentLog };
-    newLog.knowledge = {
-      ...newLog.knowledge,
-      readingPages: (newLog.knowledge.readingPages || 0) + pagesReadToday
-    };
+    newLog.knowledge = { ...newLog.knowledge, readingPages: (newLog.knowledge.readingPages || 0) + pagesReadToday };
     updateLog(newLog);
   };
 
   const handleAddBook = (title: string, totalPages: number) => {
-    const newBook: Book = {
-      id: Math.random().toString(36).substr(2, 9),
-      title,
-      totalPages,
-      currentPages: 0,
-      startDate: new Date().toISOString(),
-      isFinished: false
-    };
+    const newBook: Book = { id: Math.random().toString(36).substr(2, 9), title, totalPages, currentPages: 0, startDate: new Date().toISOString(), isFinished: false };
     const updated = [...books, newBook];
     setBooks(updated);
     localStorage.setItem('worship_books', JSON.stringify(updated));
   };
 
   const handleDeleteBook = (id: string) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا الكتاب من مكتبتك؟')) {
+    if (window.confirm('حذف الكتاب؟')) {
       const updated = books.filter(b => b.id !== id);
       setBooks(updated);
       localStorage.setItem('worship_books', JSON.stringify(updated));
@@ -235,42 +220,14 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} />;
+      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onUpdateLog={updateLog} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
+      case 'heart': return <HeartTazkiya log={currentLog} onUpdate={updateLog} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
-      case 'timer': return <WorshipTimer 
-        isSync={isGlobalSyncEnabled} 
-        seconds={timerSeconds} 
-        isRunning={isTimerRunning} 
-        selectedActivity={activeActivity} 
-        onToggle={() => setIsTimerRunning(!isTimerRunning)} 
-        onReset={() => setTimerSeconds(0)} 
-        onActivityChange={setActiveActivity} 
-        onApplyTime={(field, mins) => { 
-          const newLog = {...currentLog}; 
-          if(field === 'shariDuration' || field === 'readingDuration') {
-            const f = field as keyof typeof newLog.knowledge;
-            newLog.knowledge = { ...newLog.knowledge, [f]: ((newLog.knowledge[f] as number) || 0) + mins };
-          } else if(field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') {
-            const f = field as keyof typeof newLog.nawafil;
-            newLog.nawafil = { ...newLog.nawafil, [f]: ((newLog.nawafil[f] as number) || 0) + mins };
-          }
-          updateLog(newLog); 
-        }} 
-        userEmail={user?.email} 
-        userName={user?.name}
-        currentScore={todayScore}
-        timerMode={timerMode} 
-        onTimerModeChange={setTimerMode} 
-        pomodoroGoal={pomodoroGoal} 
-        onPomodoroGoalChange={setPomodoroGoal} 
-      />;
+      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { const newLog = {...currentLog}; if(field === 'shariDuration' || field === 'readingDuration') { const f = field as keyof typeof newLog.knowledge; newLog.knowledge = { ...newLog.knowledge, [f]: ((newLog.knowledge[f] as number) || 0) + mins }; } else if(field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { const f = field as keyof typeof newLog.nawafil; newLog.nawafil = { ...newLog.nawafil, [f]: ((newLog.nawafil[f] as number) || 0) + mins }; } updateLog(newLog); }} userEmail={user?.email} userName={user?.name} currentScore={todayScore} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />;
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
       case 'quran': return <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />;
-      case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => {
-        const book = books.find(b => b.id === id);
-        if (book) handleUpdateBook(book, pages);
-      }} />;
+      case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const book = books.find(b => b.id === id); if (book) handleUpdateBook(book, pages); }} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
       case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} />;
@@ -283,20 +240,7 @@ const App: React.FC = () => {
   };
 
   if (!isAppReady) return <div className="min-h-screen bg-emerald-900 flex items-center justify-center"><Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /></div>;
-  if (!user) return <Onboarding installPrompt={deferredPrompt} onComplete={(u, restoredLogs, restoredBooks) => { 
-    setUser(u); 
-    localStorage.setItem('worship_user', JSON.stringify(u));
-    if (restoredLogs) {
-      const parsedLogs = JSON.parse(restoredLogs);
-      setLogs(parsedLogs);
-      localStorage.setItem('worship_logs', JSON.stringify(parsedLogs));
-    }
-    if (restoredBooks) {
-      const parsedBooks = JSON.parse(restoredBooks);
-      setBooks(parsedBooks);
-      localStorage.setItem('worship_books', JSON.stringify(parsedBooks));
-    }
-  }} />;
+  if (!user) return <Onboarding installPrompt={deferredPrompt} onComplete={(u, restoredLogs, restoredBooks) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); if (restoredLogs) { const parsedLogs = JSON.parse(restoredLogs); setLogs(parsedLogs); localStorage.setItem('worship_logs', JSON.stringify(parsedLogs)); } if (restoredBooks) { const parsedBooks = JSON.parse(restoredBooks); setBooks(parsedBooks); localStorage.setItem('worship_books', JSON.stringify(parsedBooks)); } }} />;
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
@@ -304,33 +248,12 @@ const App: React.FC = () => {
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-700 rounded-full -translate-y-16 translate-x-16 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col gap-4">
           <div className="flex items-center justify-between gap-2 w-full">
-            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0">
-              <UserCircle className="w-8 h-8 text-white" />
-            </button>
-            <div className="flex-1 flex flex-col items-center justify-center min-w-0">
-              <h1 className="text-sm sm:text-base md:text-xl font-black header-font text-center leading-tight whitespace-normal">
-                إدارة العبادات والأوراد
-              </h1>
-              <span className="text-[10px] sm:text-xs text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">
-                مرحباً، {user.name}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-               <button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button>
-              <button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button>
-            </div>
+            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0"><UserCircle className="w-8 h-8 text-white" /></button>
+            <div className="flex-1 flex flex-col items-center justify-center min-w-0"><h1 className="text-sm sm:text-base md:text-xl font-black header-font text-center leading-tight whitespace-normal">إدارة العبادات والأوراد</h1><span className="text-[10px] sm:text-xs text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">مرحباً، {user.name}</span></div>
+            <div className="flex items-center gap-1 shrink-0"><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
           </div>
-          <div className="flex flex-col items-center gap-1.5">
-             <div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div>
-             <div className="flex items-center gap-1 text-[10px] font-black text-emerald-50 uppercase tracking-widest bg-black/20 px-5 py-1.5 rounded-full border border-white/5 shadow-inner">باقٍ {daysToRamadan} يوم على رمضان 1447هـ 🌙</div>
-          </div>
-          <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="bg-yellow-400/20 p-2.5 rounded-2xl"><Sparkles className="w-6 h-6 text-yellow-400" /></div>
-              <div className="text-right"><p className="text-[10px] text-emerald-200 uppercase font-black header-font leading-none mb-1">الرصيد الروحي</p><span className="text-2xl font-black font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span></div>
-            </div>
-            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all border border-transparent hover:border-white/10"><p className="text-[10px] text-emerald-200 font-bold header-font leading-none mb-0.5">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p><p className="text-sm font-black header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p></button>
-          </div>
+          <div className="flex flex-col items-center gap-1.5"><div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div><div className="flex items-center gap-1 text-[10px] font-black text-emerald-50 uppercase tracking-widest bg-black/20 px-5 py-1.5 rounded-full border border-white/5 shadow-inner">باقٍ {daysToRamadan} يوم على رمضان 🌙</div></div>
+          <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl"><div className="flex items-center gap-3"><div className="bg-yellow-400/20 p-2.5 rounded-2xl"><Sparkles className="w-6 h-6 text-yellow-400" /></div><div className="text-right"><p className="text-[10px] text-emerald-200 uppercase font-black header-font leading-none mb-1">الرصيد الروحي</p><span className="text-2xl font-black font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span></div></div><button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all"><p className="text-[10px] text-emerald-200 font-bold header-font leading-none mb-0.5">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p><p className="text-sm font-black header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p></button></div>
         </div>
       </header>
       <main className="px-4 -mt-8 relative z-20 max-w-2xl mx-auto">{renderContent()}</main>

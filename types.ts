@@ -83,6 +83,7 @@ export interface AppWeights {
   burdenDeduction: number;
   customSunnahs: CustomSunnah[];
   pointsPerPage: number;
+  heartDeedPoint: number; 
 }
 
 export interface DailyLog {
@@ -102,6 +103,11 @@ export interface DailyLog {
   };
   nawafil: { duhaDuration: number; witrDuration: number; qiyamDuration: number; fasting: boolean; custom: Array<{ id: string; value: number }> };
   sleep: { sessions: SleepSession[] };
+  heartStates: {
+    deeds: Record<string, string[]>; 
+    diseases: Record<string, string[]>; 
+  };
+  mood?: number; // 1 to 5
   customSunnahIds: string[];
   jihadFactor: number;
   hasBurden: boolean;

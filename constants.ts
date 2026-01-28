@@ -29,7 +29,8 @@ export const DEFAULT_WEIGHTS: AppWeights = {
   fastingDay: 1000,
   burdenDeduction: 30,
   customSunnahs: [],
-  pointsPerPage: 2
+  pointsPerPage: 2,
+  heartDeedPoint: 200 // كل مستوى في عمل القلب بـ 200 نقطة
 };
 
 export const TRANQUILITY_MULTIPLIERS = {
