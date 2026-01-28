@@ -6,9 +6,9 @@ import {
   Star, Users, Clock, Book, GraduationCap, Zap, 
   LockKeyhole, Globe, Flame, BookOpen, ListChecks,
   Activity, Mail, MapPin, Calendar, Sparkles, Skull,
-  Repeat
+  Repeat, Database, AlertTriangle, FileJson, Check
 } from 'lucide-react';
-import { AppWeights, User as UserType } from '../types';
+import { AppWeights, User as UserType, DailyLog } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
 
 interface UserProfileProps {
@@ -23,12 +23,40 @@ interface UserProfileProps {
 const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, onToggleSync, onUpdateUser, onUpdateWeights }) => {
   const [localWeights, setLocalWeights] = useState<AppWeights>({ ...weights });
   const [showWeights, setShowWeights] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
   const [isSavedWeights, setIsSavedWeights] = useState(false);
+  const [importJson, setImportJson] = useState('');
+  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const handleSaveWeights = () => {
     onUpdateWeights(localWeights);
     setIsSavedWeights(true);
     setTimeout(() => setIsSavedWeights(false), 3000);
+  };
+
+  const handleManualImport = () => {
+    try {
+      const parsedLogs = JSON.parse(importJson);
+      // التأكد من أن التنسيق صحيح (مفتاح التاريخ يليه كائن السجل)
+      const firstKey = Object.keys(parsedLogs)[0];
+      if (typeof parsedLogs !== 'object' || (firstKey && !firstKey.match(/^\d{4}-\d{2}-\d{2}$/))) {
+        throw new Error("Invalid format");
+      }
+
+      const existingLogs = JSON.parse(localStorage.getItem('worship_logs') || '{}');
+      const mergedLogs = { ...parsedLogs, ...existingLogs };
+      
+      localStorage.setItem('worship_logs', JSON.stringify(mergedLogs));
+      setImportStatus('success');
+      setImportJson('');
+      setTimeout(() => {
+        setImportStatus('idle');
+        window.location.reload(); // إعادة تحميل لتنشيط البيانات الجديدة
+      }, 2000);
+    } catch (e) {
+      setImportStatus('error');
+      setTimeout(() => setImportStatus('idle'), 3000);
+    }
   };
 
   const resetWeights = () => {
@@ -95,10 +123,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
                 <span className="text-xs font-bold text-slate-600">{user?.country}</span>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-              <GraduationCap className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-bold text-slate-600">{user?.qualification}</span>
-            </div>
           </div>
           
           <div className="mt-8 w-full">
@@ -112,6 +136,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </div>
       </div>
 
+      {/* المزامنة السحابية */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 group">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -134,6 +159,61 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </div>
       </div>
 
+      {/* استعادة البيانات المتقدمة */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden">
+        <button 
+          onClick={() => setShowRecovery(!showRecovery)}
+          className="w-full flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-50 rounded-xl">
+              <Database className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="text-right">
+              <h3 className="font-bold text-slate-800 header-font">أدوات استعادة البيانات</h3>
+              <p className="text-[10px] text-slate-400 font-bold header-font">استرداد السجلات عبر كود JSON</p>
+            </div>
+          </div>
+          {showRecovery ? <ChevronUp className="w-5 h-5 text-slate-300" /> : <ChevronDown className="w-5 h-5 text-slate-300" />}
+        </button>
+
+        {showRecovery && (
+          <div className="mt-6 space-y-4 animate-in slide-in-from-top duration-300">
+            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+              <p className="text-[10px] text-amber-800 font-bold leading-relaxed">
+                هذه الخاصية مخصصة لاستعادة بياناتك إذا حصل تداخل في السحابة. قم بلصق كود السجلات (JSON) في المربع أدناه ثم اضغط استيراد. سيتم دمجها مع بياناتك الحالية.
+              </p>
+            </div>
+            
+            <div className="relative">
+              <textarea 
+                value={importJson}
+                onChange={(e) => setImportJson(e.target.value)}
+                placeholder="الصق كود السجلات هنا (JSON)..."
+                className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-mono focus:border-emerald-300 transition-all resize-none"
+              />
+              <FileJson className="absolute bottom-3 left-3 w-4 h-4 text-slate-300" />
+            </div>
+
+            <button 
+              onClick={handleManualImport}
+              disabled={!importJson.trim()}
+              className={`w-full py-4 rounded-2xl font-black header-font text-xs shadow-lg flex items-center justify-center gap-2 transition-all ${
+                importStatus === 'success' ? 'bg-emerald-500 text-white' : 
+                importStatus === 'error' ? 'bg-rose-500 text-white' :
+                importJson.trim() ? 'bg-slate-900 text-white active:scale-95' : 'bg-slate-100 text-slate-300'
+              }`}
+            >
+              {importStatus === 'success' ? <Check className="w-4 h-4" /> : <Database className="w-4 h-4" />}
+              {importStatus === 'success' ? 'تم استيراد البيانات بنجاح' : 
+               importStatus === 'error' ? 'خطأ في تنسيق الكود!' : 'استيراد السجلات الآن'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* تخصيص الأوزان */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <button 
           onClick={() => setShowWeights(!showWeights)}
@@ -153,8 +233,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
 
         {showWeights && (
           <div className="mt-6 space-y-8 animate-in slide-in-from-top duration-300">
-            
-            {/* قسم الصلوات */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <Star className="w-4 h-4 text-emerald-500" />
@@ -165,7 +243,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               {weightInput('السنة الراتبة (للواحدة)', localWeights.sunnahRawatib, (val) => setLocalWeights({ ...localWeights, sunnahRawatib: val }), <Sparkles className="w-4 h-4" />)}
             </div>
 
-            {/* قسم القرآن الكريم */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <BookOpen className="w-4 h-4 text-amber-500" />
@@ -173,19 +250,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               </div>
               {weightInput('الحفظ الجديد (ربع)', localWeights.quranHifz, (val) => setLocalWeights({ ...localWeights, quranHifz: val }), <Zap className="w-4 h-4" />)}
               {weightInput('المراجعة (ربع)', localWeights.quranRevision, (val) => setLocalWeights({ ...localWeights, quranRevision: val }), <Activity className="w-4 h-4" />)}
-              {weightInput('تكرار الوجه الواحد', localWeights.quranPageRepetition, (val) => setLocalWeights({ ...localWeights, quranPageRepetition: val }), <RotateCcw className="w-4 h-4" />)}
-              {/* Fix: Added Repeat to lucide-react imports */}
-              {weightInput('تكرار الربع الكامل', localWeights.quranRubRepetition, (val) => setLocalWeights({ ...localWeights, quranRubRepetition: val }), <Repeat className="w-4 h-4" />)}
-            </div>
-
-            {/* قسم النوافل والوقت */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-blue-500" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">النوافل والوقت</h4>
-              </div>
-              {weightInput('القيام/الضحى (دقيقة)', localWeights.nawafilPerMin, (val) => setLocalWeights({ ...localWeights, nawafilPerMin: val }), <Clock className="w-4 h-4" />)}
-              {weightInput('صيام اليوم الكامل', localWeights.fastingDay, (val) => setLocalWeights({ ...localWeights, fastingDay: val }), <Flame className="w-4 h-4" />)}
             </div>
 
             <div className="flex gap-4 pt-4">
@@ -197,7 +261,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               </button>
               <button 
                 onClick={handleSaveWeights}
-                className={`flex-1 py-3 rounded-2xl font-bold header-font text-xs flex items-center justify-center gap-2 shadow-lg transition-all ${isSavedWeights ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-white hover:bg-slate-900 active:scale-95'}`}
+                className={`flex-1 py-3 rounded-2xl font-bold header-font text-xs flex items-center justify-center gap-2 shadow-lg transition-all ${isSavedWeights ? 'bg-emerald-50 text-white' : 'bg-slate-800 text-white hover:bg-slate-900 active:scale-95'}`}
               >
                 {isSavedWeights ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                 {isSavedWeights ? 'تم الحفظ' : 'حفظ الإعدادات'}
