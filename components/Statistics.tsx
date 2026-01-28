@@ -21,7 +21,10 @@ import {
   Smile,
   ShieldCheck,
   RefreshCw,
-  Wrench
+  Wrench,
+  Download,
+  FileJson,
+  AlertTriangle
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -87,7 +90,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
     periodLogs.forEach(log => {
       counts.prayers += (Object.values(log.prayers) as PrayerEntry[]).filter(p => p.performed).length;
       counts.quran += ((log.quran.hifzRub || 0) + log.quran.revisionRub);
-      counts.knowledge += (log.knowledge.shariDuration + log.knowledge.readingDuration) / 30;
+      counts.knowledge += (log.knowledge.shariDuration + (log.knowledge.readingDuration || 0)) / 30;
       counts.fasting += log.nawafil.fasting ? 10 : 0;
       counts.dhikr += (Object.values(log.athkar.counters) as number[]).reduce((a, b) => a + b, 0) / 100;
     });
@@ -142,7 +145,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
           case 'prayers': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.performed); break;
           case 'takbir': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.surroundingSunnahIds?.includes('takbir')); break;
           case 'quran': isConnected = ((log.quran.hifzRub || 0) + log.quran.revisionRub) > 0; break;
-          case 'knowledge': isConnected = (log.knowledge.shariDuration + log.knowledge.readingDuration) > 0; break;
+          case 'knowledge': isConnected = (log.knowledge.shariDuration + (log.knowledge.readingDuration || 0)) > 0; break;
           case 'fasting': isConnected = log.nawafil.fasting; break;
           case 'athkar': isConnected = (Object.values(log.athkar.checklists) as boolean[]).some(v => v) || (Object.values(log.athkar.counters) as number[]).some(v => v > 0); break;
           case 'sleep': isConnected = (log.sleep?.sessions || []).length > 0; break;
@@ -156,63 +159,91 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
 
   const handleCloudBackup = async (force = false) => {
     if (!user?.email || !navigator.onLine) return;
-    if (force && !window.confirm("سيقوم هذا الإجراء بإعادة ترتيب بياناتك في السحابة وإصلاح أي تداخل في السجلات. هل أنت متأكد؟")) return;
+    if (force && !window.confirm("هذا الإجراء سيقوم بمسح أي بيانات مكررة في السحابة واستبدالها بنسخة نظيفة ومرتبة من جهازك. هل تود المتابعة؟")) return;
     
     setIsExporting(true);
-    if (onManualSync) {
-      await onManualSync(force);
-      setIsExporting(false);
-      if(force) alert("تمت عملية الإصلاح والرفع القسري بنجاح.");
-    } else {
-      try {
+    try {
+      if (onManualSync) {
+        await onManualSync(force);
+      } else {
+        const payload = { 
+          action: 'syncLogs', 
+          email: user.email.toLowerCase().trim(), 
+          logs: JSON.stringify(logs),
+          books: JSON.stringify(books),
+          forceUpdate: force,
+          timestamp: new Date().toISOString()
+        };
         const res = await fetch(GOOGLE_STATS_API, { 
           method: 'POST', 
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ 
-            action: 'syncLogs', 
-            email: user.email.toLowerCase().trim(), 
-            logs: JSON.stringify(logs),
-            books: JSON.stringify(books),
-            forceUpdate: force
-          }) 
+          body: JSON.stringify(payload) 
         });
-        if (res.ok) alert(force ? "تم الإصلاح بنجاح." : "تم المزامنة بنجاح.");
-      } catch (e) { alert("خطأ في المزامنة."); }
-      finally { setIsExporting(false); }
+        if (!res.ok) throw new Error("Sync failed");
+      }
+      if(force) alert("تم إصلاح التداخل وإعادة تنظيم السجلات السحابية بنجاح.");
+    } catch (e) { 
+      alert("خطأ في المزامنة. تأكد من اتصال الإنترنت.");
+    } finally { 
+      setIsExporting(false); 
     }
+  };
+
+  const handleDownloadBackup = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `mizan_backup_${format(new Date(), 'yyyy_MM_dd')}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 text-right" dir="rtl">
+      
       {/* بطاقة السحابة والمزامنة */}
       <div className="bg-emerald-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
-              <ShieldCheck className="w-8 h-8 text-emerald-400" />
+        <div className="relative z-10 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
+                <ShieldCheck className="w-8 h-8 text-emerald-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold header-font leading-tight">حالة البيانات السحابية</h2>
+                <p className="text-[10px] text-emerald-200 font-bold">
+                  {lastSyncTime ? `آخر مزامنة: ${formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true, locale: ar })}` : 'لم يتم المزامنة بعد'}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-bold header-font">أمان بياناتك السحابية</h2>
-              <p className="text-[10px] text-emerald-200 font-bold">
-                {lastSyncTime ? `آخر مزامنة: ${formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true, locale: ar })}` : 'لم يتم المزامنة بعد'}
-              </p>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => handleCloudBackup(true)} 
+                title="إصلاح تداخل السجلات السحابية"
+                disabled={isExporting}
+                className="p-3 bg-white/10 hover:bg-white/20 text-emerald-200 rounded-2xl transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wrench className="w-5 h-5" />}
+              </button>
+              <button 
+                onClick={() => handleCloudBackup(false)} 
+                disabled={isExporting}
+                className={`p-3 rounded-2xl transition-all ${isExporting ? 'bg-emerald-500/50' : 'bg-emerald-500 hover:bg-emerald-400 shadow-lg active:scale-95'}`}
+              >
+                {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          
+          <div className="grid grid-cols-1 gap-2">
             <button 
-              onClick={() => handleCloudBackup(true)} 
-              title="إصلاح تداخل السجلات السحابية"
-              className="p-3 bg-white/5 hover:bg-white/10 text-emerald-200 rounded-2xl transition-all active:scale-95"
+              onClick={handleDownloadBackup}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 hover:bg-white/20 rounded-2xl text-[10px] font-black header-font transition-all border border-white/5"
             >
-              <Wrench className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={() => handleCloudBackup(false)} 
-              disabled={isExporting}
-              className={`p-3 rounded-2xl transition-all ${isExporting ? 'bg-emerald-500/50' : 'bg-emerald-500 hover:bg-emerald-400 shadow-lg active:scale-95'}`}
-            >
-              {isExporting ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCw className="w-6 h-6" />}
+              <FileJson className="w-4 h-4 text-emerald-300" />
+              تحميل نسخة احتياطية (JSON) للجهاز
             </button>
           </div>
         </div>
@@ -237,6 +268,10 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
           {consistencyGrid.map((day, i) => (
             <div key={i} title={`${day.dateStr}`} className={`aspect-square rounded-md transition-all duration-300 hover:scale-110 cursor-help ${day.colorClass} shadow-sm border border-black/5`}></div>
           ))}
+        </div>
+        <div className="flex items-center gap-2 mt-4 p-3 bg-amber-50 rounded-2xl border border-amber-100">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+          <p className="text-[9px] text-amber-800 font-bold header-font leading-relaxed">إذا وجدت مربعات فارغة لأيام قمت بتسجيلها، استخدم أيقونة "مفتاح الربط" لإصلاح السحابة.</p>
         </div>
       </div>
 
