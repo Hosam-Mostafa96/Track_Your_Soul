@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Bell, 
   ChevronRight, 
@@ -14,7 +14,10 @@ import {
   PlusCircle,
   Smartphone,
   CalendarDays,
-  FileText
+  FileText,
+  Heart,
+  Activity,
+  Smile
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -24,33 +27,61 @@ interface NotificationsProps {
 }
 
 const Notifications: React.FC<NotificationsProps> = ({ onBack }) => {
-  // سجل التحديثات الفعلي للتطبيق
+  const [lastSeenId, setLastSeenId] = useState<number>(0);
+
+  // سجل التحديثات الشامل
   const notifications = [
     {
-      id: -1,
+      id: 5,
       type: 'feature',
-      title: 'وحدة الحفظ المرنة',
-      message: 'يمكنك الآن الاختيار بين حفظ "صفحة واحدة" أو "ربع حزب" يومياً، وسيقوم النظام بتعديل دعامة الربط والمراجعة القديمة تلقائياً لتناسب خطتك الجديدة.',
+      title: 'إعادة تنظيم الواجهة الرئيسية',
+      message: 'تم إعادة ترتيب بطاقات الصفحة الرئيسية (المستشار، الهدف، القراءة، الأوسمة، الطمأنينة) لتناسب تدفقك اليومي بشكل أفضل.',
       time: new Date(),
-      icon: <FileText className="w-5 h-5 text-emerald-500" />
+      icon: <Settings className="w-5 h-5 text-blue-500" />
     },
     {
-      id: 0,
+      id: 4,
+      type: 'feature',
+      title: 'ثمار القلوب: المحبة والمراقبة',
+      message: 'أضفنا مقامات "المحبة" و "الخشية والمراقبة" إلى قسم التزكية مع خطوات عملية محددة لكل مقام للارتقاء بحال قلبك.',
+      time: new Date(Date.now() - 1000 * 60 * 60 * 2),
+      icon: <Heart className="w-5 h-5 text-rose-500" />
+    },
+    {
+      id: 3,
+      type: 'feature',
+      title: 'مؤشر الطمأنينة والسكينة',
+      message: 'يمكنك الآن تتبع حالتك النفسية والقلبية يومياً في نهاية الصفحة الرئيسية وربطها بمدى التزامك بأورادك.',
+      time: new Date(Date.now() - 1000 * 60 * 60 * 5),
+      icon: <Smile className="w-5 h-5 text-amber-500" />
+    },
+    {
+      id: 2,
       type: 'update',
-      title: 'تحسينات الواجهة والمواعيد',
-      message: 'تم إصلاح تزاحم العنوان في شاشات الهواتف، وتصحيح موعد رمضان القادم (18 فبراير)، وضبط محرك التاريخ الهجري.',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 12),
-      icon: <Smartphone className="w-5 h-5 text-emerald-500" />
+      title: 'فلاتر ذكية في الإحصائيات',
+      message: 'تم إضافة فلاتر "العبء الروحي"، "تكبيرة الإحرام"، و"الحالة القلبية" في خريطة الالتزام لتحليل أدق لأنماط عبادتك.',
+      time: new Date(Date.now() - 1000 * 60 * 60 * 24),
+      icon: <Activity className="w-5 h-5 text-emerald-500" />
     },
     {
       id: 1,
       type: 'update',
-      title: 'تغيير المسمى الرسمي',
-      message: 'تم تغيير اسم التطبيق إلى "تطبيق إدارة العبادات والأوراد" ليكون أكثر شمولية ويعبر عن هويته الحقيقية.',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 24),
-      icon: <Settings className="w-5 h-5 text-blue-500" />
+      title: 'تطوير مخطط الاستمرارية',
+      message: 'المخطط الأسبوعي أصبح يدعم خط الهدف (Target Line) لمعرفة مدى اقترابك أو تجاوزك لهدفك اليومي بوضوح.',
+      time: new Date(Date.now() - 1000 * 60 * 60 * 48),
+      icon: <Target className="w-5 h-5 text-indigo-500" />
     }
   ];
+
+  useEffect(() => {
+    // جلب آخر معرف تم رؤيته
+    const savedId = localStorage.getItem('last_seen_notification_id');
+    if (savedId) setLastSeenId(parseInt(savedId));
+
+    // تحديث المعرف ليكون الأحدث عند الفتح (بمعنى تم القراءة)
+    const latestId = Math.max(...notifications.map(n => n.id));
+    localStorage.setItem('last_seen_notification_id', latestId.toString());
+  }, []);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-left duration-500 pb-20 text-right" dir="rtl">
@@ -75,30 +106,36 @@ const Notifications: React.FC<NotificationsProps> = ({ onBack }) => {
 
       {/* قائمة التنبيهات */}
       <div className="space-y-3">
-        {notifications.map((notif) => (
-          <div 
-            key={notif.id}
-            className="bg-white rounded-[2rem] p-5 shadow-sm border border-slate-50 hover:border-emerald-100 transition-all group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-slate-50 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                {notif.icon}
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-bold text-slate-800 header-font text-sm">{notif.title}</h3>
-                  <div className="flex items-center gap-1 text-[9px] text-slate-400 font-bold">
-                    <Clock className="w-3 h-3" />
-                    <span>{formatDistanceToNow(notif.time, { addSuffix: true, locale: ar } as any)}</span>
-                  </div>
+        {notifications.map((notif) => {
+          const isUnread = notif.id > lastSeenId;
+          return (
+            <div 
+              key={notif.id}
+              className={`bg-white rounded-[2rem] p-5 shadow-sm border transition-all group relative ${isUnread ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-50'}`}
+            >
+              {isUnread && (
+                <div className="absolute top-5 left-5 w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-sm"></div>
+              )}
+              <div className="flex items-start gap-4">
+                <div className={`p-3 rounded-2xl group-hover:scale-110 transition-transform duration-300 ${isUnread ? 'bg-emerald-100' : 'bg-slate-50'}`}>
+                  {notif.icon}
                 </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed font-bold header-font">
-                  {notif.message}
-                </p>
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className={`font-bold header-font text-sm ${isUnread ? 'text-emerald-900' : 'text-slate-800'}`}>{notif.title}</h3>
+                    <div className="flex items-center gap-1 text-[9px] text-slate-400 font-bold">
+                      <Clock className="w-3 h-3" />
+                      <span>{formatDistanceToNow(notif.time, { addSuffix: true, locale: ar } as any)}</span>
+                    </div>
+                  </div>
+                  <p className={`text-[11px] leading-relaxed font-bold header-font ${isUnread ? 'text-emerald-700' : 'text-slate-500'}`}>
+                    {notif.message}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* رسالة تشجيعية سفلية */}

@@ -14,7 +14,9 @@ import {
   Sunrise,
   HandMetal,
   CheckCircle2,
-  Circle
+  Circle,
+  Eye,
+  Flame
 } from 'lucide-react';
 import { DailyLog } from '../types';
 
@@ -51,11 +53,35 @@ const DEEDS_CONFIG: HeartConfig[] = [
     ]
   },
   { 
+    id: 'love', 
+    label: 'المحبة', 
+    desc: 'تعلق القلب بالله محبة وإجلالاً، وتقديم مراده على هوى النفس.', 
+    icon: <Heart className="w-5 h-5" />, 
+    color: 'rose',
+    tasks: [
+      { id: 'lov_1', label: 'سألت الله حبه وحب من يحبه وحب عمل يقربني إلى حبه.' },
+      { id: 'lov_2', label: 'آثرت طاعة الله على راحة بدني أو هوى نفسي حباً وشوقاً.' },
+      { id: 'lov_3', label: 'ناجيت ربي بكلمات الثناء والحب في خلوتي اليوم.' }
+    ]
+  },
+  { 
+    id: 'observation', 
+    label: 'الخشية والمراقبة', 
+    desc: 'استشعار نظر الله إليك في كل حركاتك وسكناتك، سراً وعلانية.', 
+    icon: <Eye className="w-5 h-5" />, 
+    color: 'blue',
+    tasks: [
+      { id: 'obs_1', label: 'راقبْتُ الله في خلوتي (عمل سر) كما أراقبه في علانيتي.' },
+      { id: 'obs_2', label: 'توقفت عن فعل أو قول مكروه فور تذكري أن الله يراني.' },
+      { id: 'obs_3', label: 'راقبت خواطر قلبي وحميتها من الأفكار التي لا ترضي الله.' }
+    ]
+  },
+  { 
     id: 'reliance', 
     label: 'التوكل', 
     desc: 'اعتماد القلب على الله مع الأخذ بالأسباب.', 
     icon: <HandMetal className="w-5 h-5" />, 
-    color: 'blue',
+    color: 'indigo',
     tasks: [
       { id: 'rel_1', label: 'فوضت أمراً مقلقاً لله بقلب مطمئن اليوم.' },
       { id: 'rel_2', label: 'بذلت مجهوداً في عملي مع اليقين أن النتيجة بيد الله.' },
@@ -67,7 +93,7 @@ const DEEDS_CONFIG: HeartConfig[] = [
     label: 'الصبر والرضا', 
     desc: 'حبس النفس عن السخط على أقدار الله.', 
     icon: <Droplets className="w-5 h-5" />, 
-    color: 'indigo',
+    color: 'emerald',
     tasks: [
       { id: 'pat_1', label: 'حبست لساني عن الشكوى لغير الله عند ضيق.' },
       { id: 'pat_2', label: 'صبرت على مشقة طاعة (كقيام أو صيام) دون تضجر.' },
@@ -79,7 +105,7 @@ const DEEDS_CONFIG: HeartConfig[] = [
     label: 'الشكر', 
     desc: 'ظهور أثر نعمة الله على الجوارح.', 
     icon: <Zap className="w-5 h-5" />, 
-    color: 'emerald',
+    color: 'amber',
     tasks: [
       { id: 'gra_1', label: 'عددت نعم الله عليّ اليوم وشكرته عليها سراً.' },
       { id: 'gra_2', label: 'استخدمت نعمة (مال، صحة، وقت) في طاعة الله.' },
@@ -148,6 +174,14 @@ const HeartTazkiya: React.FC<HeartTazkiyaProps> = ({ log, onUpdate }) => {
     const completedCount = log.heartStates?.[type]?.[config.id]?.length || 0;
     const isExpanded = expandedId === config.id;
 
+    // Helper function for color classes to ensure tailwind picks them up
+    const getBgColorClass = (color: string) => `bg-${color}-50`;
+    const getTextColorClass = (color: string) => `text-${color}-600`;
+    const getBorderColorClass = (color: string) => `border-${color}-300`;
+    const getActiveBorderClass = (color: string) => `border-${color}-200`;
+    const getDeepBgColorClass = (color: string) => `bg-${color}-500`;
+    const getTaskTextClass = (color: string) => `text-${color}-900`;
+
     return (
       <div key={config.id} className={`bg-white rounded-3xl p-5 shadow-sm border transition-all ${isExpanded ? `border-${config.color}-300` : 'border-slate-100 hover:border-slate-200'}`}>
         <button 
@@ -155,7 +189,7 @@ const HeartTazkiya: React.FC<HeartTazkiyaProps> = ({ log, onUpdate }) => {
           className="w-full flex items-center justify-between"
         >
           <div className="flex items-center gap-4">
-            <div className={`p-3 bg-${config.color}-50 text-${config.color}-600 rounded-2xl`}>
+            <div className={`p-3 rounded-2xl bg-${config.color}-50 text-${config.color}-600`}>
               {config.icon}
             </div>
             <div className="text-right">

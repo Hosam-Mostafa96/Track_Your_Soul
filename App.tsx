@@ -88,8 +88,11 @@ const App: React.FC = () => {
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
   const [isGlobalSyncEnabled, setIsGlobalSyncEnabled] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
-  const [hasNewNotifications, setHasNewNotifications] = useState(true);
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // معرف أحدث إشعار متاح حالياً (يجب أن يطابق أعلى id في Notifications.tsx)
+  const LATEST_NOTIF_ID = 5;
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
@@ -135,6 +138,13 @@ const App: React.FC = () => {
     setIsGlobalSyncEnabled(safeLoad('worship_global_sync', true));
     setWeights(safeLoad('worship_weights', DEFAULT_WEIGHTS));
     setQuranPlan(localStorage.getItem('worship_quran_plan') as any || 'new_1');
+    
+    // التحقق من وجود إشعارات غير مقروءة
+    const lastSeen = localStorage.getItem('last_seen_notification_id');
+    if (!lastSeen || parseInt(lastSeen) < LATEST_NOTIF_ID) {
+      setHasNewNotifications(true);
+    }
+
     setIsAppReady(true);
   }, []);
 
