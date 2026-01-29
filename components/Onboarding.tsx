@@ -14,7 +14,9 @@ import {
   ShieldCheck,
   CloudDownload,
   AlertCircle,
-  ChevronRight
+  ChevronRight,
+  MapPin,
+  GraduationCap
 } from 'lucide-react';
 import { User as UserType } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
@@ -59,8 +61,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, installPrompt }) =>
   const handleSubmitData = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateEmail(formData.email)) { setEmailError(true); return; }
-    if (!formData.name.trim() || !formData.email.trim() || !formData.age || !formData.country) {
-      alert("يرجى إكمال البيانات المطلوبة."); return;
+    if (!formData.name.trim() || !formData.email.trim() || !formData.age || !formData.country || !formData.city.trim() || !formData.qualification.trim()) {
+      alert("يرجى إكمال جميع البيانات المطلوبة (الاسم، الإيميل، العمر، الدولة، المدينة، المؤهل)."); return;
     }
     
     setIsSaving(true);
@@ -143,17 +145,23 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, installPrompt }) =>
               <h2 className="text-2xl font-black text-slate-800 header-font">بيانات المنتسب</h2>
             </div>
             <form onSubmit={handleSubmitData} className="space-y-4">
-              <input type="text" required value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="الاسم الثلاثي" className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm" />
-              <input type="email" required value={formData.email} onChange={handleEmailChange} placeholder="البريد الإلكتروني المعتمد" className={`w-full px-4 py-4 bg-slate-50 border ${emailError ? 'border-rose-300' : 'border-slate-100'} rounded-2xl outline-none font-bold header-font text-sm text-left`} />
+              <input type="text" required value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="الاسم الثلاثي" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm" />
+              <input type="email" required value={formData.email} onChange={handleEmailChange} placeholder="البريد الإلكتروني" className={`w-full px-4 py-3.5 bg-slate-50 border ${emailError ? 'border-rose-300' : 'border-slate-100'} rounded-2xl outline-none font-bold header-font text-sm text-left`} />
+              
               <div className="grid grid-cols-2 gap-3">
-                <input type="number" required value={formData.age} onChange={(e) => setFormData(p => ({ ...p, age: e.target.value }))} placeholder="العمر" className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm" />
-                <select required value={formData.country} onChange={(e) => setFormData(p => ({ ...p, country: e.target.value }))} className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm appearance-none">
+                <input type="number" required value={formData.age} onChange={(e) => setFormData(p => ({ ...p, age: e.target.value }))} placeholder="العمر" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm" />
+                <select required value={formData.country} onChange={(e) => setFormData(p => ({ ...p, country: e.target.value }))} className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm appearance-none">
                   <option value="" disabled>الدولة</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <button type="submit" disabled={isSaving || emailError || !formData.email} className="w-full py-5 rounded-2xl font-black header-font shadow-xl bg-emerald-600 text-white disabled:bg-slate-200">
-                {isSaving ? <div className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" /><span>جاري البحث عن بياناتك..</span></div> : "تأكيد تسجيل الدخول"}
+
+              <input type="text" required value={formData.city} onChange={(e) => setFormData(p => ({ ...p, city: e.target.value }))} placeholder="المدينة / المحافظة" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm" />
+              
+              <input type="text" required value={formData.qualification} onChange={(e) => setFormData(p => ({ ...p, qualification: e.target.value }))} placeholder="المؤهل الدراسي / الوظيفة" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold header-font text-sm" />
+
+              <button type="submit" disabled={isSaving || emailError || !formData.email} className="w-full py-5 mt-2 rounded-2xl font-black header-font shadow-xl bg-emerald-600 text-white disabled:bg-slate-200 active:scale-[0.98] transition-all">
+                {isSaving ? <div className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" /><span>جاري حفظ البيانات..</span></div> : "تأكيد تسجيل الدخول"}
               </button>
             </form>
           </div>

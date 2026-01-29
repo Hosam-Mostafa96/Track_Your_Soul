@@ -37,7 +37,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
   const handleManualImport = () => {
     try {
       const parsedLogs = JSON.parse(importJson);
-      // التأكد من أن التنسيق صحيح (مفتاح التاريخ يليه كائن السجل)
       const firstKey = Object.keys(parsedLogs)[0];
       if (typeof parsedLogs !== 'object' || (firstKey && !firstKey.match(/^\d{4}-\d{2}-\d{2}$/))) {
         throw new Error("Invalid format");
@@ -51,7 +50,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
       setImportJson('');
       setTimeout(() => {
         setImportStatus('idle');
-        window.location.reload(); // إعادة تحميل لتنشيط البيانات الجديدة
+        window.location.reload();
       }, 2000);
     } catch (e) {
       setImportStatus('error');
@@ -101,7 +100,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               <ShieldCheck className="w-4 h-4 text-white" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 header-font">{user?.name}</h2>
+          <h2 className="text-2xl font-bold text-slate-800 header-font text-center">{user?.name}</h2>
           <div className="flex items-center gap-2 mt-1">
              <span className="text-[10px] text-emerald-600 font-black header-font uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                {user?.method === 'google' ? 'موثق عبر جوجل' : 'موثق عبر الإيميل'}
@@ -113,6 +112,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               <Mail className="w-4 h-4 text-slate-400" />
               <span className="text-xs font-bold text-slate-600 truncate">{user?.email}</span>
             </div>
+            
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
                 <Calendar className="w-4 h-4 text-slate-400" />
@@ -122,6 +122,16 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
                 <MapPin className="w-4 h-4 text-slate-400" />
                 <span className="text-xs font-bold text-slate-600">{user?.country}</span>
               </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+              <MapPin className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-bold text-slate-600">{user?.city || 'المدينة غير محددة'}</span>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+              <GraduationCap className="w-4 h-4 text-purple-500" />
+              <span className="text-xs font-bold text-slate-600">{user?.qualification || 'المؤهل غير محدد'}</span>
             </div>
           </div>
           
@@ -150,7 +160,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
           </div>
           <button 
             onClick={() => onToggleSync(!isGlobalSync)}
-            className={`w-14 h-8 rounded-full transition-all relative ${isGlobalSync ? 'bg-emerald-500' : 'bg-slate-200'}`}
+            className={`w-14 h-8 rounded-full transition-all relative ${isGlobalSync ? 'bg-emerald-50' : 'bg-slate-200'}`}
           >
             <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-sm flex items-center justify-center ${isGlobalSync ? 'left-1' : 'left-7'}`}>
                 {isGlobalSync ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <ShieldCheck className="w-3 h-3 text-slate-300" />}
@@ -158,8 +168,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
           </button>
         </div>
       </div>
-
-      {/* استعادة البيانات المتقدمة */}
+      
+      {/* باقي الأجزاء كما هي... */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden">
         <button 
           onClick={() => setShowRecovery(!showRecovery)}
@@ -213,7 +223,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         )}
       </div>
 
-      {/* تخصيص الأوزان */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <button 
           onClick={() => setShowWeights(!showWeights)}
