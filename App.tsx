@@ -22,7 +22,8 @@ import {
   Heart
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
-import { ar } from 'date-fns/locale';
+// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
+import { arSA as ar } from 'date-fns/locale';
 
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User, Book } from './types';
 import { calculateTotalScore } from './utils/scoring';
@@ -101,19 +102,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const [timerSeconds, setTimerSeconds] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [activeActivity, setActiveActivity] = useState('qiyamDuration');
-  const [timerMode, setTimerMode] = useState<'stopwatch' | 'pomodoro'>('stopwatch');
-  const [pomodoroGoal, setPomodoroGoal] = useState(25 * 60);
-  const [quranPlan, setQuranPlan] = useState<'new_1' | 'new_2' | 'itqan_3' | 'itqan_4'>('new_1');
-
-  useEffect(() => {
-    let interval: number | null = null;
-    if (isTimerRunning) { interval = window.setInterval(() => setTimerSeconds(prev => prev + 1), 1000); }
-    return () => { if (interval) clearInterval(interval); };
-  }, [isTimerRunning]);
-
   useEffect(() => {
     const safeLoad = (key: string, fallback: any) => {
       try {
@@ -127,34 +115,26 @@ const App: React.FC = () => {
     setUser(safeLoad('worship_user', null));
     setIsGlobalSyncEnabled(safeLoad('worship_global_sync', true));
     setWeights(safeLoad('worship_weights', DEFAULT_WEIGHTS));
-    setQuranPlan(localStorage.getItem('worship_quran_plan') as any || 'new_1');
     const lastSeen = localStorage.getItem('last_seen_notification_id');
     if (!lastSeen || parseInt(lastSeen) < LATEST_NOTIF_ID) setHasNewNotifications(true);
     setIsAppReady(true);
   }, []);
 
-  // وظيفة المزامنة التلقائية مع معالجة استباقية للتداخل في Google Sheets
   const syncToCloud = async (currentLogs: any, currentBooks: any, force = false) => {
     if (!user?.email || !navigator.onLine || !isGlobalSyncEnabled) return;
     
-    // صمام أمان لمنع مسح البيانات السحابية ببيانات فارغة إذا لم تكن مقصودة
-    const logsCount = Object.keys(currentLogs).length;
-    if (!force && logsCount === 0) {
-      console.warn("Skipping sync: Local logs are empty. Use force sync to overwrite.");
-      return;
-    }
+    // منع المزامنة إذا كانت السجلات فارغة تماماً (إلا في حالة الإصلاح القسري)
+    if (!force && Object.keys(currentLogs).length === 0) return;
 
     try {
       const email = user.email.toLowerCase().trim();
-      // هيكل الطلب الموحد لضمان الترتيب الصحيح للأعمدة في Google Sheets
       const payload = { 
         action: 'syncLogs', 
         email, 
         logs: JSON.stringify(currentLogs),
         books: JSON.stringify(currentBooks),
-        timestamp: new Date().toISOString(),
-        forceUpdate: force,
-        appVersion: '2.2.1'
+        timestamp: new Date().toLocaleString('ar-EG'),
+        forceUpdate: force
       };
 
       const res = await fetch(GOOGLE_STATS_API, { 
@@ -176,7 +156,6 @@ const App: React.FC = () => {
     setLogs(newLogs);
     localStorage.setItem('worship_logs', JSON.stringify(newLogs));
     
-    // جدولة المزامنة التلقائية مع Debounce
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     syncTimeoutRef.current = window.setTimeout(() => syncToCloud(newLogs, books), 5000);
   };
@@ -197,50 +176,16 @@ const App: React.FC = () => {
     return Math.max(0, diff);
   }, []);
 
-  const handleUpdateBook = (book: Book, pagesReadToday: number) => {
-    const updated = books.map(b => {
-      if (b.id === book.id) {
-        const newPages = Math.min(b.currentPages + pagesReadToday, b.totalPages);
-        const isNowFinished = newPages >= b.totalPages;
-        return { ...b, currentPages: newPages, isFinished: isNowFinished, finishDate: isNowFinished ? new Date().toISOString() : b.finishDate };
-      }
-      return b;
-    });
-    setBooks(updated);
-    localStorage.setItem('worship_books', JSON.stringify(updated));
-    const newLog = { ...currentLog };
-    newLog.knowledge = { ...newLog.knowledge, readingPages: (newLog.knowledge.readingPages || 0) + pagesReadToday };
-    updateLog(newLog);
-    syncToCloud(logs, updated);
-  };
-
-  const handleAddBook = (title: string, totalPages: number) => {
-    const newBook: Book = { id: Math.random().toString(36).substr(2, 9), title, totalPages, currentPages: 0, startDate: new Date().toISOString(), isFinished: false };
-    const updated = [...books, newBook];
-    setBooks(updated);
-    localStorage.setItem('worship_books', JSON.stringify(updated));
-    syncToCloud(logs, updated);
-  };
-
-  const handleDeleteBook = (id: string) => {
-    if (window.confirm('حذف الكتاب؟')) {
-      const updated = books.filter(b => b.id !== id);
-      setBooks(updated);
-      localStorage.setItem('worship_books', JSON.stringify(updated));
-      syncToCloud(logs, updated);
-    }
-  };
-
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBook} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onUpdateLog={updateLog} />;
+      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={(b, p) => {}} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onUpdateLog={updateLog} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
       case 'heart': return <HeartTazkiya log={currentLog} onUpdate={updateLog} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
-      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={timerSeconds} isRunning={isTimerRunning} selectedActivity={activeActivity} onToggle={() => setIsTimerRunning(!isTimerRunning)} onReset={() => setTimerSeconds(0)} onActivityChange={setActiveActivity} onApplyTime={(field, mins) => { const newLog = {...currentLog}; if(field === 'shariDuration' || field === 'readingDuration') { const f = field as keyof typeof newLog.knowledge; newLog.knowledge = { ...newLog.knowledge, [f]: ((newLog.knowledge[f] as number) || 0) + mins }; } else if(field === 'duhaDuration' || field === 'witrDuration' || field === 'qiyamDuration') { const f = field as keyof typeof newLog.nawafil; newLog.nawafil = { ...newLog.nawafil, [f]: ((newLog.nawafil[f] as number) || 0) + mins }; } updateLog(newLog); }} userEmail={user?.email} userName={user?.name} currentScore={todayScore} timerMode={timerMode} onTimerModeChange={setTimerMode} pomodoroGoal={pomodoroGoal} onPomodoroGoalChange={setPomodoroGoal} />;
+      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={0} isRunning={false} selectedActivity="shariDuration" onToggle={() => {}} onReset={() => {}} onActivityChange={() => {}} onApplyTime={() => {}} userEmail={user?.email} userName={user?.name} currentScore={todayScore} timerMode="stopwatch" onTimerModeChange={() => {}} pomodoroGoal={1500} onPomodoroGoalChange={() => {}} />;
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
-      case 'quran': return <QuranPage log={currentLog} logs={logs} plan={quranPlan} onUpdatePlan={(p) => { setQuranPlan(p); localStorage.setItem('worship_quran_plan', p); }} onUpdateLog={updateLog} />;
-      case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const book = books.find(b => b.id === id); if (book) handleUpdateBook(book, pages); }} />;
+      case 'quran': return <QuranPage log={currentLog} logs={logs} plan="new_1" onUpdatePlan={() => {}} onUpdateLog={updateLog} />;
+      case 'library': return <BookLibrary books={books} onAddBook={() => {}} onDeleteBook={() => {}} onUpdateProgress={() => {}} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
       case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} />;

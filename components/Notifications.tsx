@@ -20,7 +20,8 @@ import {
   Smile
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { ar } from 'date-fns/locale';
+// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
+import { arSA as ar } from 'date-fns/locale';
 
 interface NotificationsProps {
   onBack: () => void;

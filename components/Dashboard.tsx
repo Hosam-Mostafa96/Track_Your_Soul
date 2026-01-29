@@ -29,14 +29,18 @@ import {
   Meh,
   Frown,
   Ghost,
-  CloudSun
+  CloudSun,
+  Send,
+  Loader2
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ReferenceLine, YAxis } from 'recharts';
 import { format, addDays } from 'date-fns';
-import { ar } from 'date-fns/locale';
+// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
+import { arSA as ar } from 'date-fns/locale';
 import { DailyLog, AppWeights, PrayerName, PrayerEntry, Book } from '../types';
 import { calculateTotalScore } from '../utils/scoring';
 import confetti from 'canvas-confetti';
+import { GoogleGenAI } from "@google/genai";
 
 interface DashboardProps {
   log: DailyLog;
@@ -62,6 +66,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [tempTarget, setTempTarget] = useState(targetScore.toString());
   const [readingInput, setReadingInput] = useState('');
   const [userQuery, setUserQuery] = useState('');
+  const [advisorResponse, setAdvisorResponse] = useState<string | null>(null);
+  const [isAdvisorLoading, setIsAdvisorLoading] = useState(false);
   const [showiOSInstructions, setShowiOSInstructions] = useState(false);
   
   const prevBadgesActiveState = useRef<Record<string, boolean>>({});
@@ -93,6 +99,54 @@ const Dashboard: React.FC<DashboardProps> = ({
     onUpdateLog({ ...log, mood });
     if (mood >= 4) {
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.9 } });
+    }
+  };
+
+  const askAdvisor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userQuery.trim() || isAdvisorLoading) return;
+
+    setIsAdvisorLoading(true);
+    setAdvisorResponse(null);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      
+      // تجهيز ملخص للبيانات الأخيرة لتحليل النمط
+      const recentSummary = Object.values(logs).slice(-7).map(l => ({
+        date: l.date,
+        score: calculateTotalScore(l, weights),
+        jihad: l.jihadFactor,
+        mood: l.mood,
+        hasBurden: l.hasBurden
+      }));
+
+      const prompt = `
+        أنت "المستشار الروحي الذكي" في تطبيق (الميزان) لإدارة العبادات. مهمتك هي تحليل نمط عبادة المستخدم بناءً على الجهد والزمن.
+        سؤال المستخدم: "${userQuery}"
+        بيانات المستخدم الحالية: نقاط اليوم: ${currentTotalScore}، الهدف: ${targetScore}، الحالة القلبية: ${log.mood}/5.
+        ملخص الأيام الأخيرة: ${JSON.stringify(recentSummary)}
+
+        يرجى تقديم نصيحة:
+        1. قصيرة، بليغة، ومشجعة (باللغة العربية الفصحى أو لهجة مهذبة).
+        2. تربط بين الجهد المبذول (المجاهدة) والأثر النفسي (السكينة).
+        3. تقترح عليه "ورد" معين أو "عمل قلبي" بناءً على حالته.
+        
+        اجعل الإجابة في حدود 3-4 جمل فقط.
+      `;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+
+      setAdvisorResponse(response.text || "اعتذر، لم أستطع استيعاب النمط الآن. حاول لاحقاً.");
+      setUserQuery('');
+    } catch (error) {
+      console.error("Advisor Error:", error);
+      setAdvisorResponse("حدث خطأ في التواصل مع المستشار. تأكد من اتصالك بالإنترنت.");
+    } finally {
+      setIsAdvisorLoading(false);
     }
   };
 
@@ -192,14 +246,41 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* 1. المستشار الذكي */}
       <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[2rem] p-5 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-20 translate-x-20"></div>
         <div className="relative z-10 space-y-3">
           <div className="flex items-center gap-3 text-white">
-            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md"><BrainCircuit className={`w-5 h-5`} /></div>
-            <h4 className="text-sm font-bold header-font">المستشار الروحي</h4>
+            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md"><BrainCircuit className={`w-5 h-5 ${isAdvisorLoading ? 'animate-pulse' : ''}`} /></div>
+            <h4 className="text-sm font-bold header-font">المستشار الروحي الذكي</h4>
           </div>
-          <form onSubmit={(e) => { e.preventDefault(); }} className="relative">
-            <input type="text" value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="اطلب نصيحة أو تحليل لأدائك.." className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-xs font-bold text-white placeholder:text-emerald-100/50 outline-none" />
+          <form onSubmit={askAdvisor} className="relative flex gap-2">
+            <input 
+              type="text" 
+              value={userQuery} 
+              onChange={(e) => setUserQuery(e.target.value)} 
+              placeholder="اطلب نصيحة أو تحليل لأدائك.." 
+              className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-xs font-bold text-white placeholder:text-emerald-100/50 outline-none focus:bg-white/20 transition-all" 
+              disabled={isAdvisorLoading}
+            />
+            <button 
+              type="submit" 
+              disabled={isAdvisorLoading || !userQuery.trim()}
+              className="bg-white/20 hover:bg-white/30 text-white p-3 rounded-xl transition-all disabled:opacity-50"
+            >
+              {isAdvisorLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            </button>
           </form>
+
+          {advisorResponse && (
+            <div className="mt-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2">
+              <div className="flex justify-between items-start mb-2">
+                <Sparkles className="w-4 h-4 text-yellow-400" />
+                <button onClick={() => setAdvisorResponse(null)} className="text-white/40 hover:text-white"><X className="w-3 h-3" /></button>
+              </div>
+              <p className="text-xs text-emerald-50 leading-relaxed font-bold header-font whitespace-pre-wrap">
+                {advisorResponse}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -250,7 +331,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <h4 className="text-[11px] font-bold text-slate-700 truncate max-w-[150px]">{activeBook.title}</h4>
                 <span className="text-[10px] font-black text-emerald-600 header-font">{Math.round((activeBook.currentPages / activeBook.totalPages) * 100)}%</span>
               </div>
-              <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden shadow-inner">
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden shadow-inner">
                 <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(activeBook.currentPages / activeBook.totalPages) * 100}%` }}></div>
               </div>
             </div>

@@ -24,7 +24,8 @@ import {
   Wrench,
   Download,
   FileJson,
-  AlertTriangle
+  AlertTriangle,
+  LayoutGrid
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -43,7 +44,8 @@ import {
 } from 'recharts';
 import { DailyLog, AppWeights, User, PrayerEntry, Book } from '../types';
 import { endOfDay, format, addDays, formatDistanceToNow } from 'date-fns';
-import { ar } from 'date-fns/locale';
+// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
+import { arSA as ar } from 'date-fns/locale';
 import { calculateTotalScore } from '../utils/scoring';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -159,29 +161,18 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
 
   const handleCloudBackup = async (force = false) => {
     if (!user?.email || !navigator.onLine) return;
-    if (force && !window.confirm("هذا الإجراء سيقوم بمسح أي بيانات مكررة في السحابة واستبدالها بنسخة نظيفة ومرتبة من جهازك. هل تود المتابعة؟")) return;
+    
+    if (force) {
+      const confirm = window.confirm("هل تريد إصلاح تداخل الخلايا في الشيت؟ سيقوم النظام بمسح السجلات السحابية القديمة لهذا الإيميل واستبدالها بنسخة مرتبة من جهازك.");
+      if (!confirm) return;
+    }
     
     setIsExporting(true);
     try {
       if (onManualSync) {
         await onManualSync(force);
-      } else {
-        const payload = { 
-          action: 'syncLogs', 
-          email: user.email.toLowerCase().trim(), 
-          logs: JSON.stringify(logs),
-          books: JSON.stringify(books),
-          forceUpdate: force,
-          timestamp: new Date().toISOString()
-        };
-        const res = await fetch(GOOGLE_STATS_API, { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload) 
-        });
-        if (!res.ok) throw new Error("Sync failed");
+        if (force) alert("تمت عملية الإصلاح بنجاح. ملف الشيت أصبح الآن نظيفاً ومرتباً.");
       }
-      if(force) alert("تم إصلاح التداخل وإعادة تنظيم السجلات السحابية بنجاح.");
     } catch (e) { 
       alert("خطأ في المزامنة. تأكد من اتصال الإنترنت.");
     } finally { 
@@ -214,7 +205,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
               <div>
                 <h2 className="text-lg font-bold header-font leading-tight">حالة البيانات السحابية</h2>
                 <p className="text-[10px] text-emerald-200 font-bold">
-                  {lastSyncTime ? `آخر مزامنة: ${formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true, locale: ar })}` : 'لم يتم المزامنة بعد'}
+                  {/* Fix: use as any for options if TS complains about locale not existing in FormatDistanceOptions */}
+                  {lastSyncTime ? `آخر مزامنة: ${formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true, locale: ar } as any)}` : 'لم يتم المزامنة بعد'}
                 </p>
               </div>
             </div>
@@ -223,7 +215,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
                 onClick={() => handleCloudBackup(true)} 
                 title="إصلاح تداخل السجلات السحابية"
                 disabled={isExporting}
-                className="p-3 bg-white/10 hover:bg-white/20 text-emerald-200 rounded-2xl transition-all active:scale-95 disabled:opacity-50"
+                className="p-3 bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 rounded-2xl transition-all active:scale-95 disabled:opacity-50 border border-rose-500/20"
               >
                 {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wrench className="w-5 h-5" />}
               </button>
@@ -243,7 +235,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
               className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 hover:bg-white/20 rounded-2xl text-[10px] font-black header-font transition-all border border-white/5"
             >
               <FileJson className="w-4 h-4 text-emerald-300" />
-              تحميل نسخة احتياطية (JSON) للجهاز
+              تصدير نسخة JSON احتياطية لجهازك
             </button>
           </div>
         </div>
@@ -251,7 +243,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2"><Layers className="w-4 h-4 text-emerald-500" /><h3 className="font-bold text-slate-700 text-xs header-font">خريطة تكرار الأعمال (آخر 30 يوماً)</h3></div>
+          <div className="flex items-center gap-2"><LayoutGrid className="w-4 h-4 text-emerald-500" /><h3 className="font-bold text-slate-700 text-xs header-font">خريطة الالتزام (آخر 30 يوماً)</h3></div>
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
           {activityOptions.map(opt => (
@@ -271,7 +263,9 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
         </div>
         <div className="flex items-center gap-2 mt-4 p-3 bg-amber-50 rounded-2xl border border-amber-100">
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-          <p className="text-[9px] text-amber-800 font-bold header-font leading-relaxed">إذا وجدت مربعات فارغة لأيام قمت بتسجيلها، استخدم أيقونة "مفتاح الربط" لإصلاح السحابة.</p>
+          <p className="text-[9px] text-amber-800 font-bold header-font leading-relaxed">
+            إذا وجدت تكراراً أو تداخلاً في ملف الشيت، استخدم أيقونة "مفتاح الربط" الحمراء بالأعلى لإعادة تنظيم بياناتك وحذف الخلايا التالفة.
+          </p>
         </div>
       </div>
 

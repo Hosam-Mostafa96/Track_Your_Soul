@@ -20,7 +20,8 @@ import {
   Activity
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
-import { ar } from 'date-fns/locale';
+// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
+import { arSA as ar } from 'date-fns/locale';
 import { GOOGLE_STATS_API, DEFAULT_WEIGHTS } from '../constants';
 import confetti from 'canvas-confetti';
 
