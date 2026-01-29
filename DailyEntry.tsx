@@ -10,8 +10,8 @@ import {
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights, SleepSession } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
 import { format, addDays } from 'date-fns';
-// Fix: Use ar instead of arSA as it is not exported in the current date-fns version
-import { ar } from 'date-fns/locale';
+// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
+import { arSA as ar } from 'date-fns/locale';
 
 interface DailyEntryProps {
   log: DailyLog;
