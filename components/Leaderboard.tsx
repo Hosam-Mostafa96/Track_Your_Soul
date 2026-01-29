@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Crown, Loader2, Star, RefreshCw, Sparkles, Quote, Medal, AlertCircle } from 'lucide-react';
+import { Trophy, Crown, Loader2, Star, RefreshCw, Sparkles, Quote, Medal, AlertCircle, CloudOff } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -15,7 +15,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const [userRank, setUserRank] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [networkError, setNetworkError] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const motivationalQuotes = useMemo(() => [
     { text: "وَفِي ذَلِكَ فَلْيَتَنَافَسِ الْمُتَنَافِسُونَ", source: "المطففين ٢٦" },
@@ -28,19 +28,27 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
+  // معالج بيانات مرن جداً ليتحمل أي تغيير في أسماء الأعمدة في جوجل شيت
   const processLeaderboard = (data: any[]) => {
+    if (!Array.isArray(data)) return [];
     const topMap = new Map();
 
     data.forEach((entry: any) => {
-      const emailKey = (entry.email || entry.Email || entry.name || entry.Name || "").toLowerCase().trim();
+      // محاولة البحث عن الإيميل أو المعرف الفريد في كل الاحتمالات
+      const emailKey = (
+        entry.email || entry.Email || entry.mail || entry.البريد || 
+        entry.name || entry.Name || entry.الاسم || ""
+      ).toString().toLowerCase().trim();
+      
       if (!emailKey) return;
       
-      const score = parseInt(entry.score || entry.Score || entry.points || entry.النقاط || entry.C || 0);
-      if (score < 0) return;
+      // محاولة البحث عن النقاط في كل الاحتمالات (Score, score, Points, النقاط, C)
+      const rawScore = entry.score ?? entry.Score ?? entry.points ?? entry.النقاط ?? entry.points_total ?? entry.C ?? 0;
+      const score = parseInt(rawScore.toString().replace(/,/g, '')) || 0;
 
       if (!topMap.has(emailKey) || score > topMap.get(emailKey).score) {
         topMap.set(emailKey, { 
-          name: entry.name || entry.Name || "متسابق",
+          name: entry.name || entry.Name || entry.الاسم || "متسابق مجهول",
           email: emailKey,
           score: score 
         });
@@ -55,38 +63,53 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     
     if (!isSilent) {
       setIsRefreshing(true);
-      if (globalTop.length === 0) setIsLoading(true);
+      if (globalTop.length === 0) {
+        setIsLoading(true);
+        setStatusMessage(null);
+      }
     }
 
     try {
+      const payload = {
+        action: 'getStats',
+        email: user.email.toLowerCase().trim(),
+        score: currentScore,
+        name: user.name.trim()
+      };
+
       const res = await fetch(GOOGLE_STATS_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-        body: JSON.stringify({
-          action: 'getStats',
-          email: user.email.toLowerCase().trim(),
-          score: currentScore,
-          name: user.name.trim()
-        })
+        body: JSON.stringify(payload)
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setNetworkError(false);
-        if (data && data.leaderboard) {
-          const sortedAll = processLeaderboard(data.leaderboard);
-          setGlobalTop(sortedAll.slice(0, 100));
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
-          const myEmail = user.email.toLowerCase().trim();
-          const myIdx = sortedAll.findIndex(p => p.email === myEmail);
-          setUserRank(myIdx !== -1 ? myIdx + 1 : null);
+      const data = await res.json();
+      
+      if (data && data.leaderboard) {
+        const sortedAll = processLeaderboard(data.leaderboard);
+        setGlobalTop(sortedAll.slice(0, 100));
+
+        const myEmail = user.email.toLowerCase().trim();
+        const myIdx = sortedAll.findIndex(p => p.email === myEmail);
+        setUserRank(myIdx !== -1 ? myIdx + 1 : null);
+        
+        if (sortedAll.length === 0) {
+          setStatusMessage("قاعدة البيانات فارغة حالياً. كن أول من يسجل نقاطه!");
+        } else {
+          setStatusMessage(null);
         }
+      } else if (data && data.error) {
+        setStatusMessage(`تنبيه من الخادم: ${data.error}`);
       } else {
-        throw new Error("Server error");
+        setStatusMessage("تنسيق البيانات غير صحيح. يرجى مراجعة إعدادات Google Sheet.");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Leaderboard fetch error:", e);
-      if (!isSilent) setNetworkError(true);
+      if (!isSilent) {
+        setStatusMessage("تعذر جلب البيانات. قد يكون الرابط معطلاً أو هناك مشكلة في الاتصال.");
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -95,7 +118,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 15000); 
+    const interval = setInterval(() => fetchGlobalData(true), 30000); // تحديث كل 30 ثانية
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
@@ -129,7 +152,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       <section className="space-y-6">
         <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-[2.5rem] p-6 text-white shadow-xl relative overflow-hidden border border-white/10 text-center">
           <div className="relative z-10 space-y-3">
-            <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">ترتيبك في قائمة المتصدرين</h2>
+            <h2 className="text-xs font-black header-font opacity-80 uppercase tracking-[0.2em]">ترتيبك في قائمة المتصدرين اليوم</h2>
             <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.2rem] py-5 px-8 inline-block shadow-2xl">
               <span className="text-5xl font-black font-mono text-yellow-400 tracking-tighter leading-none">
                 {userRank || "---"}
@@ -142,25 +165,30 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
           <div className="flex items-center justify-between px-3">
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500" />
-              <h2 className="text-xl font-black header-font text-slate-800">قائمة المتصدرين اليوم</h2>
+              <h2 className="text-xl font-black header-font text-slate-800">قائمة المتصدرين</h2>
             </div>
             <button 
               onClick={() => fetchGlobalData()} 
               disabled={isRefreshing}
-              className={`p-2 rounded-xl bg-white border border-slate-100 transition-all ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-400'}`}
+              className={`p-2 rounded-xl bg-white border border-slate-100 transition-all ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-400 hover:text-emerald-500 active:scale-90'}`}
             >
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
           
-          {globalTop.length > 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border border-slate-50">
+               <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mb-4" />
+               <p className="text-sm font-bold text-slate-400 header-font">جاري استرجاع سجلات الأبرار..</p>
+            </div>
+          ) : globalTop.length > 0 ? (
             <div className="space-y-3">
               {globalTop.map((player, index) => {
                 const isMe = player.email === user?.email.toLowerCase().trim();
                 const rank = getRankConfig(index);
 
                 return (
-                  <div key={index} className={`flex items-center p-3 rounded-[2.2rem] transition-all relative gap-2.5 shadow-sm border ${isMe ? 'bg-emerald-700 text-white shadow-xl scale-[1.01] border-transparent' : 'bg-white border-slate-50'}`}>
+                  <div key={index} className={`flex items-center p-3 rounded-[2.2rem] transition-all relative gap-2.5 shadow-sm border ${isMe ? 'bg-emerald-700 text-white shadow-xl scale-[1.02] border-transparent z-10' : 'bg-white border-slate-50 hover:border-emerald-100'}`}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${isMe ? 'bg-white/20 border-white/30 text-white' : `${rank.bg} ${rank.text} border-white shadow-sm`}`}>
                       {rank.icon ? rank.icon : <span className="text-xs font-black font-mono">{index + 1}</span>}
                     </div>
@@ -185,26 +213,32 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
               })}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-slate-200">
-               {isLoading ? (
-                 <div className="flex flex-col items-center gap-2">
-                   <Loader2 className="w-8 h-8 animate-spin text-emerald-300" />
-                   <span className="text-[10px] text-slate-400 font-bold header-font">جاري جلب القائمة..</span>
-                 </div>
-               ) : (
-                 <div className="flex flex-col items-center gap-2">
-                   <p className="text-[10px] text-slate-400 font-bold header-font">لا توجد أسماء في القائمة حالياً.</p>
-                   <p className="text-[8px] text-slate-300 font-bold header-font tracking-tight">تأكد من الاتصال بالإنترنت.</p>
-                 </div>
-               )}
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-white rounded-[2rem] border border-dashed border-slate-200">
+               <div className="p-4 bg-slate-50 rounded-full mb-4">
+                  {statusMessage?.includes('اتصال') ? <CloudOff className="w-10 h-10 text-rose-300" /> : <AlertCircle className="w-10 h-10 text-amber-300" />}
+               </div>
+               <h3 className="text-sm font-bold text-slate-800 header-font mb-2">
+                 {statusMessage || "لا توجد أسماء في القائمة حالياً"}
+               </h3>
+               <p className="text-[10px] text-slate-400 font-bold header-font leading-relaxed">
+                 {statusMessage?.includes('اتصال') 
+                   ? "تأكد من تشغيل الإنترنت ومحاولة التحديث مرة أخرى." 
+                   : "إذا كنت قد سجلت نقاطاً بالفعل، فتأكد من تفعيل المزامنة في ملفك الشخصي."}
+               </p>
+               <button 
+                 onClick={() => fetchGlobalData()}
+                 className="mt-6 px-6 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-black header-font border border-emerald-100 hover:bg-emerald-100 transition-all"
+               >
+                 إعادة المحاولة
+               </button>
             </div>
           )}
         </div>
       </section>
 
       <div className="p-5 bg-slate-900 rounded-[2.2rem] text-white text-center shadow-lg mx-1">
-        <p className="text-[10px] font-bold header-font opacity-60 italic">
-          "ميزانك هو ما استقر في قلبك وصدقه عملك"
+        <p className="text-[10px] font-bold header-font opacity-60 italic leading-relaxed">
+          "ميزانك الحقيقي هو ما استقر في قلبك وصدقه عملك، وهذه القائمة للتنافس المحمود فقط."
         </p>
       </div>
     </div>

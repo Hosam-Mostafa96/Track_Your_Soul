@@ -22,8 +22,8 @@ import {
   Heart
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
-// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
-import { arSA as ar } from 'date-fns/locale';
+// Fix: Use ar instead of arSA as it is not exported in the current date-fns version
+import { ar } from 'date-fns/locale';
 
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User, Book } from './types';
 import { calculateTotalScore } from './utils/scoring';

@@ -35,8 +35,8 @@ import {
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ReferenceLine, YAxis } from 'recharts';
 import { format, addDays } from 'date-fns';
-// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
-import { arSA as ar } from 'date-fns/locale';
+// Fix: Use ar instead of arSA as it is not exported in the current date-fns version
+import { ar } from 'date-fns/locale';
 import { DailyLog, AppWeights, PrayerName, PrayerEntry, Book } from '../types';
 import { calculateTotalScore } from '../utils/scoring';
 import confetti from 'canvas-confetti';
@@ -435,12 +435,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                 strokeWidth={3} 
                 animationDuration={1500}
               />
-              <ReferenceLine 
-                y={targetScore} 
+              <Area 
+                type="monotone" 
+                dataKey="target" 
                 stroke="#f59e0b" 
+                fill="transparent" 
+                strokeWidth={2} 
                 strokeDasharray="5 5" 
-                strokeWidth={2}
-                label={{ position: 'right', value: 'الهدف', fill: '#d97706', fontSize: 9, fontWeight: 'bold' }}
               />
             </AreaChart>
           </ResponsiveContainer>

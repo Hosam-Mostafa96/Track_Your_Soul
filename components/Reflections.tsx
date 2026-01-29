@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { NotebookPen, Plus, Trash2, ShieldAlert, Sparkles, Quote, Share2, Clock, Check } from 'lucide-react';
 import { DailyLog, ReflectionNote } from '../types';
 import { format } from 'date-fns';
-// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
-import { arSA as ar } from 'date-fns/locale';
+// Fix: Use ar instead of arSA as it is not exported in the current date-fns version
+import { ar } from 'date-fns/locale';
 
 interface ReflectionsProps {
   log: DailyLog;

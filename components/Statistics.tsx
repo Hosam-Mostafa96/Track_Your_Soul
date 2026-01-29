@@ -44,8 +44,8 @@ import {
 } from 'recharts';
 import { DailyLog, AppWeights, User, PrayerEntry, Book } from '../types';
 import { endOfDay, format, addDays, formatDistanceToNow } from 'date-fns';
-// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
-import { arSA as ar } from 'date-fns/locale';
+// Fix: Use ar instead of arSA as it is not exported in the current date-fns version
+import { ar } from 'date-fns/locale';
 import { calculateTotalScore } from '../utils/scoring';
 import { GOOGLE_STATS_API } from '../constants';
 
@@ -205,7 +205,6 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
               <div>
                 <h2 className="text-lg font-bold header-font leading-tight">حالة البيانات السحابية</h2>
                 <p className="text-[10px] text-emerald-200 font-bold">
-                  {/* Fix: use as any for options if TS complains about locale not existing in FormatDistanceOptions */}
                   {lastSyncTime ? `آخر مزامنة: ${formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true, locale: ar } as any)}` : 'لم يتم المزامنة بعد'}
                 </p>
               </div>
