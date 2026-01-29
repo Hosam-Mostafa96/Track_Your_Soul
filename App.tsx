@@ -97,7 +97,10 @@ const App: React.FC = () => {
   const syncTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    const handleBeforeInstallPrompt = (e: any) => { 
+      e.preventDefault(); 
+      setDeferredPrompt(e); 
+    };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
@@ -188,7 +191,7 @@ const App: React.FC = () => {
       case 'library': return <BookLibrary books={books} onAddBook={() => {}} onDeleteBook={() => {}} onUpdateProgress={() => {}} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
-      case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} />;
+      case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} />;
       case 'history': return <WorshipHistory logs={logs} weights={weights} />;
       case 'guide': return <WorshipGuide />;
       case 'contact': return <ContactUs />;

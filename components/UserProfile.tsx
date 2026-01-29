@@ -6,10 +6,12 @@ import {
   Star, Users, Clock, Book, GraduationCap, Zap, 
   LockKeyhole, Globe, Flame, BookOpen, ListChecks,
   Activity, Mail, MapPin, Calendar, Sparkles, Skull,
-  Repeat, Database, AlertTriangle, FileJson, Check
+  Repeat, Database, AlertTriangle, FileJson, Check,
+  Smartphone, Download, Share, X
 } from 'lucide-react';
 import { AppWeights, User as UserType, DailyLog } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
+import confetti from 'canvas-confetti';
 
 interface UserProfileProps {
   user: UserType | null;
@@ -18,15 +20,35 @@ interface UserProfileProps {
   onToggleSync: (enabled: boolean) => void;
   onUpdateUser: (user: UserType | null) => void;
   onUpdateWeights: (weights: AppWeights) => void;
+  installPrompt: any;
+  onClearInstallPrompt: () => void;
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, onToggleSync, onUpdateUser, onUpdateWeights }) => {
+const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, onToggleSync, onUpdateUser, onUpdateWeights, installPrompt, onClearInstallPrompt }) => {
   const [localWeights, setLocalWeights] = useState<AppWeights>({ ...weights });
   const [showWeights, setShowWeights] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
   const [isSavedWeights, setIsSavedWeights] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [showiOSInstructions, setShowiOSInstructions] = useState(false);
+
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+  const handleInstallClick = async () => {
+    if (isIOS) {
+      setShowiOSInstructions(true);
+      return;
+    }
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      onClearInstallPrompt();
+      confetti({ particleCount: 150, spread: 90 });
+    }
+  };
 
   const handleSaveWeights = () => {
     onUpdateWeights(localWeights);
@@ -146,6 +168,28 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </div>
       </div>
 
+      {/* خيار تثبيت التطبيق - يظهر فقط إذا لم يكن مثبتاً بالفعل */}
+      {(!isStandalone && (installPrompt || isIOS)) && (
+        <div className="bg-gradient-to-br from-amber-400 to-orange-600 rounded-3xl p-6 shadow-lg text-white animate-in zoom-in duration-300">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+              <Smartphone className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold header-font leading-tight">ثبّت التطبيق على هاتفك</h3>
+              <p className="text-[10px] text-amber-50 font-bold opacity-90">لسهولة الوصول، إشعارات أسرع، وتجربة أفضل 🌙</p>
+            </div>
+          </div>
+          <button 
+            onClick={handleInstallClick}
+            className="w-full py-4 bg-white text-orange-600 rounded-2xl font-black header-font text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            {isIOS ? 'عرض تعليمات التثبيت' : 'تثبيت التطبيق الآن'}
+          </button>
+        </div>
+      )}
+
       {/* المزامنة السحابية */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 group">
         <div className="flex items-center justify-between">
@@ -169,7 +213,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </div>
       </div>
       
-      {/* باقي الأجزاء كما هي... */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden">
         <button 
           onClick={() => setShowRecovery(!showRecovery)}
@@ -279,6 +322,29 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
           </div>
         )}
       </div>
+
+      {showiOSInstructions && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/40 backdrop-blur-sm">
+           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in slide-in-from-bottom duration-500 text-right" dir="rtl">
+              <button onClick={() => setShowiOSInstructions(false)} className="absolute top-6 left-6 p-2 text-slate-400"><X className="w-5 h-5" /></button>
+              <div className="flex flex-col items-center text-center space-y-4">
+                 <div className="p-4 bg-emerald-50 rounded-3xl"><Smartphone className="w-10 h-10 text-emerald-600" /></div>
+                 <h3 className="text-xl font-black text-slate-800 header-font">تثبيت على آيفون</h3>
+                 <div className="space-y-4 text-right w-full">
+                    <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
+                       <div className="bg-white p-2 rounded-lg shadow-sm font-bold text-emerald-600 shrink-0">١</div>
+                       <p className="text-sm font-bold text-slate-600 leading-relaxed">اضغط على زر المشاركة <Share className="w-4 h-4 inline text-blue-500 mx-1" /> في متصفح Safari.</p>
+                    </div>
+                    <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
+                       <div className="bg-white p-2 rounded-lg shadow-sm font-bold text-emerald-600 shrink-0">٢</div>
+                       <p className="text-sm font-bold text-slate-600 leading-relaxed">اختر <b>"إضافة إلى الشاشة الرئيسية"</b> أو <b>"Add to Home Screen"</b>.</p>
+                    </div>
+                 </div>
+                 <button onClick={() => setShowiOSInstructions(false)} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black header-font">فهمت ذلك</button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
