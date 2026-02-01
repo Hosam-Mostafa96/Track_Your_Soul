@@ -20,6 +20,7 @@ import {
   MessageSquareText
 } from 'lucide-react';
 import { DailyLog } from '../types';
+import { startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays } from 'date-fns';
 
 const QURAN_PORTIONS_NAMES = [
   "1- الفاتحة: (الحمد لله رب العالمين)",
@@ -235,33 +236,55 @@ const QURAN_PORTIONS_NAMES = [
   "211- النجم: (وكم من ملك فى السموات)",
   "212- القمر: (كذبت قبلهم قوم نوح)",
   "213- الرحمن: (الرحمن * علم القرآن * خلق الإنسان)",
-  "214- الواقعة: (إذا وقعت الواقعة * ليس لوقعتها كاذبة)",
-  "215- الحديد: (سبح لله ما في السماوات والأرض وهو العزيز)",
-  "216- الحديد: (ألم يأن)",
-  "217- المجادلة: (قد سمع الله قول التي تجادلك في زوجها)",
-  "218- الحشر: (سبح لله ما في السماوات وما في الأرض وهو)",
-  "219- الممتحنة: (يا أيها الذين آمنوا لا تتخذوا عدوي وعدوكم)",
-  "220- الصف: (سبح لله ما في السماوات وما في الأرض وهو)",
-  "221- الجمعة: (يسبح لله ما في السماوات وما في الأرض الملك)",
-  "222- المنافقون: (إذا جاءك المنافقون قالوا نشهد إنك)",
-  "223- التغابن: (يسبح لله ما في السماوات وما في الأرض له)",
-  "224- التحريم: (يا أيها النبي لم تحرم ما أحل الله لك)",
-  "225- الملك: (تبارك الذي بيده الملك وهو على كل شيء)",
-  "226- القلم: (ن والقلم وما يسطرون * ما أنت بنعمة ربك)",
-  "227- الحاقة: (الحاقة * ما الحاقة * وما أدراك ما الحاقة)",
-  "228- المعارج: (سأل سائل بعذاب واقع * للكافرين ليس له)",
-  "229- الجن: (قل أوحي إلي أنه استمع نفر من الجن)",
-  "230- المزمل: (يا أيها المزمل * قم الليل إلا قليلاً)",
-  "231- المدثر: (يا أيها المدثر * قم فأنذر * وربك فكبر)",
-  "232- القيامة: (لا أقسم بيوم القيامة * ولا أقسم بالنفس)",
-  "233- النبأ: (عم يتساءلون * عن النبأ العظيم)",
-  "234- النازعات: (والنازعات غرقاً * والناشطات نشطاً)",
-  "235- عبس: (عبس وتولى * أن جاءه الأعمى)",
-  "236- التكوير: (إذا الشمس كورت * وإذا النجوم انكدرت)",
-  "237- الانفطار: (إذا السماء انفطرت * وإذا الكواكب انتثرت)",
-  "238- المطففين: (ويل للمطففين * الذين إذا اكتالوا على الناس)",
-  "239- الانشقاق: (إذا السماء انشقت * وأذنت لربها وحقت)",
-  "240- الأعلى والغاشية والقصار (حتى الناس)"
+  "214- الرحمن: (ولمن خاف مقام ربه جنتان)",
+  "215- الرحمن: (ومن دونهما جنتان)",
+  "216- الواقعة: (إذا وقعت الواقعة * ليس لوقعتها كاذبة)",
+  "217- الواقعة: (أفرأيتم ما تمنون)",
+  "218- الحديد: (سبح لله ما في السماوات والأرض وهو العزيز)",
+  "219- الحديد: (ألم يأن)",
+  "220- الحديد: (اعلموا أنما الحياة الدنيا لعب ولهو)",
+  "221- المجادلة: (قد سمع الله قول التي تجادلك في زوجها)",
+  "222- المجادلة: (ألم تر أن الله يعلم ما في السماوات وما في الأرض)",
+  "223- الحشر: (سبح لله ما في السماوات وما في الأرض وهو)",
+  "224- الحشر: (ألم تر إلى الذين نافقوا يقولون لإخوانهم)",
+  "225- الممتحنة: (يا أيها الذين آمنوا لا تتخذوا عدوي وعدوكم)",
+  "226- الممتحنة: (يا أيها الذين آمنوا إذا جاءكم المؤمنات)",
+  "227- الصف: (سبح لله ما في السماوات وما في الأرض وهو)",
+  "228- الجمعة: (يسبح لله ما في السماوات وما في الأرض الملك)",
+  "229- المنافقون: (إذا جاءك المنافقون قالوا نشهد إنك)",
+  "230- التغابن: (يسبح لله ما في السماوات وما في الأرض له)",
+  "231- الطلاق: (يا أيها النبي إذا طلقتم النساء فطلقوهن)",
+  "232- التحريم: (يا أيها النبي لم تحرم ما أحل الله لك)",
+  "233- الملك: (تبارك الذي بيده الملك وهو على كل شيء)",
+  "234- القلم: (ن والقلم وما يسطرون * ما أنت بنعمة ربك)",
+  "235- الحاقة: (الحاقة * ما الحاقة * وما أدراك ما الحاقة)",
+  "236- المعارج: (سأل سائل بعذاب واقع * للكافرين ليس له)",
+  "237- نوح: (إنا أرسلنا نوحاً إلى قومه أن أنذر قومك)",
+  "238- الجن: (قل أوحي إلي أنه استمع نفر من الجن)",
+  "239- المزمل: (يا أيها المزمل * قم الليل إلا قليلاً)",
+  "240- المدثر: (يا أيها المدثر * قم فأنذر * وربك فكبر)",
+  "241- القيامة: (لا أقسم بيوم القيامة * ولا أقسم بالنفس)",
+  "242- الإنسان: (هل أتى على الإنسان حين من الدهر)",
+  "243- المرسلات: (والمرسلات عرفاً * فالعاصفات عصفاً)",
+  "244- النبأ: (عم يتساءلون * عن النبأ العظيم)",
+  "245- النازعات: (والنازعات غرقاً * والناشطات نشطاً)",
+  "246- عبس: (عبس وتولى * أن جاءه الأعمى)",
+  "247- التكوير: (إذا الشمس كورت * وإذا النجوم انكدرت)",
+  "248- الانفطار: (إذا السماء انفطرت * وإذا الكواكب انتثرت)",
+  "249- المطففين: (ويل للمطففين * الذين إذا اكتالوا على الناس)",
+  "250- الانشقاق: (إذا السماء انشقت * وأذنت لربها وحقت)",
+  "251- البروج: (والسماء ذات البروج * واليوم الموعود)",
+  "252- الطارق: (والسماء والطارق * وما أدراك ما الطارق)",
+  "253- الأعلى: (سبح اسم ربك الأعلى * الذي خلق فسوى)",
+  "254- الغاشية: (هل أتاك حديث الغاشية * وجوه يومئذ خاشعة)",
+  "255- الفجر: (والفجر * وليال عشر * والشفع والوتر)",
+  "256- البلد: (لا أقسم بهذا البلد * وأنت حل بهذا البلد)",
+  "257- الشمس والليل: (والشمس وضحاها * والليل إذا يغشى)",
+  "258- الضحى والشرح: (والضحى * ألم نشرح لك صدرك)",
+  "259- التين والعلق: (والتين والزيتون * اقرأ باسم ربك)",
+  "260- القدر والبينة والزلزلة والعاديات",
+  "261- القارعة والتكاثر والعصر والهمزة والفيل",
+  "262- قريش والماعون والكوثر والكافرون والنصر والمسد والإخلاص والفلق والناس"
 ];
 
 const QURAN_PAGES_LIST = Array.from({ length: 604 }, (_, i) => `صفحة ${i + 1}`);
@@ -328,36 +351,73 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     return portions;
   }, [currentIndex, hifzUnit]);
 
+  // منطق مراجعة المحفوظ القديم الديناميكي
   const murajaaData = useMemo(() => {
     const list = hifzUnit === 'rub' ? QURAN_PORTIONS_NAMES : QURAN_PAGES_LIST;
     const buffer = hifzUnit === 'rub' ? 11 : 25;
     
     if (currentIndex <= buffer) return null;
     
-    const dayOfWeek = new Date().getDay(); 
-    const murajaaEnd = currentIndex - buffer;
-    const chunkSize = Math.ceil(murajaaEnd / 6);
-    const start = (dayOfWeek % 6) * chunkSize + 1;
-    const end = Math.min(murajaaEnd, start + chunkSize - 1);
+    const revisionLimit = currentIndex - buffer;
     
-    if (start > murajaaEnd) return null;
+    // 1. تحديد الأرباع التي تم مراجعتها بالفعل هذا الأسبوع
+    // لنفترض أن الأسبوع يبدأ من يوم السبت وينتهي يوم الجمعة
+    const today = new Date();
+    let cycleStart = startOfWeek(today, { weekStartsOn: 6 }); // السبت
     
-    const totalItems = end - start + 1;
-    const individualItems = [];
-    for(let i = start; i <= end; i++) {
-      individualItems.push({ id: `mur_${i}`, label: list[i-1] });
+    const weekLogs = Object.values(logs).filter(l => {
+        const d = new Date(l.date.replace(/-/g, '/'));
+        return d >= cycleStart && d <= today;
+    });
+
+    const completedInWeek = new Set<number>();
+    weekLogs.forEach(l => {
+        (l.quran?.tasksCompleted || []).forEach(tid => {
+            if (tid.startsWith('mur_')) {
+                const idx = parseInt(tid.split('_')[1]);
+                completedInWeek.add(idx);
+            }
+        });
+    });
+
+    // 2. إحصاء المتبقي من المحفوظ القديم لهذا الأسبوع
+    const uncompletedRubs = [];
+    for (let i = 1; i <= revisionLimit; i++) {
+        if (!completedInWeek.has(i)) {
+            uncompletedRubs.push(i);
+        }
     }
+
+    if (uncompletedRubs.length === 0) return null;
+
+    // 3. حساب الأيام المتبقية في الأسبوع (حتى يوم الخميس، والجمعة يوم إضافي أو مراجعة عامة)
+    // أو ببساطة توزيع على الأيام المتبقية من اليوم حتى الجمعة
+    const daysLeft = 7 - ((today.getDay() + 1) % 7); // تقريب للأيام المتبقية حتى الجمعة (5 في JS)
+    // لنستخدم منطق أبسط: عدد الأيام من اليوم (شامل) حتى الجمعة القادمة
+    const nextFriday = addDays(cycleStart, 6);
+    const remainingDays = eachDayOfInterval({ start: today, end: nextFriday }).length;
     
+    const dailyQuota = Math.ceil(uncompletedRubs.length / Math.max(1, remainingDays));
+    const todayRubs = uncompletedRubs.slice(0, dailyQuota);
+    
+    if (todayRubs.length === 0) return null;
+
+    const individualItems = todayRubs.map(idx => ({
+        id: `mur_${idx}`,
+        label: list[idx - 1]
+    }));
+
     return { 
-      startStarter: getVerseStarter(list[start - 1]), 
-      endStarter: getVerseStarter(list[end - 1]), 
-      total: totalItems,
+      startStarter: getVerseStarter(list[todayRubs[0] - 1]), 
+      endStarter: getVerseStarter(list[todayRubs[todayRubs.length - 1] - 1]), 
+      total: todayRubs.length,
       unitLabel: hifzUnit === 'rub' ? 'أرباع' : 'صفحات',
       individualItems 
     };
-  }, [currentIndex, hifzUnit]);
+  }, [currentIndex, hifzUnit, logs]);
 
   const hifzSteps = [
+    { id: 'prev_repeat', label: 'تكرار محفوظ الأمس ٥ مرات', desc: 'لربط محفوظ اليوم بما سبقه وتثبيته', icon: <History className="w-4 h-4" /> },
     { id: 'listen', label: 'الاستماع لمجود مع النظر', desc: 'للتأكد من سلامة النطق', icon: <Clock className="w-4 h-4" /> },
     { id: 'repeat', label: `تكرار ال${hifzUnit === 'rub' ? 'ربع' : 'وجه'} ٤٠ مرة`, desc: 'تثبيت الحفظ في الذاكرة العميقة', icon: <Repeat className="w-4 h-4" /> },
     { id: 'record', label: 'التسجيل الصوتي والمطابقة', desc: 'قراءة غيبية ومطابقتها للتصحيح', icon: <Mic className="w-4 h-4" /> },
@@ -473,7 +533,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
               {murajaaData ? (
                 <div className="space-y-6">
                   <div className="p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
-                    <p className="text-[10px] text-emerald-300 font-bold mb-3 uppercase tracking-widest text-center">ورد المراجعة لليوم</p>
+                    <p className="text-[10px] text-emerald-300 font-bold mb-3 uppercase tracking-widest text-center">ورد المراجعة الديناميكي (المتبقي من الأسبوع)</p>
                     <div className="flex flex-col items-center gap-2">
                       <div className="bg-emerald-500/20 px-4 py-2 rounded-xl text-center">
                         <span className="text-xs text-emerald-200 font-bold block mb-1">من مطلع:</span>
@@ -481,7 +541,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
                       </div>
                       <div className="h-4 w-px bg-white/20"></div>
                       <div className="bg-emerald-500/20 px-4 py-2 rounded-xl text-center">
-                        <span className="text-xs text-emerald-200 font-bold block mb-1">إلى نهاية :</span>
+                        <span className="text-xs text-emerald-200 font-bold block mb-1">إلى نهاية:</span>
                         <span className="text-sm md:text-lg font-black header-font leading-relaxed">({murajaaData.endStarter})</span>
                       </div>
                     </div>
@@ -500,7 +560,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
                 </div>
               ) : (
                 <div className="p-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
-                  <p className="text-[10px] text-emerald-300 font-bold leading-relaxed">{`بمجرد أن يتجاوز محفوظك الـ ${hifzUnit === 'rub' ? '11 ربعاً' : '25 صفحة'}، سيبدأ النظام بجدولة مراجعتك القديمة تلقائياً لضمان عدم النسيان.`}</p>
+                  <p className="text-[10px] text-emerald-300 font-bold leading-relaxed">{`بمجرد أن يتجاوز محفوظك الـ ${hifzUnit === 'rub' ? '11 ربعاً' : '25 صفحة'}، سيبدأ النظام بجدولة مراجعتك القديمة تلقائياً لضمان عدم النسيان، مع إعادة التوزيع الديناميكي للمتبقي.`}</p>
                 </div>
               )}
             </div>
