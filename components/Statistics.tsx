@@ -6,26 +6,24 @@ import {
   BookOpen, 
   Clock, 
   Flame, 
-  CloudIcon,
-  Loader2,
-  Layers,
+  Activity, 
+  Target, 
+  Moon, 
+  ShieldAlert, 
+  Sparkle, 
+  Smile, 
+  ShieldCheck, 
+  RefreshCw, 
+  Wrench, 
+  FileJson, 
+  AlertTriangle, 
+  LayoutGrid,
+  Heart,
+  Sun,
   Zap,
-  Activity,
-  Target,
-  CloudUpload,
-  Bed,
-  Moon,
-  ShieldAlert,
-  MapPin,
-  Sparkle,
-  Smile,
-  ShieldCheck,
-  RefreshCw,
-  Wrench,
-  Download,
-  FileJson,
-  AlertTriangle,
-  LayoutGrid
+  GraduationCap,
+  Star,
+  Timer
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -42,12 +40,10 @@ import {
   CartesianGrid,
   Cell
 } from 'recharts';
-import { DailyLog, AppWeights, User, PrayerEntry, Book } from '../types';
+import { DailyLog, AppWeights, User, PrayerEntry, Book, PrayerName } from '../types';
 import { endOfDay, format, addDays, formatDistanceToNow } from 'date-fns';
-// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
 import { arSA as ar } from 'date-fns/locale';
 import { calculateTotalScore } from '../utils/scoring';
-import { GOOGLE_STATS_API } from '../constants';
 
 interface StatisticsProps {
   user: User | null;
@@ -58,24 +54,58 @@ interface StatisticsProps {
   onManualSync?: (force?: boolean) => void;
 }
 
-type ActivityType = 'all' | 'prayers' | 'quran' | 'knowledge' | 'fasting' | 'athkar' | 'sleep' | 'burden' | 'takbir' | 'mood';
+type ActivityType = 
+  | 'all' | 'mood' | 'burden'
+  | 'fajr' | 'prayers_all' | 'takbir' | 'rawatib'
+  | 'quran_hifz' | 'quran_rev' | 'knowledge'
+  | 'qiyam' | 'duha' | 'fasting'
+  | 'athkar_morning' | 'athkar_evening' | 'istighfar_count'
+  | 'heart_deeds';
 
 const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, lastSyncTime, onManualSync }) => {
   const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'all'>('month');
   const [activityFilter, setActivityFilter] = useState<ActivityType>('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  const activityOptions: { id: ActivityType; label: string; icon: any; color: string }[] = [
-    { id: 'all', label: 'الالتزام العام', icon: <Activity className="w-3 h-3" />, color: 'emerald' },
-    { id: 'mood', label: 'الحالة القلبية', icon: <Smile className="w-3 h-3" />, color: 'amber' },
-    { id: 'prayers', label: 'الصلوات', icon: <CheckCircle2 className="w-3 h-3" />, color: 'blue' },
-    { id: 'takbir', label: 'تكبيرة الإحرام', icon: <Sparkle className="w-3 h-3" />, color: 'amber' },
-    { id: 'quran', label: 'القرآن', icon: <BookOpen className="w-3 h-3" />, color: 'emerald' },
-    { id: 'knowledge', label: 'طلب العلم', icon: <Clock className="w-3 h-3" />, color: 'purple' },
-    { id: 'fasting', label: 'الصيام', icon: <Flame className="w-3 h-3" />, color: 'orange' },
-    { id: 'athkar', label: 'الأذكار', icon: <Zap className="w-3 h-3" />, color: 'rose' },
-    { id: 'sleep', label: 'النوم', icon: <Bed className="w-3 h-3" />, color: 'indigo' },
-    { id: 'burden', label: 'العبء الروحي', icon: <ShieldAlert className="w-3 h-3" />, color: 'rose' },
+  // تعريف تصنيفات العبادات للفلاتر
+  const filterCategories = [
+    {
+      label: 'عام وقلبي',
+      options: [
+        { id: 'all', label: 'الالتزام العام', icon: <Activity className="w-3 h-3" />, color: 'emerald' },
+        { id: 'mood', label: 'السكينة النفسية', icon: <Smile className="w-3 h-3" />, color: 'amber' },
+        { id: 'heart_deeds', label: 'أعمال القلوب', icon: <Heart className="w-3 h-3" />, color: 'rose' },
+        { id: 'burden', label: 'العبء الروحي', icon: <ShieldAlert className="w-3 h-3" />, color: 'rose' },
+      ]
+    },
+    {
+      label: 'الفرائض',
+      options: [
+        { id: 'prayers_all', label: 'الصلوات الخمس', icon: <CheckCircle2 className="w-3 h-3" />, color: 'blue' },
+        { id: 'fajr', label: 'صلاة الفجر', icon: <Sun className="w-3 h-3" />, color: 'orange' },
+        { id: 'takbir', label: 'تكبيرة الإحرام', icon: <Sparkle className="w-3 h-3" />, color: 'amber' },
+        { id: 'rawatib', label: 'السنن الرواتب', icon: <Star className="w-3 h-3" />, color: 'emerald' },
+      ]
+    },
+    {
+      label: 'القرآن والعلم',
+      options: [
+        { id: 'quran_hifz', label: 'الحفظ الجديد', icon: <Zap className="w-3 h-3" />, color: 'emerald' },
+        { id: 'quran_rev', label: 'ورد المراجعة', icon: <BookOpen className="w-3 h-3" />, color: 'emerald' },
+        { id: 'knowledge', label: 'طلب العلم', icon: <GraduationCap className="w-3 h-3" />, color: 'purple' },
+      ]
+    },
+    {
+      label: 'النوافل والأذكار',
+      options: [
+        { id: 'qiyam', label: 'القيام والوتر', icon: <Moon className="w-3 h-3" />, color: 'indigo' },
+        { id: 'duha', label: 'صلاة الضحى', icon: <Timer className="w-3 h-3" />, color: 'amber' },
+        { id: 'fasting', label: 'الصيام', icon: <Flame className="w-3 h-3" />, color: 'orange' },
+        { id: 'athkar_morning', label: 'أذكار الصباح', icon: <Sun className="w-4 h-4" />, color: 'amber' },
+        { id: 'athkar_evening', label: 'أذكار المساء', icon: <Moon className="w-4 h-4" />, color: 'indigo' },
+        { id: 'istighfar_count', label: 'ورد الاستغفار', icon: <Zap className="w-3 h-3" />, color: 'rose' },
+      ]
+    }
   ];
 
   const radarData = useMemo(() => {
@@ -83,10 +113,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
     const startDate = timeFilter === 'week' ? addDays(now, -7) : timeFilter === 'month' ? addDays(now, -30) : addDays(now, -365);
     const periodLogs = (Object.values(logs) as DailyLog[]).filter(log => {
       const logDate = new Date(log.date.replace(/-/g, '/'));
-      const start = startDate.getTime();
-      const end = endOfDay(now).getTime();
-      const current = logDate.getTime();
-      return current >= start && current <= end;
+      return logDate.getTime() >= startDate.getTime() && logDate.getTime() <= endOfDay(now).getTime();
     });
     let counts = { prayers: 0, quran: 0, knowledge: 0, fasting: 0, dhikr: 0 };
     periodLogs.forEach(log => {
@@ -144,40 +171,51 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
         switch (activityFilter) {
           case 'all': isConnected = calculateTotalScore(log, weights) > 0; break;
           case 'mood': isConnected = (log.mood || 0) >= 4; break; 
-          case 'prayers': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.performed); break;
-          case 'takbir': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.surroundingSunnahIds?.includes('takbir')); break;
-          case 'quran': isConnected = ((log.quran.hifzRub || 0) + log.quran.revisionRub) > 0; break;
-          case 'knowledge': isConnected = (log.knowledge.shariDuration + (log.knowledge.readingDuration || 0)) > 0; break;
-          case 'fasting': isConnected = log.nawafil.fasting; break;
-          case 'athkar': isConnected = (Object.values(log.athkar.checklists) as boolean[]).some(v => v) || (Object.values(log.athkar.counters) as number[]).some(v => v > 0); break;
-          case 'sleep': isConnected = (log.sleep?.sessions || []).length > 0; break;
+          case 'heart_deeds': isConnected = Object.values(log.heartStates?.deeds || {}).some(arr => arr.length > 0); break;
           case 'burden': isConnected = log.hasBurden; break;
+          case 'prayers_all': isConnected = (Object.values(log.prayers) as PrayerEntry[]).filter(p => p.performed).length === 5; break;
+          case 'fajr': isConnected = log.prayers[PrayerName.FAJR]?.performed; break;
+          case 'takbir': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.surroundingSunnahIds?.includes('takbir')); break;
+          case 'rawatib': 
+            const sunnahIds = (Object.values(log.prayers) as PrayerEntry[]).flatMap(p => p.surroundingSunnahIds || []);
+            isConnected = ['fajr_pre', 'dhuhr_pre', 'dhuhr_post', 'maghrib_post', 'isha_post'].some(id => sunnahIds.includes(id));
+            break;
+          case 'quran_hifz': isConnected = (log.quran.hifzRub || 0) > 0 || (log.quran.todayPortion || '').length > 0; break;
+          case 'quran_rev': isConnected = (log.quran.revisionRub || 0) > 0 || (log.quran.tasksCompleted || []).some(t => t.startsWith('mur_') || t.startsWith('rabt_')); break;
+          case 'knowledge': isConnected = (log.knowledge.shariDuration + (log.knowledge.readingDuration || 0)) > 0; break;
+          case 'qiyam': isConnected = log.nawafil.qiyamDuration > 0 || log.nawafil.witrDuration > 0; break;
+          case 'duha': isConnected = log.nawafil.duhaDuration > 0; break;
+          case 'fasting': isConnected = log.nawafil.fasting; break;
+          case 'athkar_morning': isConnected = log.athkar.checklists.morning; break;
+          case 'athkar_evening': isConnected = log.athkar.checklists.evening; break;
+          case 'istighfar_count': isConnected = (log.athkar.counters.istighfar || 0) >= 100; break;
         }
       }
-      const activeColor = { all: 'bg-emerald-500', mood: 'bg-amber-400', prayers: 'bg-blue-500', takbir: 'bg-amber-500', quran: 'bg-emerald-600', knowledge: 'bg-purple-500', fasting: 'bg-orange-500', athkar: 'bg-rose-500', sleep: 'bg-indigo-500', burden: 'bg-rose-600' }[activityFilter];
+
+      // البحث عن اللون المرتبط بـ activityFilter
+      let activeColor = 'bg-emerald-500';
+      filterCategories.forEach(cat => {
+        const opt = cat.options.find(o => o.id === activityFilter);
+        if (opt) {
+          activeColor = `bg-${opt.color}-500`;
+        }
+      });
+
       return { date, isConnected, colorClass: isConnected ? activeColor : 'bg-slate-100', dateStr };
     });
   }, [logs, weights, activityFilter]);
 
   const handleCloudBackup = async (force = false) => {
     if (!user?.email || !navigator.onLine) return;
-    
-    if (force) {
-      const confirm = window.confirm("هل تريد إصلاح تداخل الخلايا في الشيت؟ سيقوم النظام بمسح السجلات السحابية القديمة لهذا الإيميل واستبدالها بنسخة مرتبة من جهازك.");
-      if (!confirm) return;
-    }
-    
+    if (force && !window.confirm("هل تريد إصلاح تداخل الخلايا في الشيت؟")) return;
     setIsExporting(true);
     try {
       if (onManualSync) {
         await onManualSync(force);
-        if (force) alert("تمت عملية الإصلاح بنجاح. ملف الشيت أصبح الآن نظيفاً ومرتباً.");
+        if (force) alert("تمت عملية الإصلاح بنجاح.");
       }
-    } catch (e) { 
-      alert("خطأ في المزامنة. تأكد من اتصال الإنترنت.");
-    } finally { 
-      setIsExporting(false); 
-    }
+    } catch (e) { alert("خطأ في المزامنة."); }
+    finally { setIsExporting(false); }
   };
 
   const handleDownloadBackup = () => {
@@ -193,7 +231,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 text-right" dir="rtl">
       
-      {/* بطاقة السحابة والمزامنة */}
+      {/* بطاقة السحابة */}
       <div className="bg-emerald-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
         <div className="relative z-10 flex flex-col gap-4">
@@ -205,74 +243,88 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
               <div>
                 <h2 className="text-lg font-bold header-font leading-tight">حالة البيانات السحابية</h2>
                 <p className="text-[10px] text-emerald-200 font-bold">
-                  {/* Fix: use as any for options if TS complains about locale not existing in FormatDistanceOptions */}
                   {lastSyncTime ? `آخر مزامنة: ${formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true, locale: ar } as any)}` : 'لم يتم المزامنة بعد'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button 
-                onClick={() => handleCloudBackup(true)} 
-                title="إصلاح تداخل السجلات السحابية"
-                disabled={isExporting}
-                className="p-3 bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 rounded-2xl transition-all active:scale-95 disabled:opacity-50 border border-rose-500/20"
-              >
-                {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wrench className="w-5 h-5" />}
+              <button onClick={() => handleCloudBackup(true)} title="إصلاح تداخل السجلات" disabled={isExporting} className="p-3 bg-rose-500/20 text-rose-300 rounded-2xl border border-rose-500/20">
+                {isExporting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Wrench className="w-5 h-5" />}
               </button>
-              <button 
-                onClick={() => handleCloudBackup(false)} 
-                disabled={isExporting}
-                className={`p-3 rounded-2xl transition-all ${isExporting ? 'bg-emerald-500/50' : 'bg-emerald-500 hover:bg-emerald-400 shadow-lg active:scale-95'}`}
-              >
-                {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+              <button onClick={() => handleCloudBackup(false)} disabled={isExporting} className="p-3 bg-emerald-500 rounded-2xl shadow-lg">
+                {isExporting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
               </button>
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 gap-2">
-            <button 
-              onClick={handleDownloadBackup}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 hover:bg-white/20 rounded-2xl text-[10px] font-black header-font transition-all border border-white/5"
-            >
-              <FileJson className="w-4 h-4 text-emerald-300" />
-              تصدير نسخة JSON احتياطية لجهازك
-            </button>
-          </div>
+          <button onClick={handleDownloadBackup} className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 rounded-2xl text-[10px] font-black header-font transition-all border border-white/5">
+            <FileJson className="w-4 h-4 text-emerald-300" /> تصدير نسخة JSON احتياطية لجهازك
+          </button>
         </div>
       </div>
 
+      {/* خريطة الالتزام مع فلاتر محسنة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2"><LayoutGrid className="w-4 h-4 text-emerald-500" /><h3 className="font-bold text-slate-700 text-xs header-font">خريطة الالتزام (آخر 30 يوماً)</h3></div>
+        <div className="flex items-center gap-2 mb-4">
+          <LayoutGrid className="w-4 h-4 text-emerald-500" />
+          <h3 className="font-bold text-slate-700 text-xs header-font">خريطة الالتزام التفصيلية (٣٠ يوماً)</h3>
         </div>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
-          {activityOptions.map(opt => (
-            <button 
-              key={opt.id} 
-              onClick={() => setActivityFilter(opt.id)} 
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black header-font whitespace-nowrap transition-all border ${activityFilter === opt.id ? `bg-${opt.color}-50 border-${opt.color}-200 text-${opt.color}-700 shadow-sm` : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'}`}
-            >
-              {opt.icon}{opt.label}
-            </button>
+
+        {/* لوحة الفلاتر الجديدة */}
+        <div className="space-y-4 mb-6">
+          {filterCategories.map((cat, catIdx) => (
+            <div key={catIdx} className="space-y-2">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">{cat.label}</h4>
+              <div className="flex flex-wrap gap-2">
+                {cat.options.map(opt => (
+                  <button 
+                    key={opt.id} 
+                    onClick={() => setActivityFilter(opt.id as ActivityType)} 
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black header-font transition-all border ${activityFilter === opt.id ? `bg-${opt.color}-50 border-${opt.color}-200 text-${opt.color}-700 shadow-sm` : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'}`}
+                  >
+                    {opt.icon}{opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
+
         <div className="grid grid-cols-10 gap-2 mb-4">
           {consistencyGrid.map((day, i) => (
             <div key={i} title={`${day.dateStr}`} className={`aspect-square rounded-md transition-all duration-300 hover:scale-110 cursor-help ${day.colorClass} shadow-sm border border-black/5`}></div>
           ))}
         </div>
-        <div className="flex items-center gap-2 mt-4 p-3 bg-amber-50 rounded-2xl border border-amber-100">
+        
+        <div className="mt-4 p-3 bg-amber-50 rounded-2xl border border-amber-100 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
           <p className="text-[9px] text-amber-800 font-bold header-font leading-relaxed">
-            إذا وجدت تكراراً أو تداخلاً في ملف الشيت، استخدم أيقونة "مفتاح الربط" الحمراء بالأعلى لإعادة تنظيم بياناتك وحذف الخلايا التالفة.
+            استخدم الفلاتر بالأعلى لعرض التزامك بكل عبادة بشكل مستقل؛ المربعات الملونة تعني تحقيق الورد في ذلك اليوم.
           </p>
         </div>
       </div>
 
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 overflow-hidden relative group">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full -translate-y-12 translate-x-12 opacity-50 group-hover:scale-110 transition-transform"></div>
-        <div className="flex items-center justify-between mb-6 relative z-10"><div className="flex items-center gap-3"><div className="p-3 bg-indigo-100 rounded-2xl text-indigo-700"><Moon className="w-6 h-6" /></div><div><h3 className="text-lg font-black text-slate-800 header-font leading-tight">تحليل ساعات النوم</h3><p className="text-[10px] text-slate-400 font-bold uppercase header-font">آخر 30 يوماً</p></div></div><div className="text-right"><span className="text-2xl font-black font-mono text-indigo-600 leading-none">{avgSleepHours}</span><p className="text-[8px] font-bold text-slate-400 header-font mt-1">ساعة كمتوسط</p></div></div>
-        <div className="h-48 w-full relative z-10"><ResponsiveContainer width="100%" height="100%"><BarChart data={sleepStatsData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 700, fill: '#94a3b8', fontFamily: 'Cairo' }} /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} width={20}/><RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo' }} /><Bar dataKey="hours" radius={[4, 4, 0, 0]}>{sleepStatsData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.hours >= 6 && entry.hours <= 8 ? '#6366f1' : '#a5b4fc'} />))}</Bar></BarChart></ResponsiveContainer></div>
+        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full -translate-y-12 translate-x-12 opacity-50"></div>
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-700"><Moon className="w-6 h-6" /></div>
+            <div><h3 className="text-lg font-black text-slate-800 header-font leading-tight">تحليل ساعات النوم</h3><p className="text-[10px] text-slate-400 font-bold uppercase header-font">آخر 30 يوماً</p></div>
+          </div>
+          <div className="text-right"><span className="text-2xl font-black font-mono text-indigo-600 leading-none">{avgSleepHours}</span><p className="text-[8px] font-bold text-slate-400 header-font mt-1">ساعة كمتوسط</p></div>
+        </div>
+        <div className="h-48 w-full relative z-10">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={sleepStatsData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 700, fill: '#94a3b8', fontFamily: 'Cairo' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} width={20}/>
+              <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo' }} />
+              <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
+                {sleepStatsData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.hours >= 6 && entry.hours <= 8 ? '#6366f1' : '#a5b4fc'} />))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
