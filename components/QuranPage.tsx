@@ -20,7 +20,6 @@ import {
   MessageSquareText
 } from 'lucide-react';
 import { DailyLog } from '../types';
-import { startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays } from 'date-fns';
 
 const QURAN_PORTIONS_NAMES = [
   "1- الفاتحة: (الحمد لله رب العالمين)",
@@ -155,7 +154,7 @@ const QURAN_PORTIONS_NAMES = [
   "130- الأنبياء: (ومن يقل منهم)",
   "131- الأنبياء: (ولقد اّتينا إبراهيم رشده)",
   "132- الأنبياء: (وأيوب إذ نادى ربه)",
-  "133- الحج: (يا أيها الناس اتقوا ربكم إن زلزلة الساعة)",
+  "133- الحج: (يا أيها الناس اتقوا ربكم إن ززلية الساعة)",
   "134- الحج: (هذان خصمان اختصموا)",
   "135- الحج: (إن الله يدافع عن الذين اّمنوا)",
   "136- الحج: (ذلك ومن عاقب بمثل )",
@@ -340,6 +339,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     return idx !== -1 ? idx + 1 : 0;
   }, [quranData.todayPortion, hifzUnit]);
 
+  // منطق الربط: آخر 10 أرباع أو صفحات قبل الحالي
   const rabtPortions = useMemo(() => {
     if (currentIndex <= 1) return [];
     const portions = [];
@@ -351,70 +351,27 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     return portions;
   }, [currentIndex, hifzUnit]);
 
-  // منطق مراجعة المحفوظ القديم الديناميكي
+  // منطق المراجعة القديم: كل ما هو قبل الـ 10 الخاصة بالربط
   const murajaaData = useMemo(() => {
     const list = hifzUnit === 'rub' ? QURAN_PORTIONS_NAMES : QURAN_PAGES_LIST;
-    const buffer = hifzUnit === 'rub' ? 11 : 25;
+    const buffer = hifzUnit === 'rub' ? 11 : 25; // الربط 10، المراجعة تبدأ من 11
     
     if (currentIndex <= buffer) return null;
     
     const revisionLimit = currentIndex - buffer;
     
-    // 1. تحديد الأرباع التي تم مراجعتها بالفعل هذا الأسبوع
-    // لنفترض أن الأسبوع يبدأ من يوم السبت وينتهي يوم الجمعة
-    const today = new Date();
-    let cycleStart = startOfWeek(today, { weekStartsOn: 6 }); // السبت
+    // النظام القديم كان يعرض المحفوظ القديم كله أو جزءاً ثابتاً منه
+    // هنا سنعرض مراجعة "الورد القديم" بشكل تسلسلي (مثلاً أول 5 أرباع من المحفوظ القديم أو حسب الحاجة)
+    // لاستعادة البساطة سنعرض نطاق المراجعة من 1 إلى revisionLimit
     
-    const weekLogs = Object.values(logs).filter(l => {
-        const d = new Date(l.date.replace(/-/g, '/'));
-        return d >= cycleStart && d <= today;
-    });
-
-    const completedInWeek = new Set<number>();
-    weekLogs.forEach(l => {
-        (l.quran?.tasksCompleted || []).forEach(tid => {
-            if (tid.startsWith('mur_')) {
-                const idx = parseInt(tid.split('_')[1]);
-                completedInWeek.add(idx);
-            }
-        });
-    });
-
-    // 2. إحصاء المتبقي من المحفوظ القديم لهذا الأسبوع
-    const uncompletedRubs = [];
-    for (let i = 1; i <= revisionLimit; i++) {
-        if (!completedInWeek.has(i)) {
-            uncompletedRubs.push(i);
-        }
-    }
-
-    if (uncompletedRubs.length === 0) return null;
-
-    // 3. حساب الأيام المتبقية في الأسبوع (حتى يوم الخميس، والجمعة يوم إضافي أو مراجعة عامة)
-    // أو ببساطة توزيع على الأيام المتبقية من اليوم حتى الجمعة
-    const daysLeft = 7 - ((today.getDay() + 1) % 7); // تقريب للأيام المتبقية حتى الجمعة (5 في JS)
-    // لنستخدم منطق أبسط: عدد الأيام من اليوم (شامل) حتى الجمعة القادمة
-    const nextFriday = addDays(cycleStart, 6);
-    const remainingDays = eachDayOfInterval({ start: today, end: nextFriday }).length;
-    
-    const dailyQuota = Math.ceil(uncompletedRubs.length / Math.max(1, remainingDays));
-    const todayRubs = uncompletedRubs.slice(0, dailyQuota);
-    
-    if (todayRubs.length === 0) return null;
-
-    const individualItems = todayRubs.map(idx => ({
-        id: `mur_${idx}`,
-        label: list[idx - 1]
-    }));
-
     return { 
-      startStarter: getVerseStarter(list[todayRubs[0] - 1]), 
-      endStarter: getVerseStarter(list[todayRubs[todayRubs.length - 1] - 1]), 
-      total: todayRubs.length,
+      startStarter: getVerseStarter(list[0]), 
+      endStarter: getVerseStarter(list[revisionLimit - 1]), 
+      total: revisionLimit,
       unitLabel: hifzUnit === 'rub' ? 'أرباع' : 'صفحات',
-      individualItems 
+      limit: revisionLimit
     };
-  }, [currentIndex, hifzUnit, logs]);
+  }, [currentIndex, hifzUnit]);
 
   const hifzSteps = [
     { id: 'prev_repeat', label: 'تكرار محفوظ الأمس ٥ مرات', desc: 'لربط محفوظ اليوم بما سبقه وتثبيته', icon: <History className="w-4 h-4" /> },
@@ -533,7 +490,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
               {murajaaData ? (
                 <div className="space-y-6">
                   <div className="p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
-                    <p className="text-[10px] text-emerald-300 font-bold mb-3 uppercase tracking-widest text-center">ورد المراجعة الديناميكي (المتبقي من الأسبوع)</p>
+                    <p className="text-[10px] text-emerald-300 font-bold mb-3 uppercase tracking-widest text-center">ورد المراجعة الأساسي (المحفوظ القديم)</p>
                     <div className="flex flex-col items-center gap-2">
                       <div className="bg-emerald-500/20 px-4 py-2 rounded-xl text-center">
                         <span className="text-xs text-emerald-200 font-bold block mb-1">من مطلع:</span>
@@ -541,26 +498,21 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
                       </div>
                       <div className="h-4 w-px bg-white/20"></div>
                       <div className="bg-emerald-500/20 px-4 py-2 rounded-xl text-center">
-                        <span className="text-xs text-emerald-200 font-bold block mb-1">إلى نهاية:</span>
+                        <span className="text-xs text-emerald-200 font-bold block mb-1">إلى نهاية المحفوظ القديم:</span>
                         <span className="text-sm md:text-lg font-black header-font leading-relaxed">({murajaaData.endStarter})</span>
                       </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-white/10 text-center">
-                      <span className="text-[11px] font-bold text-emerald-100 italic bg-white/5 px-4 py-1.5 rounded-full">{`(إجمالي: ${murajaaData.total} ${murajaaData.unitLabel})`}</span>
+                      <span className="text-[11px] font-bold text-emerald-100 italic bg-white/5 px-4 py-1.5 rounded-full">{`(إجمالي محفوظك القديم: ${murajaaData.total} ${murajaaData.unitLabel})`}</span>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    {murajaaData.individualItems.map((item) => (
-                      <button key={item.id} onClick={() => toggleTask(item.id)} className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all text-right ${quranData.tasksCompleted?.includes(item.id) ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-100 shadow-lg' : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10'}`}>
-                        <span className="text-[10px] font-bold header-font">{item.label}</span>
-                        {quranData.tasksCompleted?.includes(item.id) ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Circle className="w-4 h-4 text-white/20" />}
-                      </button>
-                    ))}
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                     <p className="text-[10px] text-center text-slate-400 font-bold">يقترح عليك النظام مراجعة حزب أو أكثر يومياً من هذا النطاق لضمان الإتقان.</p>
                   </div>
                 </div>
               ) : (
                 <div className="p-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
-                  <p className="text-[10px] text-emerald-300 font-bold leading-relaxed">{`بمجرد أن يتجاوز محفوظك الـ ${hifzUnit === 'rub' ? '11 ربعاً' : '25 صفحة'}، سيبدأ النظام بجدولة مراجعتك القديمة تلقائياً لضمان عدم النسيان، مع إعادة التوزيع الديناميكي للمتبقي.`}</p>
+                  <p className="text-[10px] text-emerald-300 font-bold leading-relaxed">{`بمجرد أن يتجاوز محفوظك الـ ${hifzUnit === 'rub' ? '11 ربعاً' : '25 صفحة'}، سيبدأ النظام بعرض نطاق مراجعتك القديمة تلقائياً لضمان عدم النسيان.`}</p>
                 </div>
               )}
             </div>
