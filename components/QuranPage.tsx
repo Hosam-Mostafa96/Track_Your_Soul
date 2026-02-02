@@ -154,7 +154,7 @@ const QURAN_PORTIONS_NAMES = [
   "130- الأنبياء: (ومن يقل منهم)",
   "131- الأنبياء: (ولقد اّتينا إبراهيم رشده)",
   "132- الأنبياء: (وأيوب إذ نادى ربه)",
-  "133- الحج: (يا أيها الناس اتقوا ربكم إن ززلية الساعة)",
+  "133- الحج: (يا أيها الناس اتقوا ربكم إن زلزلة الساعة)",
   "134- الحج: (هذان خصمان اختصموا)",
   "135- الحج: (إن الله يدافع عن الذين اّمنوا)",
   "136- الحج: (ذلك ومن عاقب بمثل )",
@@ -288,11 +288,6 @@ const QURAN_PORTIONS_NAMES = [
 
 const QURAN_PAGES_LIST = Array.from({ length: 604 }, (_, i) => `صفحة ${i + 1}`);
 
-const getVerseStarter = (fullName: string) => {
-  const match = fullName.match(/\((.*?)\)/);
-  return match ? match[1] : fullName.split(':')[0];
-};
-
 interface QuranPageProps {
   log: DailyLog;
   logs: Record<string, DailyLog>;
@@ -339,7 +334,6 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     return idx !== -1 ? idx + 1 : 0;
   }, [quranData.todayPortion, hifzUnit]);
 
-  // منطق الربط: آخر 10 أرباع أو صفحات قبل الحالي
   const rabtPortions = useMemo(() => {
     if (currentIndex <= 1) return [];
     const portions = [];
@@ -351,25 +345,41 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     return portions;
   }, [currentIndex, hifzUnit]);
 
-  // منطق المراجعة القديم: كل ما هو قبل الـ 10 الخاصة بالربط
+  // منطق مراجعة المحفوظ القديم (تقسيم على 7 أيام تبدأ من الأحد)
   const murajaaData = useMemo(() => {
     const list = hifzUnit === 'rub' ? QURAN_PORTIONS_NAMES : QURAN_PAGES_LIST;
-    const buffer = hifzUnit === 'rub' ? 11 : 25; // الربط 10، المراجعة تبدأ من 11
+    const buffer = hifzUnit === 'rub' ? 11 : 25; 
     
     if (currentIndex <= buffer) return null;
     
-    const revisionLimit = currentIndex - buffer;
+    const totalOldPortions = currentIndex - buffer;
     
-    // النظام القديم كان يعرض المحفوظ القديم كله أو جزءاً ثابتاً منه
-    // هنا سنعرض مراجعة "الورد القديم" بشكل تسلسلي (مثلاً أول 5 أرباع من المحفوظ القديم أو حسب الحاجة)
-    // لاستعادة البساطة سنعرض نطاق المراجعة من 1 إلى revisionLimit
+    // JS getDay(): الأحد=0، الاثنين=1، ... السبت=6
+    const cycleDay = new Date().getDay(); 
     
+    // عدد الأرباع التي يجب مراجعتها يومياً (قسمة على 7)
+    const dailyQuota = Math.ceil(totalOldPortions / 7);
+    
+    // تحديد البداية والنهاية لمراجعة اليوم بناءً على cycleDay (0=Sunday)
+    const startIndex = cycleDay * dailyQuota;
+    const endIndex = Math.min(startIndex + dailyQuota, totalOldPortions);
+    
+    if (startIndex >= totalOldPortions) return null;
+
+    const items = [];
+    for (let i = startIndex; i < endIndex; i++) {
+        items.push({
+            id: `mur_${i + 1}`,
+            label: list[i]
+        });
+    }
+
     return { 
-      startStarter: getVerseStarter(list[0]), 
-      endStarter: getVerseStarter(list[revisionLimit - 1]), 
-      total: revisionLimit,
+      items,
+      total: totalOldPortions,
       unitLabel: hifzUnit === 'rub' ? 'أرباع' : 'صفحات',
-      limit: revisionLimit
+      quota: items.length,
+      dayName: ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'][cycleDay]
     };
   }, [currentIndex, hifzUnit]);
 
@@ -486,33 +496,47 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
           <div className="bg-slate-900 text-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6"><History className="w-6 h-6 text-emerald-400" /><h3 className="text-lg font-bold header-font">مراجعة المحفوظ القديم</h3></div>
+              <div className="flex items-center gap-3 mb-6">
+                <History className="w-6 h-6 text-emerald-400" />
+                <div>
+                  <h3 className="text-lg font-bold header-font leading-tight">مراجعة المحفوظ القديم</h3>
+                  <p className="text-[9px] text-emerald-300/60 font-bold uppercase">يتم ختم مراجعة قديمك كل 7 أيام (بداية الأسبوع: الأحد)</p>
+                </div>
+              </div>
+              
               {murajaaData ? (
                 <div className="space-y-6">
-                  <div className="p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
-                    <p className="text-[10px] text-emerald-300 font-bold mb-3 uppercase tracking-widest text-center">ورد المراجعة الأساسي (المحفوظ القديم)</p>
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="bg-emerald-500/20 px-4 py-2 rounded-xl text-center">
-                        <span className="text-xs text-emerald-200 font-bold block mb-1">من مطلع:</span>
-                        <span className="text-sm md:text-lg font-black header-font leading-relaxed">({murajaaData.startStarter})</span>
-                      </div>
-                      <div className="h-4 w-px bg-white/20"></div>
-                      <div className="bg-emerald-500/20 px-4 py-2 rounded-xl text-center">
-                        <span className="text-xs text-emerald-200 font-bold block mb-1">إلى نهاية المحفوظ القديم:</span>
-                        <span className="text-sm md:text-lg font-black header-font leading-relaxed">({murajaaData.endStarter})</span>
-                      </div>
+                  <div className="p-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="bg-emerald-500 text-emerald-950 px-3 py-1 rounded-full text-[10px] font-black header-font">ورد يوم {murajaaData.dayName}</div>
+                      <div className="text-[10px] font-bold text-emerald-300 italic">{`(${murajaaData.quota} ${murajaaData.unitLabel} اليوم)`}</div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-white/10 text-center">
-                      <span className="text-[11px] font-bold text-emerald-100 italic bg-white/5 px-4 py-1.5 rounded-full">{`(إجمالي محفوظك القديم: ${murajaaData.total} ${murajaaData.unitLabel})`}</span>
+                    
+                    <div className="space-y-2">
+                        {murajaaData.items.map((item) => (
+                            <button 
+                                key={item.id} 
+                                onClick={() => toggleTask(item.id)} 
+                                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all text-right ${quranData.tasksCompleted?.includes(item.id) ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-100' : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10'}`}
+                            >
+                                <span className="text-[10px] font-bold header-font leading-relaxed">{item.label}</span>
+                                {quranData.tasksCompleted?.includes(item.id) ? (
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                ) : (
+                                    <Circle className="w-4 h-4 text-white/20" />
+                                )}
+                            </button>
+                        ))}
                     </div>
                   </div>
-                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                     <p className="text-[10px] text-center text-slate-400 font-bold">يقترح عليك النظام مراجعة حزب أو أكثر يومياً من هذا النطاق لضمان الإتقان.</p>
+                  
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
+                     <p className="text-[10px] text-slate-400 font-bold">إجمالي محفوظك القديم الحالي: <span className="text-emerald-400">{murajaaData.total}</span> {murajaaData.unitLabel}.</p>
                   </div>
                 </div>
               ) : (
                 <div className="p-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
-                  <p className="text-[10px] text-emerald-300 font-bold leading-relaxed">{`بمجرد أن يتجاوز محفوظك الـ ${hifzUnit === 'rub' ? '11 ربعاً' : '25 صفحة'}، سيبدأ النظام بعرض نطاق مراجعتك القديمة تلقائياً لضمان عدم النسيان.`}</p>
+                  <p className="text-[10px] text-emerald-300 font-bold leading-relaxed">{`بمجرد أن يتجاوز محفوظك الـ ${hifzUnit === 'rub' ? '11 ربعاً' : '25 صفحة'}، سيبدأ النظام بتقسيم القديم على 7 أيام وعرض ورد اليوم تلقائياً.`}</p>
                 </div>
               )}
             </div>
