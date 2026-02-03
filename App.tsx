@@ -19,7 +19,8 @@ import {
   Calendar,
   BookMarked,
   Lightbulb,
-  Heart
+  Heart,
+  ChevronLeft
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 // Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
@@ -123,10 +124,9 @@ const App: React.FC = () => {
     setIsAppReady(true);
   }, []);
 
-  const syncToCloud = async (currentLogs: any, currentBooks: any, force = false) => {
+  const syncToCloud = async (currentLogs: any, currentBooks: any, force = false, activityLabel?: string, activityType?: string) => {
     if (!user?.email || !navigator.onLine || !isGlobalSyncEnabled) return;
     
-    // منع المزامنة إذا كانت السجلات فارغة تماماً (إلا في حالة الإصلاح القسري)
     if (!force && Object.keys(currentLogs).length === 0) return;
 
     try {
@@ -134,8 +134,11 @@ const App: React.FC = () => {
       const payload = { 
         action: 'syncLogs', 
         email, 
+        name: user.name,
         logs: JSON.stringify(currentLogs),
         books: JSON.stringify(currentBooks),
+        activityLabel,
+        activityType,
         timestamp: new Date().toLocaleString('ar-EG'),
         forceUpdate: force
       };
@@ -154,13 +157,13 @@ const App: React.FC = () => {
     } catch (e) { console.error("Sync failed", e); }
   };
 
-  const updateLog = (updated: DailyLog) => {
+  const updateLog = (updated: DailyLog, activityLabel?: string, activityType?: string) => {
     const newLogs = { ...logs, [updated.date]: updated };
     setLogs(newLogs);
     localStorage.setItem('worship_logs', JSON.stringify(newLogs));
     
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    syncTimeoutRef.current = window.setTimeout(() => syncToCloud(newLogs, books), 5000);
+    syncTimeoutRef.current = window.setTimeout(() => syncToCloud(newLogs, books, false, activityLabel, activityType), 2000);
   };
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
@@ -218,21 +221,41 @@ const App: React.FC = () => {
         </div>
       </header>
       <main className="px-4 -mt-8 relative z-20 max-w-2xl mx-auto">{renderContent()}</main>
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 shadow-2xl rounded-full px-4 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg z-50 overflow-x-auto max-w-[98vw] no-scrollbar">
-        {[
-          {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
-          {id: 'entry', icon: PenLine, label: 'تسجيل'},
-          {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
-          {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
-          {id: 'subha', icon: Orbit, label: 'السبحة'},
-          {id: 'quran', icon: BookOpen, label: 'القرآن'},
-          {id: 'heart', icon: Heart, label: 'التزكية'},
-          {id: 'library', icon: Library, label: 'المكتبة'},
-          {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-          {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
-          {id: 'contact', icon: Send, label: 'تواصل'},
-        ].map((tab) => (<button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.8rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}><tab.icon className="w-5 h-5" /><span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span></button>))}
-      </nav>
+      
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-[98vw] pointer-events-none flex justify-center">
+        <div className="relative w-fit pointer-events-auto">
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white/80 to-transparent rounded-l-full pointer-events-none z-10"></div>
+          
+          <nav className="bg-white/95 shadow-2xl rounded-full px-6 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg overflow-x-auto no-scrollbar max-w-[92vw]">
+            {[
+              {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
+              {id: 'entry', icon: PenLine, label: 'تسجيل'},
+              {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
+              {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
+              {id: 'subha', icon: Orbit, label: 'السبحة'},
+              {id: 'quran', icon: BookOpen, label: 'القرآن'},
+              {id: 'heart', icon: Heart, label: 'التزكية'},
+              {id: 'library', icon: Library, label: 'المكتبة'},
+              {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
+              {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
+              {id: 'contact', icon: Send, label: 'تواصل'},
+            ].map((tab) => (
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id as Tab)} 
+                className={`flex flex-col items-center min-w-[3.8rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <tab.icon className="w-5 h-5" />
+                <span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+          
+          <div className="absolute left-1 top-1/2 -translate-y-1/2 p-1 bg-emerald-500 rounded-full text-white shadow-lg animate-pulse z-20">
+            <ChevronLeft className="w-3 h-3" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
