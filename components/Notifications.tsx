@@ -35,8 +35,8 @@ const Notifications: React.FC<NotificationsProps> = ({ onBack }) => {
     {
       id: 5,
       type: 'feature',
-      title: 'إعادة تنظيم الواجهة الرئيسية',
-      message: 'تم إعادة ترتيب بطاقات الصفحة الرئيسية (المستشار، الهدف، القراءة، الأوسمة، الطمأنينة) لتناسب تدفقك اليومي بشكل أفضل.',
+      title: ' اضافة خاصية نشاط العابدين ',
+      message: 'تم اضافة خاصية تسمى بنشاط العابدين حيث تتيح للمستخدم ما قام الاخرون من العبادات منذ قليل ',
       time: new Date(),
       icon: <Settings className="w-5 h-5 text-blue-500" />
     },
