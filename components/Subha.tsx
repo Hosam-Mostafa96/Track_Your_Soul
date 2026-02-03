@@ -10,7 +10,9 @@ import {
   Disc,
   Plus,
   X,
-  Check
+  Check,
+  PlusCircle,
+  Trash2
 } from 'lucide-react';
 import { DailyLog } from '../types';
 
@@ -39,6 +41,8 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
   const [selectedType, setSelectedType] = useState<DhikrType>(DEFAULT_DHIKR_TYPES[0]);
   const [absoluteCount, setAbsoluteCount] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [newDhikrName, setNewDhikrName] = useState('');
   
   const lastClickTimeRef = useRef<number>(0);
 
@@ -106,6 +110,28 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
     }
   };
 
+  const handleAddNewDhikr = () => {
+    if (!newDhikrName.trim()) return;
+    const key = 'c_' + Date.now();
+    const newDhikr = { id: key, label: newDhikrName.trim(), key };
+    const newList = [...customDhikrs, newDhikr];
+    setCustomDhikrs(newList);
+    localStorage.setItem('worship_custom_dhikrs', JSON.stringify(newList));
+    setNewDhikrName('');
+    setIsAddingNew(false);
+    setSelectedType(newDhikr);
+  };
+
+  const handleRemoveDhikr = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newList = customDhikrs.filter(d => d.id !== id);
+    setCustomDhikrs(newList);
+    localStorage.setItem('worship_custom_dhikrs', JSON.stringify(newList));
+    if (selectedType.id === id) {
+      setSelectedType(DEFAULT_DHIKR_TYPES[0]);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 max-w-md mx-auto text-right select-none" dir="rtl">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
@@ -118,13 +144,23 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
             <p className="text-[10px] text-slate-400 font-bold uppercase header-font">وردك محفوظ تلقائياً</p>
           </div>
         </div>
-        <button 
-          onClick={handleReset} 
-          className="p-3 bg-rose-50 rounded-full text-rose-500 active:scale-90 transition-all shadow-sm hover:bg-rose-100"
-        >
-          <RotateCcw className="w-5 h-5" />
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setIsAddingNew(!isAddingNew)} className="p-3 bg-emerald-50 text-emerald-600 rounded-full active:scale-90 transition-all">
+            {isAddingNew ? <X className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
+          </button>
+          <button onClick={handleReset} className="p-3 bg-rose-50 rounded-full text-rose-500 active:scale-90 transition-all shadow-sm">
+            <RotateCcw className="w-5 h-5" />
+          </button>
+        </div>
       </div>
+
+      {isAddingNew && (
+        <div className="p-5 bg-white rounded-2xl border border-emerald-100 shadow-xl space-y-4 animate-in zoom-in duration-200">
+          <h3 className="text-sm font-black text-slate-800 header-font">إضافة ذكر جديد</h3>
+          <input type="text" placeholder="اكتب الذكر هنا.." value={newDhikrName} onChange={(e) => setNewDhikrName(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-emerald-500" />
+          <button onClick={handleAddNewDhikr} className="w-full py-4 bg-emerald-600 text-white rounded-xl font-black text-xs">حفظ وإضافة للمسبحة</button>
+        </div>
+      )}
 
       <div className="relative">
         <button 
@@ -142,13 +178,19 @@ const Subha: React.FC<SubhaProps> = ({ log, onUpdateLog }) => {
           <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in duration-200 z-[100]">
             <div className="max-h-[40vh] overflow-y-auto no-scrollbar">
               {allDhikrTypes.map(type => (
-                <button
-                  key={type.id}
-                  onClick={() => { setSelectedType(type); setIsDropdownOpen(false); }}
-                  className={`w-full text-right px-6 py-5 text-xs font-black header-font transition-colors border-b border-slate-50 last:border-none ${selectedType.id === type.id ? 'bg-emerald-600 text-white' : 'hover:bg-emerald-50 text-slate-600'}`}
-                >
-                  {type.label}
-                </button>
+                <div key={type.id} className={`flex items-center border-b border-slate-50 last:border-none hover:bg-slate-50 transition-colors ${selectedType.id === type.id ? 'bg-emerald-600' : ''}`}>
+                  <button
+                    onClick={() => { setSelectedType(type); setIsDropdownOpen(false); }}
+                    className={`flex-1 text-right px-6 py-5 text-xs font-black header-font ${selectedType.id === type.id ? 'text-white' : 'text-slate-600'}`}
+                  >
+                    {type.label}
+                  </button>
+                  {customDhikrs.some(cd => cd.id === type.id) && (
+                    <button onClick={(e) => handleRemoveDhikr(type.id, e)} className={`p-5 ${selectedType.id === type.id ? 'text-white/60 hover:text-white' : 'text-rose-300 hover:text-rose-500'}`}>
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </div>
