@@ -90,8 +90,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
     {
       label: 'القرآن والعلم',
       options: [
-        { id: 'quran_hifz', label: 'الحفظ الجديد', icon: <Zap className="w-3 h-3" />, color: 'emerald' },
-        { id: 'quran_rev', label: 'ورد المراجعة', icon: <BookOpen className="w-3 h-3" />, color: 'emerald' },
+        { id: 'quran_hifz', label: 'ورد السماع', icon: <Zap className="w-3 h-3" />, color: 'emerald' },
+        { id: 'quran_rev', label: 'ورد القراءة', icon: <BookOpen className="w-3 h-3" />, color: 'emerald' },
         { id: 'knowledge', label: 'طلب العلم', icon: <GraduationCap className="w-3 h-3" />, color: 'purple' },
       ]
     },
