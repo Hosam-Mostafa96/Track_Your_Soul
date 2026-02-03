@@ -103,6 +103,35 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))} disabled={currentDate === format(new Date(), 'yyyy-MM-dd')} className="p-2 rounded-xl text-slate-400 disabled:opacity-20"><ChevronLeft className="w-5 h-5" /></button>
       </div>
 
+      {/* الحالة النفسية والمجاهدة (Spiritual Burden & Jihad) */}
+      <div className="flex gap-4">
+        <div className="flex-1 bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">المجاهدة</span>
+            <Heart className={`w-3.5 h-3.5 ${log.jihadFactor > 1 ? 'text-rose-500 fill-rose-500' : 'text-slate-200'}`} />
+          </div>
+          <div className="flex gap-1.5">
+            {[1.0, 1.05, 1.1].map(f => (
+              <button 
+                key={f} 
+                onClick={() => onUpdate({ ...log, jihadFactor: f })} 
+                className={`flex-1 py-1.5 rounded-xl text-[9px] font-black transition-all header-font ${log.jihadFactor === f ? 'bg-rose-500 text-white shadow-md' : 'bg-slate-50 text-slate-400 border border-transparent'}`}
+              >
+                {f === 1.0 ? 'عادي' : f === 1.05 ? 'مجاهدة' : 'شديدة'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button 
+          onClick={() => onUpdate({ ...log, hasBurden: !log.hasBurden }, !log.hasBurden ? 'فترة عبء روحي' : undefined, 'status')} 
+          className={`flex-1 p-4 rounded-[2rem] shadow-sm border transition-all flex flex-col items-center justify-center gap-1 ${log.hasBurden ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-inner' : 'bg-white border-slate-100 text-slate-400'}`}
+        >
+          <ShieldAlert className={`w-5 h-5 ${log.hasBurden ? 'text-amber-500' : 'text-slate-200'}`} />
+          <span className="text-[10px] font-black header-font">العبء الروحي</span>
+        </button>
+      </div>
+
       {/* Prayers Section */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-6">
@@ -199,7 +228,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         </div>
       </div>
 
-      {/* Knowledge Section (Restored) */}
+      {/* Knowledge Section */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-6"><GraduationCap className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">طلب العلم والقراءة</h3></div>
         <div className="space-y-4">
