@@ -16,7 +16,10 @@ import {
   Sun,
   Moon,
   GraduationCap,
-  Zap
+  Zap,
+  BookOpen,
+  Flame,
+  Heart
 } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
@@ -46,25 +49,22 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
-  // دالة معالجة البيانات المحسنة لمنع NaN وعرض الأسماء
+  // معالجة البيانات القادمة من شيت جوجل بناءً على الأعمدة (A: الاسم، C: السكور)
   const processLeaderboard = (data: any[]) => {
     if (!Array.isArray(data)) return [];
     
     const topMap = new Map();
     data.forEach((entry: any) => {
-      // جلب المعرف الفريد (الايميل)
-      const emailKey = (entry.email || entry.Email || "").toLowerCase().trim();
+      const emailKey = (entry.email || "").toLowerCase().trim();
       if (!emailKey) return;
 
-      // تحويل السكور لرقم بشكل آمن
-      const rawScore = entry.score !== undefined ? entry.score : (entry.Score || entry.Scc || 0);
-      const scoreNum = parseFloat(rawScore);
-      const finalScore = Number.isFinite(scoreNum) ? scoreNum : 0;
-
-      // جلب الاسم والتأكد أنه ليس ايميل
-      let displayName = entry.name || entry.Name || "عابد مجهول";
+      const score = Number(entry.score);
+      const finalScore = Number.isFinite(score) ? score : 0;
       
-      // إذا كان الاسم يحتوي على @ فهو غالباً ايميل، نحاول تنظيفه
+      // جلب الاسم من العمود الأول (A) المتواجد في حقل name
+      let displayName = entry.name && entry.name !== "undefined" ? entry.name : "عابد مجهول";
+      
+      // حماية: إذا كان الاسم ايميل، نظفه
       if (displayName.includes('@')) {
         displayName = displayName.split('@')[0];
       }
@@ -145,6 +145,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     switch(type) {
       case 'quran': return <Zap className="w-4 h-4 text-emerald-500" />;
       case 'prayer': return <Sunrise className="w-4 h-4 text-orange-500" />;
+      case 'athkar': return <Sun className="w-4 h-4 text-amber-500" />;
+      case 'knowledge': return <GraduationCap className="w-4 h-4 text-purple-500" />;
+      case 'sunnah': return <Flame className="w-4 h-4 text-rose-500" />;
       default: return <Activity className="w-4 h-4 text-blue-500" />;
     }
   };
@@ -153,34 +156,41 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center space-y-4 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
         <AlertCircle className="w-12 h-12 text-amber-500 opacity-50" />
-        <h3 className="font-bold text-slate-800 header-font">المنافسة معطلة</h3>
-        <p className="text-xs text-slate-400 header-font">قم بتفعيل المزامنة لمشاركة النتائج.</p>
+        <h3 className="font-bold text-slate-800 header-font text-sm">المنافسة غير مفعلة</h3>
+        <p className="text-xs text-slate-400 header-font">فعّل المزامنة لمشاركة تقدمك في المحراب العالمي.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700 pb-24 text-right" dir="rtl">
+      {/* الاقتباس التحفيزي */}
       <div className="bg-emerald-50 rounded-3xl p-4 border border-emerald-100 text-center">
         <p className="text-sm font-bold quran-font text-emerald-900 leading-relaxed mb-1">"{currentQuote.text}"</p>
         <span className="text-[8px] font-black text-emerald-600/40 header-font uppercase">{currentQuote.source}</span>
       </div>
 
+      {/* التبديل بين المتصدرين والنشاط */}
       <div className="bg-white p-1 rounded-2xl shadow-sm border border-slate-100 flex gap-1">
-        <button onClick={() => setActiveView('ranks')} className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all ${activeView === 'ranks' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}>المتصدرون</button>
-        <button onClick={() => setActiveView('activity')} className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all ${activeView === 'activity' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}>نشاط العابدين</button>
+        <button onClick={() => setActiveView('ranks')} className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${activeView === 'ranks' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}>
+          <Trophy className="w-4 h-4" /> المتصدرون
+        </button>
+        <button onClick={() => setActiveView('activity')} className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${activeView === 'activity' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}>
+          <Activity className="w-4 h-4" /> نشاط العابدين
+        </button>
       </div>
 
       {activeView === 'ranks' ? (
         <div className="space-y-4">
-          <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-[2rem] p-6 text-white text-center shadow-lg">
-            <h2 className="text-[10px] font-black opacity-70 uppercase tracking-widest mb-2">ترتيبك الحالي</h2>
-            <div className="text-4xl font-black font-mono text-yellow-400">{userRank || "---"}</div>
+          <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-[2.5rem] p-6 text-white text-center shadow-lg relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-12 translate-x-12 blur-xl"></div>
+             <h2 className="text-[10px] font-black opacity-70 uppercase tracking-widest mb-2">رتبتك الحالية</h2>
+             <div className="text-5xl font-black font-mono text-yellow-400">{userRank || "---"}</div>
           </div>
 
           <div className="flex items-center justify-between px-2">
             <h3 className="font-bold text-slate-800 header-font text-sm flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-amber-500" /> قائمة المتصدرين
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> قائمة الصدّيقين
             </h3>
             <button onClick={() => fetchGlobalData()} className={`p-2 rounded-xl bg-white border border-slate-100 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-400'}`}>
               <RefreshCw className="w-4 h-4" />
@@ -203,10 +213,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                     </div>
                   </div>
                   <div className="text-left shrink-0 min-w-[60px]">
-                    <div className={`text-lg font-black font-mono ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                    <div className={`text-lg font-black font-mono leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
                       {Math.round(player.score).toLocaleString()}
                     </div>
-                    <div className={`text-[8px] font-bold opacity-60 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>نقطة</div>
+                    <div className={`text-[8px] font-bold opacity-60 mt-1 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>نقطة</div>
                   </div>
                 </div>
               );
@@ -215,10 +225,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         </div>
       ) : (
         <div className="space-y-3">
-          {activityFeed.length > 0 ? activityFeed.map((act) => (
-            <div key={act.id} className="bg-white p-4 rounded-2xl border border-slate-50 shadow-sm flex items-center justify-between animate-in fade-in slide-in-from-right-2">
+          <div className="px-2 mb-2 flex items-center justify-between">
+             <h3 className="text-sm font-bold text-slate-800 header-font">نبض المحراب</h3>
+             <div className="text-[9px] font-bold text-emerald-500 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> مباشر</div>
+          </div>
+          {activityFeed.length > 0 ? activityFeed.map((act, i) => (
+            <div key={i} className="bg-white p-4 rounded-2xl border border-slate-50 shadow-sm flex items-center justify-between group hover:border-emerald-100 transition-all animate-in slide-in-from-right-2">
               <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-emerald-50 rounded-xl">{getActionIcon(act.actionType)}</div>
+                <div className="p-2.5 bg-emerald-50 rounded-xl group-hover:scale-110 transition-transform">{getActionIcon(act.actionType)}</div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black text-slate-400 font-mono bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{act.user}</span>
@@ -226,11 +240,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                   </div>
                   <div className="flex items-center gap-1 mt-1 opacity-60">
                     <Clock className="w-2.5 h-2.5 text-slate-400" />
-                    <span className="text-[9px] font-bold text-slate-400">{act.time}</span>
+                    <span className="text-[9px] font-bold text-slate-400">منذ قليل</span>
                   </div>
                 </div>
               </div>
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 opacity-20 group-hover:opacity-100" />
             </div>
           )) : <LoaderBox isLoading={isLoading} networkError={networkError} />}
         </div>
@@ -241,7 +255,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
 const LoaderBox = ({ isLoading, networkError }: { isLoading: boolean, networkError: boolean }) => (
   <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-slate-200">
-    {isLoading ? <Loader2 className="w-8 h-8 animate-spin text-emerald-300 mx-auto" /> : <p className="text-xs text-slate-400 font-bold">{networkError ? 'خطأ في الاتصال بالسحابة' : 'لا توجد بيانات حالياً'}</p>}
+    {isLoading ? (
+      <Loader2 className="w-8 h-8 animate-spin text-emerald-300 mx-auto" />
+    ) : (
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-xs text-slate-400 font-bold">{networkError ? 'خطأ في الاتصال بالخادم' : 'لا توجد بيانات حالياً'}</p>
+        <p className="text-[9px] text-slate-300 font-bold">حاول التحديث بعد قليل</p>
+      </div>
+    )}
   </div>
 );
 
