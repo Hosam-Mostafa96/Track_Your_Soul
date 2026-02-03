@@ -19,8 +19,6 @@ import {
   Sunrise,
   Sun,
   Moon,
-  HandMetal,
-  BookOpen,
   GraduationCap
 } from 'lucide-react';
 import { User } from '../types';
@@ -52,15 +50,27 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
+  // دالة محسنة لمعالجة البيانات ومنع الـ NaN
   const processLeaderboard = (data: any[]) => {
     const topMap = new Map();
     data.forEach((entry: any) => {
+      // جلب البريد كمعرف فريد
       const emailKey = (entry.email || entry.Email || "").toLowerCase().trim();
       if (!emailKey) return;
-      const score = parseInt(entry.Scc || entry.score || 0);
-      const name = entry.Name || entry.name || "متسابق";
+
+      // جلب النقاط والتأكد من أنها رقم
+      let scoreRaw = entry.score !== undefined ? entry.score : (entry.Scc || 0);
+      const score = Number(scoreRaw) || 0;
+
+      // جلب الاسم والتأكد أنه ليس بريداً إلكترونياً إذا أمكن
+      const nameRaw = entry.name || entry.Name || "عابد";
+      
       if (!topMap.has(emailKey) || score > topMap.get(emailKey).score) {
-        topMap.set(emailKey, { name, email: emailKey, score });
+        topMap.set(emailKey, { 
+          name: nameRaw, 
+          email: emailKey, 
+          score: isNaN(score) ? 0 : score 
+        });
       }
     });
     return Array.from(topMap.values()).sort((a, b) => b.score - a.score);
@@ -136,7 +146,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 20000); 
+    const interval = setInterval(() => fetchGlobalData(true), 15000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
@@ -145,7 +155,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       case 0: return { bg: 'bg-amber-400', text: 'text-white', icon: <Crown className="w-5 h-5" /> };
       case 1: return { bg: 'bg-slate-300', text: 'text-slate-600', icon: <Medal className="w-5 h-5" /> };
       case 2: return { bg: 'bg-orange-400', text: 'text-white', icon: <Star className="w-5 h-5" /> };
-      default: return { bg: 'bg-slate-100', text: 'text-slate-400', icon: null };
+      default: return { bg: 'bg-slate-50', text: 'text-slate-400', icon: null };
     }
   };
 
