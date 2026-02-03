@@ -19,7 +19,9 @@ import {
   Sunrise,
   Sun,
   Moon,
-  HandMetal
+  HandMetal,
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
@@ -50,22 +52,18 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
-  // دالة تمويه الهوية
-  const maskIdentity = (email: string) => {
-    if (!email) return "ID_ANON";
-    const parts = email.split('@');
-    const name = parts[0];
-    if (name.length <= 2) return `${name}***`;
-    return `${name.slice(0, 2)}***${name.slice(-1)}`;
-  };
-
   const processLeaderboard = (data: any[]) => {
     const topMap = new Map();
     data.forEach((entry: any) => {
-      const emailKey = (entry.email || entry.Email || entry.name || entry.Name || "").toLowerCase().trim();
+      const emailKey = (entry.email || entry.Email || "").toLowerCase().trim();
       if (!emailKey) return;
-      const score = parseInt(entry.Scc || entry.scc || entry.score || entry.Score || 0);
-      const name = entry.Name || entry.name || "متسابق";
+      
+      // إصلاح NaN: التأكد من تحويل القيمة لرقم صحيح
+      const rawScore = entry.score || entry.Score || entry.scc || entry.Scc || 0;
+      const score = isNaN(Number(rawScore)) ? 0 : Number(rawScore);
+      
+      const name = entry.name || entry.Name || "متسابق";
+      
       if (!topMap.has(emailKey) || score > topMap.get(emailKey).score) {
         topMap.set(emailKey, { name, email: emailKey, score });
       }
@@ -73,24 +71,26 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return Array.from(topMap.values()).sort((a, b) => b.score - a.score);
   };
 
-  // محاكاة نشاط العابدين بناءً على البيانات (لحين توفرها من الباكيند بشكل منفصل)
-  const deriveActivities = (leaderboard: any[]) => {
-    const worshipTypes = [
-      { label: 'أتم صلاة الفجر في جماعة', icon: <Sunrise className="w-4 h-4 text-orange-500" />, color: 'bg-orange-50' },
-      { label: 'أنهى ورد أذكار الصباح', icon: <Sun className="w-4 h-4 text-amber-500" />, color: 'bg-amber-50' },
-      { label: 'أتم ورد القرآن اليومي', icon: <Zap className="w-4 h-4 text-emerald-500" />, color: 'bg-emerald-50' },
-      { label: 'سجل جلسة ذكر (١٠٠ مرة)', icon: <Activity className="w-4 h-4 text-blue-500" />, color: 'bg-blue-50' },
-      { label: 'أنجز عملاً قلبياً (الإخلاص)', icon: <Heart className="w-4 h-4 text-rose-500" />, color: 'bg-rose-50' },
-      { label: 'أتم ركعتي الضحى', icon: <Sun className="w-4 h-4 text-yellow-500" />, color: 'bg-yellow-50' },
-      { label: 'صلى الوتر بفضل الله', icon: <Moon className="w-4 h-4 text-indigo-500" />, color: 'bg-indigo-50' }
-    ];
+  const getActionIcon = (type: string) => {
+    switch(type) {
+      case 'quran': return <Zap className="w-4 h-4 text-emerald-500" />;
+      case 'prayer': return <Sunrise className="w-4 h-4 text-orange-500" />;
+      case 'athkar': return <Sun className="w-4 h-4 text-amber-500" />;
+      case 'knowledge': return <GraduationCap className="w-4 h-4 text-purple-500" />;
+      case 'sunnah': return <Moon className="w-4 h-4 text-indigo-500" />;
+      default: return <Activity className="w-4 h-4 text-blue-500" />;
+    }
+  };
 
-    return leaderboard.slice(0, 15).map((player, idx) => ({
-      id: `act_${idx}_${Date.now()}`,
-      user: maskIdentity(player.email),
-      action: worshipTypes[Math.floor(Math.random() * worshipTypes.length)],
-      time: 'الآن'
-    }));
+  const getActionColor = (type: string) => {
+    switch(type) {
+      case 'quran': return 'bg-emerald-50';
+      case 'prayer': return 'bg-orange-50';
+      case 'athkar': return 'bg-amber-50';
+      case 'knowledge': return 'bg-purple-50';
+      case 'sunnah': return 'bg-indigo-50';
+      default: return 'bg-blue-50';
+    }
   };
 
   const fetchGlobalData = async (isSilent = false) => {
@@ -116,14 +116,19 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       if (res.ok) {
         const data = await res.json();
         setNetworkError(false);
-        if (data && data.leaderboard) {
-          const sortedAll = processLeaderboard(data.leaderboard);
-          setGlobalTop(sortedAll.slice(0, 100));
-          setActivityFeed(deriveActivities(sortedAll));
-
-          const myEmail = user.email.toLowerCase().trim();
-          const myIdx = sortedAll.findIndex(p => p.email === myEmail);
-          setUserRank(myIdx !== -1 ? myIdx + 1 : null);
+        if (data) {
+          if (data.leaderboard) {
+            const sortedAll = processLeaderboard(data.leaderboard);
+            setGlobalTop(sortedAll.slice(0, 100));
+            
+            const myEmail = user.email.toLowerCase().trim();
+            const myIdx = sortedAll.findIndex(p => p.email === myEmail);
+            setUserRank(myIdx !== -1 ? myIdx + 1 : null);
+          }
+          
+          if (data.activities) {
+            setActivityFeed(data.activities);
+          }
         }
       }
     } catch (e) {
@@ -136,7 +141,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 15000); 
+    const interval = setInterval(() => fetchGlobalData(true), 20000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
@@ -231,7 +236,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                         </div>
                         <div className={`flex flex-col items-center px-3 shrink-0 border-r border-slate-100/50 ${isMe ? 'border-white/20' : ''}`}>
                           <span className={`text-lg font-black font-mono leading-none ${isMe ? 'text-white' : 'text-emerald-700'}`}>
-                            {player.score.toLocaleString()}
+                            {(player.score || 0).toLocaleString()}
                           </span>
                           <span className={`text-[7px] font-black header-font mt-1 uppercase opacity-60 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>نقطة</span>
                         </div>
@@ -260,13 +265,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                 {activityFeed.map((act) => (
                   <div key={act.id} className="bg-white p-4 rounded-[1.8rem] border border-slate-50 shadow-sm flex items-center justify-between group hover:border-emerald-100 transition-all animate-in fade-in slide-in-from-right-2">
                     <div className="flex items-center gap-4">
-                      <div className={`p-2.5 rounded-2xl ${act.action.color} group-hover:scale-110 transition-transform`}>
-                        {act.action.icon}
+                      <div className={`p-2.5 rounded-2xl ${getActionColor(act.actionType)} group-hover:scale-110 transition-transform`}>
+                        {getActionIcon(act.actionType)}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-black text-slate-400 font-mono bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">{act.user}</span>
-                          <span className="text-[11px] font-bold text-slate-800 header-font">{act.action.label}</span>
+                          <span className="text-[11px] font-bold text-slate-800 header-font">{act.actionLabel}</span>
                         </div>
                         <div className="flex items-center gap-1 mt-1 opacity-60">
                            <Clock className="w-2.5 h-2.5 text-slate-400" />
@@ -280,7 +285,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                   </div>
                 ))}
               </div>
-            ) : <LoaderBox isLoading={isLoading} networkError={networkError} />}
+            ) : (
+              <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-slate-200">
+                <p className="text-[10px] text-slate-400 font-bold header-font">لا توجد أنشطة مسجلة لليوم بعد.</p>
+                <p className="text-[8px] text-slate-300 font-bold header-font mt-1">كن أول من يسجل طاعة لليوم!</p>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -307,7 +317,7 @@ const LoaderBox = ({ isLoading, networkError }: { isLoading: boolean, networkErr
         {networkError ? (
           <p className="text-[10px] text-rose-400 font-bold header-font">خطأ في الاتصال بالمحراب السحابي.</p>
         ) : (
-          <p className="text-[10px] text-slate-400 font-bold header-font">لا توجد تحديثات حالياً.</p>
+          <p className="text-[10px] text-slate-400 font-bold header-font">لا توجد بيانات حالياً.</p>
         )}
         <p className="text-[8px] text-slate-300 font-bold header-font tracking-tight">تأكد من تفعيل المزامنة واستقرار الإنترنت.</p>
       </div>
