@@ -171,7 +171,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
         switch (activityFilter) {
           case 'all': isConnected = calculateTotalScore(log, weights) > 0; break;
           case 'mood': isConnected = (log.mood || 0) >= 4; break; 
-          case 'heart_deeds': isConnected = Object.values(log.heartStates?.deeds || {}).some(arr => arr.length > 0); break;
+          // Fix: Explicitly cast Object.values to string[][] to fix "Property length does not exist on type unknown"
+          case 'heart_deeds': isConnected = (Object.values(log.heartStates?.deeds || {}) as string[][]).some(arr => arr.length > 0); break;
           case 'burden': isConnected = log.hasBurden; break;
           case 'prayers_all': isConnected = (Object.values(log.prayers) as PrayerEntry[]).filter(p => p.performed).length === 5; break;
           case 'fajr': isConnected = log.prayers[PrayerName.FAJR]?.performed; break;
@@ -308,7 +309,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
         <div className="flex items-center justify-between mb-6 relative z-10">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-700"><Moon className="w-6 h-6" /></div>
-            <div><h3 className="text-lg font-black text-slate-800 header-font leading-tight">تحليل ساعات النوم</h3><p className="text-[10px] text-slate-400 font-bold uppercase header-font">آخر 30 يوماً</p></div>
+            <div><h3 className="text-lg font-black text-slate-800 header-font leading-tight"><p className="text-[10px] text-slate-400 font-bold uppercase header-font">آخر 30 يوماً</p>تحليل ساعات النوم</h3></div>
           </div>
           <div className="text-right"><span className="text-2xl font-black font-mono text-indigo-600 leading-none">{avgSleepHours}</span><p className="text-[8px] font-bold text-slate-400 header-font mt-1">ساعة كمتوسط</p></div>
         </div>

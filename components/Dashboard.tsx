@@ -113,7 +113,8 @@ const Dashboard: React.FC<DashboardProps> = ({
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       
       // تجهيز ملخص للبيانات الأخيرة لتحليل النمط
-      const recentSummary = Object.values(logs).slice(-7).map(l => ({
+      // Fix: Explicitly cast to DailyLog[] to resolve "unknown" type error
+      const recentSummary = (Object.values(logs) as DailyLog[]).slice(-7).map(l => ({
         date: l.date,
         score: calculateTotalScore(l, weights),
         jihad: l.jihadFactor,

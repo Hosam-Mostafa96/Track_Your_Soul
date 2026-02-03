@@ -1,7 +1,7 @@
 
 import { SurroundingSunnah, AppWeights } from './types';
 
-// الرابط الموحد للمزامنة والمحراب العالمي - تم تحديثه بناءً على طلب المستخدم
+// الرابط الموحد للمزامنة والمحراب العالمي
 export const GOOGLE_STATS_API = "https://script.google.com/macros/s/AKfycbzhgKQ2nTI6hN1TSCLZdFpnpGfNAxAO8jHGwHGs5VlU7oWjv1H3E0pZiQp-y0ZcKBJIVQ/exec";
 
 export const DEFAULT_WEIGHTS: AppWeights = {
@@ -17,12 +17,12 @@ export const DEFAULT_WEIGHTS: AppWeights = {
     adhkar_after: 100,
     wudu: 50
   },
-  quranHifz: 100, // الربع الجديد
-  quranRevision: 25, // مراجعة ربع
-  quranPageRepetition: 5, // تكرار الوجه الواحد (مرة واحدة)
-  quranRubRepetition: 25, // تكرار ربع كامل (مرة واحدة)
-  knowledgeShari: 10, // دقيقة العلم الشرعي بـ 10 نقاط
-  knowledgeGeneral: 2, // دقيقة القراءة العامة بـ درجتين
+  quranHifz: 100, // ورد السماع (لكل ربع)
+  quranRevision: 100, // ورد القراءة (لكل ربع)
+  quranPageRepetition: 5, 
+  quranRubRepetition: 25, 
+  knowledgeShari: 10, 
+  knowledgeGeneral: 2, 
   athkarChecklist: 100,
   athkarCounter: 1,
   nawafilPerMin: 5,
@@ -30,7 +30,7 @@ export const DEFAULT_WEIGHTS: AppWeights = {
   burdenDeduction: 30,
   customSunnahs: [],
   pointsPerPage: 2,
-  heartDeedPoint: 200 // كل مستوى في عمل القلب بـ 200 نقطة
+  heartDeedPoint: 200 
 };
 
 export const TRANQUILITY_MULTIPLIERS = {
