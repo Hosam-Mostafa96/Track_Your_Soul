@@ -190,7 +190,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
           <div className="flex items-center justify-between px-2">
             <h3 className="font-bold text-slate-800 header-font text-sm flex items-center gap-2">
-              <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> قائمة الصدّيقين
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> قائمة المتصدرين
             </h3>
             <button onClick={() => fetchGlobalData()} className={`p-2 rounded-xl bg-white border border-slate-100 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-400'}`}>
               <RefreshCw className="w-4 h-4" />
