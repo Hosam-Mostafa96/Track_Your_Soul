@@ -46,22 +46,34 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
 
+  // دالة معالجة البيانات المحسنة لمنع NaN وعرض الأسماء
   const processLeaderboard = (data: any[]) => {
     if (!Array.isArray(data)) return [];
     
     const topMap = new Map();
     data.forEach((entry: any) => {
-      const emailKey = (entry.email || "").toLowerCase().trim();
+      // جلب المعرف الفريد (الايميل)
+      const emailKey = (entry.email || entry.Email || "").toLowerCase().trim();
       if (!emailKey) return;
 
-      const score = Number(entry.score);
-      const name = entry.name && entry.name !== "undefined" ? entry.name : "عابد مجهول";
+      // تحويل السكور لرقم بشكل آمن
+      const rawScore = entry.score !== undefined ? entry.score : (entry.Score || entry.Scc || 0);
+      const scoreNum = parseFloat(rawScore);
+      const finalScore = Number.isFinite(scoreNum) ? scoreNum : 0;
+
+      // جلب الاسم والتأكد أنه ليس ايميل
+      let displayName = entry.name || entry.Name || "عابد مجهول";
       
-      if (!topMap.has(emailKey) || (isNaN(topMap.get(emailKey).score) || score > topMap.get(emailKey).score)) {
+      // إذا كان الاسم يحتوي على @ فهو غالباً ايميل، نحاول تنظيفه
+      if (displayName.includes('@')) {
+        displayName = displayName.split('@')[0];
+      }
+      
+      if (!topMap.has(emailKey) || finalScore > topMap.get(emailKey).score) {
         topMap.set(emailKey, { 
-          name: name, 
+          name: displayName, 
           email: emailKey, 
-          score: isNaN(score) ? 0 : score 
+          score: finalScore 
         });
       }
     });
@@ -116,7 +128,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
   useEffect(() => {
     fetchGlobalData();
-    const interval = setInterval(() => fetchGlobalData(true), 20000); 
+    const interval = setInterval(() => fetchGlobalData(true), 15000); 
     return () => clearInterval(interval);
   }, [isSync, currentScore, user?.email]);
 
@@ -190,8 +202,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
                       {isMe && <Sparkles className="w-3 h-3 text-yellow-300" />}
                     </div>
                   </div>
-                  <div className="text-left">
-                    <div className={`text-lg font-black font-mono ${isMe ? 'text-white' : 'text-emerald-700'}`}>{Math.round(player.score).toLocaleString()}</div>
+                  <div className="text-left shrink-0 min-w-[60px]">
+                    <div className={`text-lg font-black font-mono ${isMe ? 'text-white' : 'text-emerald-700'}`}>
+                      {Math.round(player.score).toLocaleString()}
+                    </div>
                     <div className={`text-[8px] font-bold opacity-60 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>نقطة</div>
                   </div>
                 </div>
@@ -227,7 +241,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
 
 const LoaderBox = ({ isLoading, networkError }: { isLoading: boolean, networkError: boolean }) => (
   <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-slate-200">
-    {isLoading ? <Loader2 className="w-8 h-8 animate-spin text-emerald-300 mx-auto" /> : <p className="text-xs text-slate-400 font-bold">{networkError ? 'خطأ في الاتصال بالسحابة' : 'لا توجد بيانات'}</p>}
+    {isLoading ? <Loader2 className="w-8 h-8 animate-spin text-emerald-300 mx-auto" /> : <p className="text-xs text-slate-400 font-bold">{networkError ? 'خطأ في الاتصال بالسحابة' : 'لا توجد بيانات حالياً'}</p>}
   </div>
 );
 
