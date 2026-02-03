@@ -135,7 +135,7 @@ const WorshipGuide: React.FC = () => {
             <div className="flex items-center gap-3">
               <Zap className="w-5 h-5 text-emerald-600" />
               <div>
-                <h4 className="text-sm font-bold text-slate-800 header-font">الحفظ الجديد</h4>
+                <h4 className="text-sm font-bold text-slate-800 header-font"> ورد السماع</h4>
                 <p className="text-[10px] text-emerald-600 font-bold">لكل ربع حزب</p>
               </div>
             </div>
@@ -145,7 +145,7 @@ const WorshipGuide: React.FC = () => {
             <div className="flex items-center gap-3">
               <Activity className="w-5 h-5 text-slate-400" />
               <div>
-                <h4 className="text-sm font-bold text-slate-800 header-font">المراجعة والورد</h4>
+                <h4 className="text-sm font-bold text-slate-800 header-font"> ورد القراءة</h4>
                 <p className="text-[10px] text-slate-400 font-bold">لكل ربع حزب</p>
               </div>
             </div>

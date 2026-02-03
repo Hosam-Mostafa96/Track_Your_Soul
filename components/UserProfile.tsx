@@ -300,8 +300,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
                 <BookOpen className="w-4 h-4 text-amber-500" />
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">ورد القرآن</h4>
               </div>
-              {weightInput('الحفظ الجديد (ربع)', localWeights.quranHifz, (val) => setLocalWeights({ ...localWeights, quranHifz: val }), <Zap className="w-4 h-4" />)}
-              {weightInput('المراجعة (ربع)', localWeights.quranRevision, (val) => setLocalWeights({ ...localWeights, quranRevision: val }), <Activity className="w-4 h-4" />)}
+              {weightInput('ورد السماع  (ربع)', localWeights.quranHifz, (val) => setLocalWeights({ ...localWeights, quranHifz: val }), <Zap className="w-4 h-4" />)}
+              {weightInput('ورد القراءة (ربع)', localWeights.quranRevision, (val) => setLocalWeights({ ...localWeights, quranRevision: val }), <Activity className="w-4 h-4" />)}
             </div>
 
             <div className="flex gap-4 pt-4">
