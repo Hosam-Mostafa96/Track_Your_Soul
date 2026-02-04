@@ -17,16 +17,16 @@ export const DEFAULT_WEIGHTS: AppWeights = {
     adhkar_after: 100,
     wudu: 50
   },
-  quranHifz: 100, // ورد السماع (لكل ربع)
-  quranRevision: 100, // ورد القراءة (لكل ربع)
-  quranPageRepetition: 5, 
-  quranRubRepetition: 25, 
+  quranHifz: 30, // ورد السماع (لكل ربع) - تم التعديل
+  quranRevision: 15, // ورد القراءة (لكل ربع) - تم التعديل
+  quranPageRepetition: 8, // تم التعديل
+  quranRubRepetition: 15, // تم التعديل
   knowledgeShari: 10, 
   knowledgeGeneral: 2, 
   athkarChecklist: 100,
   athkarCounter: 1,
-  nawafilPerMin: 5,
-  fastingDay: 1000,
+  nawafilPerMin: 10, // تم التعديل
+  fastingDay: 1500, // تم التعديل
   burdenDeduction: 30,
   customSunnahs: [],
   pointsPerPage: 2,

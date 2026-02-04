@@ -7,9 +7,9 @@ import {
   LockKeyhole, Globe, Flame, BookOpen, ListChecks,
   Activity, Mail, MapPin, Calendar, Sparkles, Skull,
   Repeat, Database, AlertTriangle, FileJson, Check,
-  Smartphone, Download, Share, X
+  Smartphone, Download, Share, X, Heart, ShieldAlert
 } from 'lucide-react';
-import { AppWeights, User as UserType, DailyLog } from '../types';
+import { AppWeights, User as UserType } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
 import confetti from 'canvas-confetti';
 
@@ -54,6 +54,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
     onUpdateWeights(localWeights);
     setIsSavedWeights(true);
     setTimeout(() => setIsSavedWeights(false), 3000);
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
   };
 
   const handleManualImport = () => {
@@ -96,23 +97,26 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
     }
   };
 
-  const weightInput = (label: string, value: number, onChange: (val: number) => void, icon?: any) => (
+  const weightInput = (label: string, value: number, onChange: (val: number) => void, icon?: any, unit?: string) => (
     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-transparent hover:border-slate-200 transition-all">
       <div className="flex items-center gap-2">
         {icon && <span className="text-emerald-500">{icon}</span>}
-        <span className="text-[11px] font-bold text-slate-700 header-font">{label}</span>
+        <div className="flex flex-col">
+          <span className="text-[11px] font-bold text-slate-700 header-font">{label}</span>
+          {unit && <span className="text-[8px] text-slate-400 font-bold">{unit}</span>}
+        </div>
       </div>
       <input 
         type="number" 
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value) || 0)}
-        className="w-20 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-emerald-700 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        className="w-20 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-emerald-700 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-sm"
       />
     </div>
   );
 
   return (
-    <div className="space-y-6 animate-in slide-in-from-top duration-300 pb-12">
+    <div className="space-y-6 animate-in slide-in-from-top duration-300 pb-12 text-right" dir="rtl">
       {/* بطاقة المستخدم الشخصية */}
       <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100">
         <div className="flex flex-col items-center">
@@ -168,7 +172,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </div>
       </div>
 
-      {/* خيار تثبيت التطبيق - يظهر فقط إذا لم يكن مثبتاً بالفعل */}
+      {/* خيار تثبيت التطبيق */}
       {(!isStandalone && (installPrompt || isIOS)) && (
         <div className="bg-gradient-to-br from-amber-400 to-orange-600 rounded-3xl p-6 shadow-lg text-white animate-in zoom-in duration-300">
           <div className="flex items-center gap-4 mb-4">
@@ -213,15 +217,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
         </div>
       </div>
       
+      {/* استعادة البيانات */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden">
-        <button 
-          onClick={() => setShowRecovery(!showRecovery)}
-          className="w-full flex items-center justify-between"
-        >
+        <button onClick={() => setShowRecovery(!showRecovery)} className="w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-50 rounded-xl">
-              <Database className="w-5 h-5 text-amber-600" />
-            </div>
+            <div className="p-2 bg-amber-50 rounded-xl"><Database className="w-5 h-5 text-amber-600" /></div>
             <div className="text-right">
               <h3 className="font-bold text-slate-800 header-font">أدوات استعادة البيانات</h3>
               <p className="text-[10px] text-slate-400 font-bold header-font">استرداد السجلات عبر كود JSON</p>
@@ -229,94 +229,106 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
           </div>
           {showRecovery ? <ChevronUp className="w-5 h-5 text-slate-300" /> : <ChevronDown className="w-5 h-5 text-slate-300" />}
         </button>
-
         {showRecovery && (
           <div className="mt-6 space-y-4 animate-in slide-in-from-top duration-300">
             <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-              <p className="text-[10px] text-amber-800 font-bold leading-relaxed">
-                هذه الخاصية مخصصة لاستعادة بياناتك إذا حصل تداخل في السحابة. قم بلصق كود السجلات (JSON) في المربع أدناه ثم اضغط استيراد. سيتم دمجها مع بياناتك الحالية.
-              </p>
+              <p className="text-[10px] text-amber-800 font-bold leading-relaxed">هذه الخاصية مخصصة لاستعادة بياناتك إذا حصل تداخل في السحابة. قم بلصق كود السجلات (JSON) في المربع أدناه ثم اضغط استيراد.</p>
             </div>
-            
             <div className="relative">
-              <textarea 
-                value={importJson}
-                onChange={(e) => setImportJson(e.target.value)}
-                placeholder="الصق كود السجلات هنا (JSON)..."
-                className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-mono focus:border-emerald-300 transition-all resize-none"
-              />
+              <textarea value={importJson} onChange={(e) => setImportJson(e.target.value)} placeholder="الصق كود السجلات هنا (JSON)..." className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-mono focus:border-emerald-300 transition-all resize-none" />
               <FileJson className="absolute bottom-3 left-3 w-4 h-4 text-slate-300" />
             </div>
-
-            <button 
-              onClick={handleManualImport}
-              disabled={!importJson.trim()}
-              className={`w-full py-4 rounded-2xl font-black header-font text-xs shadow-lg flex items-center justify-center gap-2 transition-all ${
-                importStatus === 'success' ? 'bg-emerald-500 text-white' : 
-                importStatus === 'error' ? 'bg-rose-500 text-white' :
-                importJson.trim() ? 'bg-slate-900 text-white active:scale-95' : 'bg-slate-100 text-slate-300'
-              }`}
-            >
-              {importStatus === 'success' ? <Check className="w-4 h-4" /> : <Database className="w-4 h-4" />}
-              {importStatus === 'success' ? 'تم استيراد البيانات بنجاح' : 
-               importStatus === 'error' ? 'خطأ في تنسيق الكود!' : 'استيراد السجلات الآن'}
-            </button>
+            <button onClick={handleManualImport} disabled={!importJson.trim()} className={`w-full py-4 rounded-2xl font-black header-font text-xs shadow-lg flex items-center justify-center gap-2 transition-all ${importStatus === 'success' ? 'bg-emerald-500 text-white' : importStatus === 'error' ? 'bg-rose-500 text-white' : importJson.trim() ? 'bg-slate-900 text-white active:scale-95' : 'bg-slate-100 text-slate-300'}`}>{importStatus === 'success' ? <Check className="w-4 h-4" /> : <Database className="w-4 h-4" />}{importStatus === 'success' ? 'تم استيراد البيانات بنجاح' : importStatus === 'error' ? 'خطأ في تنسيق الكود!' : 'استيراد السجلات الآن'}</button>
           </div>
         )}
       </div>
 
+      {/* تخصيص أوزان النظام - النسخة الموسعة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <button 
-          onClick={() => setShowWeights(!showWeights)}
-          className="w-full flex items-center justify-between"
-        >
+        <button onClick={() => setShowWeights(!showWeights)} className="w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-50 rounded-xl">
-              <Settings2 className="w-5 h-5 text-slate-600" />
-            </div>
+            <div className="p-2 bg-slate-50 rounded-xl"><Settings2 className="w-5 h-5 text-slate-600" /></div>
             <div className="text-right">
               <h3 className="font-bold text-slate-800 header-font">تخصيص أوزان النظام</h3>
-              <p className="text-[10px] text-slate-400 font-bold header-font">تحكم في قيمة كل عبادة بدقة</p>
+              <p className="text-[10px] text-slate-400 font-bold header-font">تحكم في قيمة كل عبادة بدقة متناهية</p>
             </div>
           </div>
           {showWeights ? <ChevronUp className="w-5 h-5 text-slate-300" /> : <ChevronDown className="w-5 h-5 text-slate-300" />}
         </button>
 
         {showWeights && (
-          <div className="mt-6 space-y-8 animate-in slide-in-from-top duration-300">
+          <div className="mt-6 space-y-10 animate-in slide-in-from-top duration-300 pb-4">
+            
+            {/* 1. الصلوات والفرائض */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 px-1 border-r-4 border-emerald-500 pr-2">
                 <Star className="w-4 h-4 text-emerald-500" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">الصلوات والفرائض</h4>
+                <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest header-font">الصلوات والفرائض</h4>
               </div>
               {weightInput('صلاة الجماعة', localWeights.fardCongregation, (val) => setLocalWeights({ ...localWeights, fardCongregation: val }), <Users className="w-4 h-4" />)}
               {weightInput('صلاة منفردة', localWeights.fardSolo, (val) => setLocalWeights({ ...localWeights, fardSolo: val }), <User className="w-4 h-4" />)}
-              {weightInput('السنة الراتبة (للواحدة)', localWeights.sunnahRawatib, (val) => setLocalWeights({ ...localWeights, sunnahRawatib: val }), <Sparkles className="w-4 h-4" />)}
+              {weightInput('السنة الراتبة', localWeights.sunnahRawatib, (val) => setLocalWeights({ ...localWeights, sunnahRawatib: val }), <Sparkles className="w-4 h-4" />, 'لكل ركعتين/سنة')}
             </div>
 
+            {/* 2. ورد القرآن والإتقان */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 px-1 border-r-4 border-amber-500 pr-2">
                 <BookOpen className="w-4 h-4 text-amber-500" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">ورد القرآن</h4>
+                <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest header-font">ورد القرآن والإتقان</h4>
               </div>
-              {weightInput('ورد السماع  (ربع)', localWeights.quranHifz, (val) => setLocalWeights({ ...localWeights, quranHifz: val }), <Zap className="w-4 h-4" />)}
+              {weightInput('ورد السماع (ربع)', localWeights.quranHifz, (val) => setLocalWeights({ ...localWeights, quranHifz: val }), <Zap className="w-4 h-4" />)}
               {weightInput('ورد القراءة (ربع)', localWeights.quranRevision, (val) => setLocalWeights({ ...localWeights, quranRevision: val }), <Activity className="w-4 h-4" />)}
+              {weightInput('تكرار الصفحة الواحدة', localWeights.quranPageRepetition, (val) => setLocalWeights({ ...localWeights, quranPageRepetition: val }), <Repeat className="w-4 h-4" />, 'لكل تكرار إضافي')}
+              {weightInput('تكرار الربع الواحد', localWeights.quranRubRepetition, (val) => setLocalWeights({ ...localWeights, quranRubRepetition: val }), <Repeat className="w-4 h-4" />, 'لكل تكرار إضافي')}
             </div>
 
-            <div className="flex gap-4 pt-4">
+            {/* 3. طلب العلم والقراءة */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2 px-1 border-r-4 border-purple-500 pr-2">
+                <GraduationCap className="w-4 h-4 text-purple-500" />
+                <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest header-font">طلب العلم والقراءة</h4>
+              </div>
+              {weightInput('العلم الشرعي (بالدقيقة)', localWeights.knowledgeShari, (val) => setLocalWeights({ ...localWeights, knowledgeShari: val }), <Clock className="w-4 h-4" />)}
+              {weightInput('القراءة العامة (بالدقيقة)', localWeights.knowledgeGeneral, (val) => setLocalWeights({ ...localWeights, knowledgeGeneral: val }), <Clock className="w-4 h-4" />)}
+              {weightInput('نقاط القراءة لكل صفحة', localWeights.pointsPerPage, (val) => setLocalWeights({ ...localWeights, pointsPerPage: val }), <Book className="w-4 h-4" />)}
+            </div>
+
+            {/* 4. الأذكار والنوافل */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2 px-1 border-r-4 border-orange-500 pr-2">
+                <Flame className="w-4 h-4 text-orange-500" />
+                <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest header-font">الأذكار والنوافل</h4>
+              </div>
+              {weightInput('قوائم الأذكار الكاملة', localWeights.athkarChecklist, (val) => setLocalWeights({ ...localWeights, athkarChecklist: val }), <ListChecks className="w-4 h-4" />, 'صباح/مساء..')}
+              {weightInput('عداد التسبيح (للواحدة)', localWeights.athkarCounter, (val) => setLocalWeights({ ...localWeights, athkarCounter: val }), <Zap className="w-4 h-4" />)}
+              {weightInput('صلاة النفل (بالدقيقة)', localWeights.nawafilPerMin, (val) => setLocalWeights({ ...localWeights, nawafilPerMin: val }), <Clock className="w-4 h-4" />, 'ضحى/وتر/قيام')}
+              {weightInput('صيام يوم كامل', localWeights.fastingDay, (val) => setLocalWeights({ ...localWeights, fastingDay: val }), <Flame className="w-4 h-4" />)}
+            </div>
+
+            {/* 5. أعمال القلوب والخصومات */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2 px-1 border-r-4 border-rose-500 pr-2">
+                <Heart className="w-4 h-4 text-rose-500" />
+                <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest header-font">أعمال القلوب والخصومات</h4>
+              </div>
+              {weightInput('المهمة القلبية الواحدة', localWeights.heartDeedPoint, (val) => setLocalWeights({ ...localWeights, heartDeedPoint: val }), <Sparkles className="w-4 h-4" />, 'أعمال التزكية')}
+              {weightInput('نسبة خصم العبء الروحي', localWeights.burdenDeduction, (val) => setLocalWeights({ ...localWeights, burdenDeduction: val }), <ShieldAlert className="w-4 h-4" />, 'تخصم كنسبة %')}
+            </div>
+
+            <div className="flex gap-4 pt-6">
               <button 
                 onClick={resetWeights}
-                className="flex-1 py-3 bg-slate-50 text-slate-400 rounded-2xl font-bold header-font text-xs flex items-center justify-center gap-2 border border-slate-200"
+                className="flex-1 py-4 bg-slate-50 text-slate-400 rounded-2xl font-bold header-font text-xs flex items-center justify-center gap-2 border border-slate-200 active:bg-slate-100 transition-all"
               >
                 <RotateCcw className="w-4 h-4" /> استعادة الافتراضي
               </button>
               <button 
                 onClick={handleSaveWeights}
-                className={`flex-1 py-3 rounded-2xl font-bold header-font text-xs flex items-center justify-center gap-2 shadow-lg transition-all ${isSavedWeights ? 'bg-emerald-50 text-white' : 'bg-slate-800 text-white hover:bg-slate-900 active:scale-95'}`}
+                className={`flex-1 py-4 rounded-2xl font-black header-font text-xs flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95 ${isSavedWeights ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white'}`}
               >
                 {isSavedWeights ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                {isSavedWeights ? 'تم الحفظ' : 'حفظ الإعدادات'}
+                {isSavedWeights ? 'تم الحفظ بنجاح' : 'حفظ كافة الأوزان'}
               </button>
             </div>
           </div>
