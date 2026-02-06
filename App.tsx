@@ -23,7 +23,6 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
-// Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
 import { arSA as ar } from 'date-fns/locale';
 
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User, Book } from './types';
@@ -94,17 +93,7 @@ const App: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [lastCloudSync, setLastCloudSync] = useState<string | null>(localStorage.getItem('last_cloud_sync_time'));
 
-  const LATEST_NOTIF_ID = 5;
   const syncTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => { 
-      e.preventDefault(); 
-      setDeferredPrompt(e); 
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
 
   useEffect(() => {
     const safeLoad = (key: string, fallback: any) => {
@@ -119,16 +108,11 @@ const App: React.FC = () => {
     setUser(safeLoad('worship_user', null));
     setIsGlobalSyncEnabled(safeLoad('worship_global_sync', true));
     setWeights(safeLoad('worship_weights', DEFAULT_WEIGHTS));
-    const lastSeen = localStorage.getItem('last_seen_notification_id');
-    if (!lastSeen || parseInt(lastSeen) < LATEST_NOTIF_ID) setHasNewNotifications(true);
     setIsAppReady(true);
   }, []);
 
   const syncToCloud = async (currentLogs: any, currentBooks: any, force = false, activityLabel?: string, activityType?: string) => {
     if (!user?.email || !navigator.onLine || !isGlobalSyncEnabled) return;
-    
-    if (!force && Object.keys(currentLogs).length === 0) return;
-
     try {
       const email = user.email.toLowerCase().trim();
       const payload = { 
@@ -142,13 +126,11 @@ const App: React.FC = () => {
         timestamp: new Date().toLocaleString('ar-EG'),
         forceUpdate: force
       };
-
       const res = await fetch(GOOGLE_STATS_API, { 
         method: 'POST', 
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload) 
       });
-
       if (res.ok) {
         const now = new Date().toISOString();
         setLastCloudSync(now);
@@ -161,9 +143,59 @@ const App: React.FC = () => {
     const newLogs = { ...logs, [updated.date]: updated };
     setLogs(newLogs);
     localStorage.setItem('worship_logs', JSON.stringify(newLogs));
-    
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     syncTimeoutRef.current = window.setTimeout(() => syncToCloud(newLogs, books, false, activityLabel, activityType), 2000);
+  };
+
+  const handleAddBook = (title: string, totalPages: number) => {
+    const newBook: Book = {
+      id: 'book_' + Date.now(),
+      title,
+      totalPages,
+      currentPages: 0,
+      startDate: new Date().toISOString(),
+      isFinished: false
+    };
+    const newBooks = [...books, newBook];
+    setBooks(newBooks);
+    localStorage.setItem('worship_books', JSON.stringify(newBooks));
+    syncToCloud(logs, newBooks, false, `بدأ قراءة كتاب جديد: ${title}`, 'knowledge');
+  };
+
+  const handleDeleteBook = (id: string) => {
+    const newBooks = books.filter(b => b.id !== id);
+    setBooks(newBooks);
+    localStorage.setItem('worship_books', JSON.stringify(newBooks));
+    syncToCloud(logs, newBooks);
+  };
+
+  const handleUpdateBookProgress = (book: Book, pagesReadToday: number) => {
+    const newBooks = books.map(b => {
+      if (b.id === book.id) {
+        const nextPages = Math.min(b.totalPages, b.currentPages + pagesReadToday);
+        const isFinished = nextPages === b.totalPages;
+        return { 
+          ...b, 
+          currentPages: nextPages, 
+          isFinished, 
+          finishDate: isFinished ? new Date().toISOString() : b.finishDate 
+        };
+      }
+      return b;
+    });
+    setBooks(newBooks);
+    localStorage.setItem('worship_books', JSON.stringify(newBooks));
+
+    const logDate = format(new Date(), 'yyyy-MM-dd');
+    const currentLog = logs[logDate] || INITIAL_LOG(logDate);
+    const updatedLog = {
+      ...currentLog,
+      knowledge: {
+        ...currentLog.knowledge,
+        readingPages: (currentLog.knowledge.readingPages || 0) + pagesReadToday
+      }
+    };
+    updateLog(updatedLog, `قرأ ${pagesReadToday} صفحة من كتاب: ${book.title}`, 'knowledge');
   };
 
   const currentLog = logs[currentDate] || INITIAL_LOG(currentDate);
@@ -184,14 +216,14 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={(b, p) => {}} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onUpdateLog={updateLog} />;
+      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBookProgress} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onUpdateLog={updateLog} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
       case 'heart': return <HeartTazkiya log={currentLog} onUpdate={updateLog} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
-      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={0} isRunning={false} selectedActivity="shariDuration" onToggle={() => {}} onReset={() => {}} onActivityChange={() => {}} onApplyTime={() => {}} userEmail={user?.email} userName={user?.name} currentScore={todayScore} timerMode="stopwatch" onTimerModeChange={() => {}} pomodoroGoal={1500} onPomodoroGoalChange={() => {}} />;
+      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={0} isRunning={false} selectedActivity="shariDuration" onToggle={() => {}} onReset={() => {}} onActivityChange={() => {}} onApplyTime={(field, mins) => { const updated = { ...currentLog, knowledge: { ...currentLog.knowledge, [field]: (currentLog.knowledge as any)[field] + mins } }; updateLog(updated, `أتمَّ ${mins} دقيقة في طلب العلم`, 'knowledge'); }} userEmail={user?.email} userName={user?.name} currentScore={todayScore} timerMode="stopwatch" onTimerModeChange={() => {}} pomodoroGoal={1500} onPomodoroGoalChange={() => {}} />;
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
       case 'quran': return <QuranPage log={currentLog} logs={logs} plan="new_1" onUpdatePlan={() => {}} onUpdateLog={updateLog} />;
-      case 'library': return <BookLibrary books={books} onAddBook={() => {}} onDeleteBook={() => {}} onUpdateProgress={() => {}} />;
+      case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const b = books.find(x => x.id === id); if(b) handleUpdateBookProgress(b, pages); }} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
       case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} />;
@@ -225,7 +257,6 @@ const App: React.FC = () => {
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-[98vw] pointer-events-none flex justify-center">
         <div className="relative w-fit pointer-events-auto">
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white/80 to-transparent rounded-l-full pointer-events-none z-10"></div>
-          
           <nav className="bg-white/95 shadow-2xl rounded-full px-6 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg overflow-x-auto no-scrollbar max-w-[92vw]">
             {[
               {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
@@ -240,20 +271,10 @@ const App: React.FC = () => {
               {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
               {id: 'contact', icon: Send, label: 'تواصل'},
             ].map((tab) => (
-              <button 
-                key={tab.id} 
-                onClick={() => setActiveTab(tab.id as Tab)} 
-                className={`flex flex-col items-center min-w-[3.8rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                <tab.icon className="w-5 h-5" />
-                <span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span>
-              </button>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.8rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}><tab.icon className="w-5 h-5" /><span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span></button>
             ))}
           </nav>
-          
-          <div className="absolute left-1 top-1/2 -translate-y-1/2 p-1 bg-emerald-500 rounded-full text-white shadow-lg animate-pulse z-20">
-            <ChevronLeft className="w-3 h-3" />
-          </div>
+          <div className="absolute left-1 top-1/2 -translate-y-1/2 p-1 bg-emerald-500 rounded-full text-white shadow-lg animate-pulse z-20"><ChevronLeft className="w-3 h-3" /></div>
         </div>
       </div>
     </div>
