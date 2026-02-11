@@ -7,7 +7,8 @@ import {
   LockKeyhole, Globe, Flame, BookOpen, ListChecks,
   Activity, Mail, MapPin, Calendar, Sparkles, Skull,
   Repeat, Database, AlertTriangle, FileJson, Check,
-  Smartphone, Download, Share, X, Heart, ShieldAlert
+  Smartphone, Download, Share, X, Heart, ShieldAlert,
+  MessageCircle
 } from 'lucide-react';
 import { AppWeights, User as UserType } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
@@ -304,6 +305,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
               {weightInput('عداد التسبيح (للواحدة)', localWeights.athkarCounter, (val) => setLocalWeights({ ...localWeights, athkarCounter: val }), <Zap className="w-4 h-4" />)}
               {weightInput('صلاة النفل (بالدقيقة)', localWeights.nawafilPerMin, (val) => setLocalWeights({ ...localWeights, nawafilPerMin: val }), <Clock className="w-4 h-4" />, 'ضحى/وتر/قيام')}
               {weightInput('صيام يوم كامل', localWeights.fastingDay, (val) => setLocalWeights({ ...localWeights, fastingDay: val }), <Flame className="w-4 h-4" />)}
+              {weightInput('نقاط كل دعاء', localWeights.pointsPerDua, (val) => setLocalWeights({ ...localWeights, pointsPerDua: val }), <MessageCircle className="w-4 h-4" />, 'ورد الدعاء')}
             </div>
 
             {/* 5. أعمال القلوب والخصومات */}

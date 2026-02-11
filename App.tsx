@@ -70,6 +70,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
   },
   mood: 3,
   customSunnahIds: [],
+  duaIdsCompleted: [],
   jihadFactor: JihadFactor.NORMAL,
   hasBurden: false,
   isRepented: true,

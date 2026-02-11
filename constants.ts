@@ -30,7 +30,8 @@ export const DEFAULT_WEIGHTS: AppWeights = {
   burdenDeduction: 30,
   customSunnahs: [],
   pointsPerPage: 2,
-  heartDeedPoint: 200 
+  heartDeedPoint: 200,
+  pointsPerDua: 10 // القيمة الافتراضية
 };
 
 export const TRANQUILITY_MULTIPLIERS = {

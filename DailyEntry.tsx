@@ -4,7 +4,8 @@ import {
   Star, Users, Clock, Book, GraduationCap, Plus, Minus, Heart, ShieldAlert,
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
-  ChevronRight, ChevronLeft, FileText, Check, BookOpen, Trash2, X, PlusCircle
+  ChevronRight, ChevronLeft, FileText, Check, BookOpen, Trash2, X, PlusCircle,
+  MessageCircle
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
@@ -51,9 +52,17 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
   const [newDhikrName, setNewDhikrName] = useState('');
   const [customDhikrs, setCustomDhikrs] = useState<{id: string, label: string, key: string}[]>([]);
 
+  //ورد الدعاء
+  const [isAddingDua, setIsAddingDua] = useState(false);
+  const [newDuaText, setNewDuaText] = useState('');
+  const [myDuas, setMyDuas] = useState<{id: string, text: string}[]>([]);
+
   useEffect(() => {
-    const saved = localStorage.getItem('worship_custom_dhikrs');
-    if (saved) setCustomDhikrs(JSON.parse(saved));
+    const savedDhikrs = localStorage.getItem('worship_custom_dhikrs');
+    if (savedDhikrs) setCustomDhikrs(JSON.parse(savedDhikrs));
+
+    const savedDuas = localStorage.getItem('worship_my_duas');
+    if (savedDuas) setMyDuas(JSON.parse(savedDuas));
   }, []);
 
   const updateSection = (section: keyof DailyLog, data: any, label?: string, type?: string) => {
@@ -95,7 +104,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
     };
     onUpdateWeights(updatedWeights);
     localStorage.setItem('worship_weights', JSON.stringify(updatedWeights));
-    // Clean up from current log if selected
     if (log.customSunnahIds.includes(id)) {
       onUpdate({ ...log, customSunnahIds: log.customSunnahIds.filter(cid => cid !== id) });
     }
@@ -115,6 +123,33 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
     const newList = customDhikrs.filter(d => d.id !== id);
     setCustomDhikrs(newList);
     localStorage.setItem('worship_custom_dhikrs', JSON.stringify(newList));
+  };
+
+  // دوال الدعاء
+  const handleAddDua = () => {
+    if (!newDuaText.trim()) return;
+    const newDua = { id: 'dua_' + Date.now(), text: newDuaText.trim() };
+    const newList = [...myDuas, newDua];
+    setMyDuas(newList);
+    localStorage.setItem('worship_my_duas', JSON.stringify(newList));
+    setNewDuaText('');
+    setIsAddingDua(false);
+  };
+
+  const handleRemoveDua = (id: string) => {
+    const newList = myDuas.filter(d => d.id !== id);
+    setMyDuas(newList);
+    localStorage.setItem('worship_my_duas', JSON.stringify(newList));
+    if (log.duaIdsCompleted?.includes(id)) {
+      onUpdate({ ...log, duaIdsCompleted: log.duaIdsCompleted.filter(did => did !== id) });
+    }
+  };
+
+  const toggleDuaSelection = (id: string) => {
+    const current = log.duaIdsCompleted || [];
+    const isAdding = !current.includes(id);
+    const newIds = isAdding ? [...current, id] : current.filter(did => did !== id);
+    onUpdate({ ...log, duaIdsCompleted: newIds }, isAdding ? 'ابتهل بالدعاء' : undefined, 'dua');
   };
 
   const toggleCustomSunnahSelection = (id: string, name: string) => {
@@ -337,6 +372,66 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
             </div>
           ))}
           <button onClick={() => updateSection('nawafil', { fasting: !log.nawafil.fasting }, !log.nawafil.fasting ? 'صائم محتسب' : undefined, 'sunnah')} className={`w-full p-4 rounded-3xl border flex items-center justify-between transition-all ${log.nawafil.fasting ? 'bg-orange-500 border-orange-500 text-white shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-500'}`}><span className="font-bold text-sm">صيام يوم كامل</span>{log.nawafil.fasting ? <span className="text-xs font-black">+1000 نقطة</span> : <div className="w-5 h-5 border-2 border-slate-300 rounded-full" />}</button>
+        </div>
+      </div>
+
+      {/* ورد الدعاء - القسم الجديد */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-emerald-500" />
+            <h3 className="font-bold text-slate-800 header-font text-lg">ورد الدعاء</h3>
+          </div>
+          <button onClick={() => setIsAddingDua(!isAddingDua)} className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all">
+            {isAddingDua ? <X className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
+          </button>
+        </div>
+
+        {isAddingDua && (
+          <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-emerald-100 space-y-3 animate-in slide-in-from-top duration-300">
+            <textarea 
+              rows={2}
+              placeholder="اكتب دعاءك هنا (سيتم حفظه في قائمة أدعيتك الخاصة).." 
+              value={newDuaText} 
+              onChange={(e) => setNewDuaText(e.target.value)} 
+              className="w-full p-4 rounded-xl border border-slate-200 text-xs font-bold outline-none focus:border-emerald-500 resize-none leading-relaxed"
+            />
+            <button 
+              onClick={handleAddDua} 
+              className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-all"
+            >
+              حفظ الدعاء في الورد
+            </button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-3">
+          {myDuas.map(dua => (
+            <div key={dua.id} className="flex items-start gap-2 group">
+              <button 
+                onClick={() => toggleDuaSelection(dua.id)} 
+                className={`flex-1 flex items-start gap-3 p-4 rounded-2xl border transition-all text-right ${log.duaIdsCompleted?.includes(dua.id) ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-white'}`}
+              >
+                <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${log.duaIdsCompleted?.includes(dua.id) ? 'bg-white/20 border-white/40' : 'bg-white border-slate-300'}`}>
+                  {log.duaIdsCompleted?.includes(dua.id) && <Check className="w-3.5 h-3.5 text-white" />}
+                </div>
+                <span className="text-[11px] font-bold header-font leading-relaxed break-words whitespace-pre-wrap flex-1">
+                  {dua.text}
+                </span>
+              </button>
+              <button 
+                onClick={() => handleRemoveDua(dua.id)} 
+                className="p-3 mt-1 text-rose-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          {myDuas.length === 0 && !isAddingDua && (
+            <div className="text-center py-6 border-2 border-dashed border-slate-100 rounded-2xl">
+              <p className="text-[10px] text-slate-400 font-bold header-font">أضف أدعيتك المأثورة أو الخاصة لتلهج بها في يومك.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

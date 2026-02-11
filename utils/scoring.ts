@@ -43,6 +43,9 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   const nawafilPrayers = (log.nawafil.duhaDuration + log.nawafil.witrDuration + log.nawafil.qiyamDuration) * weights.nawafilPerMin;
   const fasting = log.nawafil.fasting ? weights.fastingDay : 0;
   
+  // نقاط ورد الدعاء
+  const duasPoints = (log.duaIdsCompleted || []).length * (weights.pointsPerDua || 10);
+
   // نقاط أعمال القلوب وتزكية النفس بناءً على المهام العملية
   let heartPoints = 0;
   if (log.heartStates) {
@@ -62,7 +65,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   
   const deductionMultiplier = 1 - (weights.burdenDeduction / 100);
   
-  const total = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints + heartPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
+  const total = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints + heartPoints + duasPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
 
   return Math.round(total);
 };

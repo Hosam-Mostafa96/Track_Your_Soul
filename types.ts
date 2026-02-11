@@ -84,6 +84,7 @@ export interface AppWeights {
   customSunnahs: CustomSunnah[];
   pointsPerPage: number;
   heartDeedPoint: number; 
+  pointsPerDua: number; // حقل جديد
 }
 
 export interface DailyLog {
@@ -109,6 +110,7 @@ export interface DailyLog {
   };
   mood?: number; // 1 to 5
   customSunnahIds: string[];
+  duaIdsCompleted: string[]; // حقل جديد لتخزين الأدعية المنجزة
   jihadFactor: number;
   hasBurden: boolean;
   isRepented: boolean;
