@@ -84,7 +84,7 @@ export interface AppWeights {
   customSunnahs: CustomSunnah[];
   pointsPerPage: number;
   heartDeedPoint: number; 
-  pointsPerDua: number; // حقل جديد
+  pointsPerDua: number;
 }
 
 export interface DailyLog {
@@ -95,7 +95,9 @@ export interface DailyLog {
     revisionRub: number;
     todayPortion?: string; 
     todayReps?: number; 
-    tasksCompleted?: string[]; 
+    tasksCompleted?: string[];
+    khatmaNumber?: number; // حقل جديد
+    surahName?: string;    // حقل جديد
   };
   knowledge: { shariDuration: number; readingDuration: number; readingPages?: number };
   athkar: {
@@ -110,7 +112,7 @@ export interface DailyLog {
   };
   mood?: number; // 1 to 5
   customSunnahIds: string[];
-  duaIdsCompleted: string[]; // حقل جديد لتخزين الأدعية المنجزة
+  duaIdsCompleted: string[];
   jihadFactor: number;
   hasBurden: boolean;
   isRepented: boolean;

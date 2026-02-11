@@ -54,7 +54,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
     [PrayerName.MAGHRIB]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
     [PrayerName.ISHA]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
   },
-  quran: { hifzRub: 0, revisionRub: 0, todayPortion: '', tasksCompleted: [] },
+  quran: { hifzRub: 0, revisionRub: 0, todayPortion: '', tasksCompleted: [], khatmaNumber: 1, surahName: '' },
   knowledge: { shariDuration: 0, readingDuration: 0, readingPages: 0 },
   athkar: {
     checklists: { morning: false, evening: false, sleep: false, travel: false },

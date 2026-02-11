@@ -5,7 +5,7 @@ import {
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
   ChevronRight, ChevronLeft, FileText, Check, BookOpen, Trash2, X, PlusCircle,
-  MessageCircle
+  MessageCircle, Hash, BookMarked
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
@@ -245,9 +245,39 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
 
       {/* 3. ورد القرآن الكريم */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-6"><Book className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">ورد القرآن (بالأرباع)</h3></div>
-        <div className="space-y-4">
-          {[{ label: 'ورد السماع', field: 'hifzRub' as const }, { label: 'ورد القراءة', field: 'revisionRub' as const }].map(q => (
+        <div className="flex items-center gap-2 mb-6"><Book className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">ورد القرآن</h3></div>
+        
+        {/* حقول الختمة والسورة الجديدة */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 space-y-2">
+            <div className="flex items-center gap-2 mb-1">
+              <Hash className="w-4 h-4 text-emerald-600" />
+              <span className="text-[11px] font-black text-emerald-800 header-font">رقم الختمة الحالية</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button onClick={() => updateSection('quran', { khatmaNumber: Math.max(1, (log.quran.khatmaNumber || 1) - 1) })} className="p-1.5 bg-white rounded-lg border border-emerald-200 shadow-sm"><Minus className="w-3.5 h-3.5 text-emerald-600" /></button>
+              <span className="text-lg font-black font-mono text-emerald-900 flex-1 text-center">{log.quran.khatmaNumber || 1}</span>
+              <button onClick={() => updateSection('quran', { khatmaNumber: (log.quran.khatmaNumber || 1) + 1 })} className="p-1.5 bg-white rounded-lg border border-emerald-200 shadow-sm"><Plus className="w-3.5 h-3.5 text-emerald-600" /></button>
+            </div>
+          </div>
+          
+          <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100 space-y-2">
+            <div className="flex items-center gap-2 mb-1">
+              <BookMarked className="w-4 h-4 text-amber-600" />
+              <span className="text-[11px] font-black text-amber-800 header-font">اسم السورة / الموضع</span>
+            </div>
+            <textarea 
+              rows={1}
+              value={log.quran.surahName || ''}
+              onChange={(e) => updateSection('quran', { surahName: e.target.value })}
+              placeholder="مثال: البقرة، من آية ١ إلى ٥٠.."
+              className="w-full bg-white border border-amber-200 rounded-xl p-2.5 text-xs font-bold outline-none focus:border-amber-400 transition-all resize-none leading-relaxed"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-slate-100">
+          {[{ label: 'ورد السماع (أرباع)', field: 'hifzRub' as const }, { label: 'ورد القراءة (أرباع)', field: 'revisionRub' as const }].map(q => (
             <div key={q.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
               <span className="text-sm font-bold text-slate-700 header-font">{q.label}</span>
               <div className="flex items-center gap-3">
