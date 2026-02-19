@@ -120,7 +120,12 @@ const Dashboard: React.FC<DashboardProps> = ({
     setActiveSuggestion(queryOverride || null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        setAdvisorResponse("عذراً، مفتاح الخدمة غير متوفر حالياً. يرجى مراجعة إعدادات التطبيق.");
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       
       const recentSummary = (Object.values(logs) as DailyLog[]).slice(-7).map(l => ({
         date: l.date,

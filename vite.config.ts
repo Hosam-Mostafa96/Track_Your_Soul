@@ -8,8 +8,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      // حقن المفتاح بشكل آمن ليتمكن التطبيق من قراءته في المتصفح
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || (process.env as any).API_KEY),
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || (process.env as any).GEMINI_API_KEY),
     },
     server: {
       port: 3000,
