@@ -69,9 +69,16 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [advisorResponse, setAdvisorResponse] = useState<string | null>(null);
   const [isAdvisorLoading, setIsAdvisorLoading] = useState(false);
   const [showiOSInstructions, setShowiOSInstructions] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
   
-  const prevBadgesActiveState = useRef<Record<string, boolean>>({});
+  const suggestions = [
+    "حلل نمط عبادتي اليوم",
+    "كيف أحسن خشوعي؟",
+    "نصيحة للمجاهدة",
+    "ورد لزيادة السكينة"
+  ];
   const isFirstRender = useRef(true);
+  const prevBadgesActiveState = useRef<Record<string, boolean>>({});
 
   const currentTotalScore = calculateTotalScore(log, weights);
   const progressPercent = (currentTotalScore / targetScore) * 100;
@@ -102,18 +109,19 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  const askAdvisor = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userQuery.trim() || isAdvisorLoading) return;
+  const askAdvisor = async (e?: React.FormEvent, queryOverride?: string) => {
+    if (e) e.preventDefault();
+    const query = queryOverride || userQuery;
+    if (!query.trim() || isAdvisorLoading) return;
 
     setIsAdvisorLoading(true);
     setAdvisorResponse(null);
+    if (!queryOverride) setUserQuery('');
+    setActiveSuggestion(queryOverride || null);
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       
-      // تجهيز ملخص للبيانات الأخيرة لتحليل النمط
-      // Fix: Explicitly cast to DailyLog[] to resolve "unknown" type error
       const recentSummary = (Object.values(logs) as DailyLog[]).slice(-7).map(l => ({
         date: l.date,
         score: calculateTotalScore(l, weights),
@@ -124,7 +132,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       const prompt = `
         أنت "المستشار الروحي الذكي" في تطبيق (الميزان) لإدارة العبادات. مهمتك هي تحليل نمط عبادة المستخدم بناءً على الجهد والزمن.
-        سؤال المستخدم: "${userQuery}"
+        سؤال المستخدم: "${query}"
         بيانات المستخدم الحالية: نقاط اليوم: ${currentTotalScore}، الهدف: ${targetScore}، الحالة القلبية: ${log.mood}/5.
         ملخص الأيام الأخيرة: ${JSON.stringify(recentSummary)}
 
@@ -142,12 +150,12 @@ const Dashboard: React.FC<DashboardProps> = ({
       });
 
       setAdvisorResponse(response.text || "اعتذر، لم أستطع استيعاب النمط الآن. حاول لاحقاً.");
-      setUserQuery('');
     } catch (error) {
       console.error("Advisor Error:", error);
       setAdvisorResponse("حدث خطأ في التواصل مع المستشار. تأكد من اتصالك بالإنترنت.");
     } finally {
       setIsAdvisorLoading(false);
+      setActiveSuggestion(null);
     }
   };
 
@@ -246,40 +254,80 @@ const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {/* 1. المستشار الذكي */}
-      <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[2rem] p-5 shadow-lg relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-20 translate-x-20"></div>
-        <div className="relative z-10 space-y-3">
-          <div className="flex items-center gap-3 text-white">
-            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md"><BrainCircuit className={`w-5 h-5 ${isAdvisorLoading ? 'animate-pulse' : ''}`} /></div>
-            <h4 className="text-sm font-bold header-font">المستشار الروحي الذكي</h4>
+      <div className="bg-gradient-to-br from-emerald-700 via-emerald-800 to-teal-900 rounded-[2.5rem] p-6 shadow-2xl relative overflow-hidden border border-white/10">
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-400/20 rounded-full blur-[80px] animate-pulse"></div>
+        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-teal-400/10 rounded-full blur-[80px]"></div>
+        
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-white">
+              <div className="p-2.5 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 shadow-inner">
+                <BrainCircuit className={`w-6 h-6 text-emerald-300 ${isAdvisorLoading ? 'animate-spin-slow' : ''}`} />
+              </div>
+              <div>
+                <h4 className="text-base font-black header-font tracking-tight">المستشار الروحي</h4>
+                <p className="text-[10px] text-emerald-200/70 font-bold">ذكاء اصطناعي يحلل وردك ويوجهك</p>
+              </div>
+            </div>
+            {advisorResponse && (
+              <button onClick={() => setAdvisorResponse(null)} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-white/40 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          <form onSubmit={askAdvisor} className="relative flex gap-2">
-            <input 
-              type="text" 
-              value={userQuery} 
-              onChange={(e) => setUserQuery(e.target.value)} 
-              placeholder="اطلب نصيحة أو تحليل لأدائك.." 
-              className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-xs font-bold text-white placeholder:text-emerald-100/50 outline-none focus:bg-white/20 transition-all" 
-              disabled={isAdvisorLoading}
-            />
+
+          {!advisorResponse && (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {suggestions.map((s, idx) => (
+                <button 
+                  key={idx} 
+                  onClick={() => askAdvisor(undefined, s)}
+                  disabled={isAdvisorLoading}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full text-[10px] font-black header-font transition-all border ${activeSuggestion === s ? 'bg-emerald-400 text-emerald-950 border-white shadow-lg scale-95' : 'bg-white/5 text-emerald-100 border-white/10 hover:bg-white/10'}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <form onSubmit={(e) => askAdvisor(e)} className="relative flex gap-2">
+            <div className="relative flex-1 group">
+              <input 
+                type="text" 
+                value={userQuery} 
+                onChange={(e) => setUserQuery(e.target.value)} 
+                placeholder="اسأل عن حالك الإيماني.." 
+                className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white placeholder:text-emerald-100/30 outline-none focus:bg-black/40 focus:border-emerald-400/50 transition-all shadow-inner" 
+                disabled={isAdvisorLoading}
+              />
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {userQuery && !isAdvisorLoading && (
+                  <button type="button" onClick={() => setUserQuery('')} className="text-white/20 hover:text-white"><X className="w-4 h-4" /></button>
+                )}
+              </div>
+            </div>
             <button 
               type="submit" 
               disabled={isAdvisorLoading || !userQuery.trim()}
-              className="bg-white/20 hover:bg-white/30 text-white p-3 rounded-xl transition-all disabled:opacity-50"
+              className="bg-emerald-500 hover:bg-emerald-400 text-white p-4 rounded-2xl transition-all disabled:opacity-50 shadow-lg shadow-emerald-900/20 active:scale-90"
             >
-              {isAdvisorLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+              {isAdvisorLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
             </button>
           </form>
 
           {advisorResponse && (
-            <div className="mt-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2">
-              <div className="flex justify-between items-start mb-2">
-                <Sparkles className="w-4 h-4 text-yellow-400" />
-                <button onClick={() => setAdvisorResponse(null)} className="text-white/40 hover:text-white"><X className="w-3 h-3" /></button>
+            <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-5 animate-in zoom-in-95 duration-300 shadow-2xl">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-yellow-400/20 rounded-lg"><Sparkles className="w-4 h-4 text-yellow-400" /></div>
+                <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">توجيه إيماني</span>
               </div>
               <p className="text-xs text-emerald-50 leading-relaxed font-bold header-font whitespace-pre-wrap">
                 {advisorResponse}
               </p>
+              <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
+                <button onClick={() => setAdvisorResponse(null)} className="text-[10px] font-black text-emerald-300/60 hover:text-emerald-300 transition-colors">إغلاق التوجيه</button>
+              </div>
             </div>
           )}
         </div>
