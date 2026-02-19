@@ -94,7 +94,26 @@ const App: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [lastCloudSync, setLastCloudSync] = useState<string | null>(localStorage.getItem('last_cloud_sync_time'));
 
+  // Timer State
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState('shariDuration');
+  const [timerMode, setTimerMode] = useState<'stopwatch' | 'pomodoro'>('stopwatch');
+  const [pomodoroGoal, setPomodoroGoal] = useState(1500);
+
   const syncTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    let interval: number | null = null;
+    if (isTimerRunning) {
+      interval = window.setInterval(() => {
+        setTimerSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerRunning]);
 
   useEffect(() => {
     const safeLoad = (key: string, fallback: any) => {
@@ -224,7 +243,34 @@ const App: React.FC = () => {
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
       case 'heart': return <HeartTazkiya log={currentLog} onUpdate={updateLog} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
-      case 'timer': return <WorshipTimer isSync={isGlobalSyncEnabled} seconds={0} isRunning={false} selectedActivity="shariDuration" onToggle={() => {}} onReset={() => {}} onActivityChange={() => {}} onApplyTime={(field, mins) => { const updated = { ...currentLog, knowledge: { ...currentLog.knowledge, [field]: (currentLog.knowledge as any)[field] + mins } }; updateLog(updated, `أتمَّ ${mins} دقيقة في طلب العلم`, 'knowledge'); }} userEmail={user?.email} userName={user?.name} currentScore={todayScore} timerMode="stopwatch" onTimerModeChange={() => {}} pomodoroGoal={1500} onPomodoroGoalChange={() => {}} />;
+      case 'timer': return (
+        <WorshipTimer 
+          isSync={isGlobalSyncEnabled} 
+          seconds={timerSeconds} 
+          isRunning={isTimerRunning} 
+          selectedActivity={selectedActivity} 
+          onToggle={() => setIsTimerRunning(!isTimerRunning)} 
+          onReset={() => { setTimerSeconds(0); setIsTimerRunning(false); }} 
+          onActivityChange={setSelectedActivity} 
+          onApplyTime={(field, mins) => { 
+            const updated = { 
+              ...currentLog, 
+              knowledge: { 
+                ...currentLog.knowledge, 
+                [field]: ((currentLog.knowledge as any)[field] || 0) + mins 
+              } 
+            }; 
+            updateLog(updated, `أتمَّ ${mins} دقيقة في ${field === 'shariDuration' ? 'طلب العلم الشرعي' : field === 'readingDuration' ? 'القراءة العامة' : 'العبادة'}`, 'knowledge'); 
+          }} 
+          userEmail={user?.email} 
+          userName={user?.name} 
+          currentScore={todayScore} 
+          timerMode={timerMode} 
+          onTimerModeChange={setTimerMode} 
+          pomodoroGoal={pomodoroGoal} 
+          onPomodoroGoalChange={setPomodoroGoal} 
+        />
+      );
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
       case 'quran': return <QuranPage log={currentLog} logs={logs} plan="new_1" onUpdatePlan={() => {}} onUpdateLog={updateLog} />;
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const b = books.find(x => x.id === id); if(b) handleUpdateBookProgress(b, pages); }} />;
