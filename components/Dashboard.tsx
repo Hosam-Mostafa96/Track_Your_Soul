@@ -120,9 +120,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     setActiveSuggestion(queryOverride || null);
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || (process.env as any).API_KEY;
       if (!apiKey) {
-        setAdvisorResponse("عذراً، مفتاح الخدمة غير متوفر حالياً. يرجى مراجعة إعدادات التطبيق.");
+        setAdvisorResponse("عذراً، مفتاح الخدمة غير متوفر حالياً. يرجى المحاولة مرة أخرى أو التأكد من إعدادات المفاتيح.");
         return;
       }
       const ai = new GoogleGenAI({ apiKey });
