@@ -1,5 +1,8 @@
 {
   "name": "إدارة العبادات والأوراد",
   "description": "نظام شامل لمتابعة العبادات والأوراد اليومية والارتقاء الروحي بناءً على الجهد والمواظبة.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Sparkles, AlertCircle, CheckCircle2, RefreshCw, Send, HelpCircle } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
 import { DailyLog } from '../types';
 
 interface VoiceLoggerProps {
@@ -90,90 +89,25 @@ export const VoiceLogger: React.FC<VoiceLoggerProps> = ({ log, onUpdate }) => {
     setStatusMessage({ text: 'جاري تحليل النص عبر الذكاء الاصطناعي واستخراج عباداتك..', type: 'info' });
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY || (process.env as any).API_KEY;
-      if (!apiKey) {
-        setStatusMessage({ text: 'مفتاح خدمة الذكاء الاصطناعي غير متوفر لتسجيل العبادات بالصوت.', type: 'error' });
-        setIsLoading(false);
-        return;
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-
-      const prompt = `
-        أنت مساعد الذكاء الاصطناعي لتطبيق "الميزان" لإدارة العبادات. مهمتك هي قراءة نص منطوق بالذكاء الاصطناعي باللغة العربية يصف العبادات اليومية للمستخدم، وتحويلها إلى كائن JSON يحتوي على الحقول والعبادات المكتملة فقط لإنشاء تحديثات يتم دمجها مع DailyLog الحالي.
-
-        هيكل كائن DailyLog الحالي هو كالتالي:
-        {
-          prayers: {
-            "الفجر": { performed: boolean, inCongregation: boolean, surroundingSunnahIds: string[] },
-            "الظهر": { performed: boolean, inCongregation: boolean, surroundingSunnahIds: string[] },
-            "العصر": { performed: boolean, inCongregation: boolean, surroundingSunnahIds: string[] },
-            "المغرب": { performed: boolean, inCongregation: boolean, surroundingSunnahIds: string[] },
-            "العشاء": { performed: boolean, inCongregation: boolean, surroundingSunnahIds: string[] }
-          },
-          quran: {
-            hifzRub: number (عدد أرباع السماع/الحفظ),
-            revisionRub: number (عدد أرباع القراءة/المراجعة),
-            surahName: string (من السورة وموضعها)
-          },
-          knowledge: {
-            shariDuration: number (طلب علم شرعي بالدقائق),
-            readingDuration: number (قراءة عامة بالدقائق),
-            readingPages: number (عدد الصفحات)
-          },
-          athkar: {
-            checklists: {
-              morning: boolean,
-              evening: boolean,
-              sleep: boolean,
-              travel: boolean
-            }
-          },
-          nawafil: {
-            duhaDuration: number (صلاة الضحى بالدقائق، مثلاً لو قال صليت الضحى ضع 10),
-            witrDuration: number (الوتر بالدقائق مثل 10),
-            qiyamDuration: number (قيام الليل بالدقائق مثل 30),
-            fasting: boolean (لو قال صائم ضع true)
-          },
-          jihadFactor: number (معامل المجاهدة: 1.0 أو 1.05 أو 1.1)
-        }
-
-        شروط الاستخراج والمنطق:
-        1. قم باستخراج العبادات المذكورة في النص فقط. لا تقم بإدراج أي عبادة لم يذكرها المستخدم في الـ JSON.
-        2. بالنسبة للصلوات:
-           - "صليت الفجر جماعة": { prayers: { "الفجر": { performed: true, inCongregation: true } } }
-           - "صليت الظهر": { prayers: { "الظهر": { performed: true } } }
-        3. بالنسبة للقرآن:
-           - الجزء الواحد يساوي 8 أرباع (revisionRub: 8).
-           - نصف جزء يساوي 4 أرباع (revisionRub: 4).
-           - ربعين يساوي 2 ربع (revisionRub: 2).
-           - إذا قال "قرأت سورة البقرة" أو موضع محدد، ضعه في quran.surahName.
-        4. بالنسبة للأذكار:
-           - "أذكار الصباح": { athkar: { checklists: { morning: true } } }
-           - "أذكار المساء": { athkar: { checklists: { evening: true } } }
-           - "أذكار النوم": { athkar: { checklists: { sleep: true } } }
-        5. بالنسبة السنن والنوافل:
-           - "صليت الضحى": { nawafil: { duhaDuration: 10 } }
-           - "صليت الوتر": { nawafil: { witrDuration: 10 } }
-           - "صليت قيام الليل": { nawafil: { qiyamDuration: 30 } }
-           - "أنا صايم اليوم" أو "صمت": { nawafil: { fasting: true } }
-
-        قم بإرجاع كائن JSON خالص يحتوي على التحديثات المستخرجة فقط. لا تكتب أي شرح أو كود ماركداون خارجي، فقط قم بإرجاع كائن JSON صالح.
-
-        نص المستخدم: "${transcript}"
-      `;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json'
-        }
+      const response = await fetch('/api/parse-voice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transcript }),
       });
 
-      const responseText = response.text || '';
-      const cleanJsonStr = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const updates = JSON.parse(cleanJsonStr);
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'فشلت عملية التحليل على الخادم');
+      }
+
+      const data = await response.json();
+      const updates = data.updates;
+
+      if (!updates || typeof updates !== 'object') {
+        throw new Error('لم يتم إرجاع بيانات عبادات صحيحة');
+      }
 
       // Deep merge the updates with the current log
       const updatedLog = { ...log };
@@ -226,9 +160,12 @@ export const VoiceLogger: React.FC<VoiceLoggerProps> = ({ log, onUpdate }) => {
       onUpdate(updatedLog, 'تحديث العبادات تلقائياً عبر الإدخال الصوتي الذكي 🎙️', 'voice_sync');
       setStatusMessage({ text: 'تم بنجاح استخراج وتحديث عبادتك اليومية بالذكاء الاصطناعي!', type: 'success' });
       setTranscript('');
-    } catch (error) {
-      console.error('Error parsing speech via Gemini:', error);
-      setStatusMessage({ text: 'تعذر استخراج البيانات بالذكاء الاصطناعي. الرجاء التحقق من جودة الاتصال أو صياغة العبارة.', type: 'error' });
+    } catch (error: any) {
+      console.error('Error parsing speech via server proxy:', error);
+      setStatusMessage({ 
+        text: error?.message || 'تعذر استخراج البيانات بالذكاء الاصطناعي. الرجاء التحقق من جودة الاتصال أو صياغة العبارة.', 
+        type: 'error' 
+      });
     } finally {
       setIsLoading(false);
     }

@@ -217,37 +217,75 @@ export const NextPrayerWidget: React.FC = () => {
              </div>
           </div>
 
-          {/* Right section: SVG Radial Countdown Wheel */}
-          <div className="relative flex flex-col items-center justify-center shrink-0 w-36 h-36">
-            <svg className="w-full h-full -rotate-90">
+          {/* Right section: SVG Radial Countdown Wheel with Segmented Badge Display */}
+          <div className="relative flex flex-col items-center justify-center shrink-0 w-40 h-40">
+            {/* Soft background ambient glow */}
+            <div className="absolute inset-2 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
+            
+            <svg className="w-full h-full -rotate-90 drop-shadow-[0_0_12px_rgba(52,211,153,0.35)] pointer-events-none">
+              {/* Thin alignment reference ring */}
+              <circle
+                cx="80"
+                cy="80"
+                r="64"
+                className="stroke-emerald-900/15 fill-none"
+                strokeWidth="1.5"
+              />
               {/* Back track ring */}
               <circle
-                cx="72"
-                cy="72"
-                r="56"
-                className="stroke-emerald-950/40 fill-none"
-                strokeWidth="7"
+                cx="80"
+                cy="80"
+                r="58"
+                className="stroke-emerald-950/50 fill-none"
+                strokeWidth="6"
               />
               {/* Active countdown progress ring */}
               <circle
-                cx="72"
-                cy="72"
-                r="56"
+                cx="80"
+                cy="80"
+                r="58"
                 className="stroke-emerald-400 fill-none transition-all duration-1000"
-                strokeWidth="7"
-                strokeDasharray={2 * Math.PI * 56}
-                strokeDashoffset={2 * Math.PI * 56 * (1 - progressPercent / 100)}
+                strokeWidth="6"
+                strokeDasharray={2 * Math.PI * 58}
+                strokeDashoffset={2 * Math.PI * 58 * (1 - progressPercent / 100)}
                 strokeLinecap="round"
               />
             </svg>
             
-            {/* Center timing details */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center space-y-0.5">
-              <span className="font-mono text-base font-black tracking-tight text-emerald-100">
-                {formatCountdown(remainingSecondsTotal)}
-              </span>
-              <span className="text-[10px] font-black text-emerald-300">
-                متبقي
+            {/* Center segmented timing detailed blocks */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <div className="flex items-center gap-1 select-none" dir="ltr">
+                {/* Hours Segment Card */}
+                <div className="flex flex-col items-center">
+                  <span className="bg-black/45 text-emerald-50 rounded-lg w-8 h-8 flex items-center justify-center text-xs font-black border border-white/10 shadow-lg tracking-tight backdrop-blur-md">
+                    {Math.floor(remainingSecondsTotal / 3600).toString().padStart(2, '0')}
+                  </span>
+                  <span className="text-[7.5px] font-bold text-emerald-300/80 mt-1 uppercase scale-95">ساعة</span>
+                </div>
+                
+                <span className="text-emerald-400 text-xs font-black pb-4 animate-pulse select-none">:</span>
+                
+                {/* Minutes Segment Card */}
+                <div className="flex flex-col items-center">
+                  <span className="bg-black/45 text-emerald-50 rounded-lg w-8 h-8 flex items-center justify-center text-xs font-black border border-white/10 shadow-lg tracking-tight backdrop-blur-md">
+                    {Math.floor((remainingSecondsTotal % 3600) / 60).toString().padStart(2, '0')}
+                  </span>
+                  <span className="text-[7.5px] font-bold text-emerald-300/80 mt-1 uppercase scale-95">دقيقة</span>
+                </div>
+                
+                <span className="text-emerald-400 text-xs font-black pb-4 animate-pulse select-none">:</span>
+                
+                {/* Seconds Segment Card */}
+                <div className="flex flex-col items-center">
+                  <span className="bg-black/45 text-emerald-50 rounded-lg w-8 h-8 flex items-center justify-center text-xs font-black border border-emerald-400/25 shadow-lg tracking-tight backdrop-blur-md">
+                    {(remainingSecondsTotal % 60).toString().padStart(2, '0')}
+                  </span>
+                  <span className="text-[7.5px] font-bold text-emerald-450 mt-1 uppercase scale-95">ثانية</span>
+                </div>
+              </div>
+              
+              <span className="text-[8px] font-black text-emerald-300/90 tracking-widest uppercase mt-2.5">
+                متبقي على الصلاة
               </span>
             </div>
           </div>
