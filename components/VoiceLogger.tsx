@@ -98,11 +98,24 @@ export const VoiceLogger: React.FC<VoiceLoggerProps> = ({ log, onUpdate }) => {
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'فشلت عملية التحليل على الخادم');
+        let errorMessage = 'فشلت عملية التحليل على الخادم';
+        try {
+          const errData = await response.json();
+          if (errData && errData.error) {
+            errorMessage = errData.error;
+          }
+        } catch (e) {
+          errorMessage = `تعذر الاتصال بخادم الذكاء الاصطناعي (كود الخطأ: ${response.status}). يرجى التحقق من اتصالك بالإنترنت أو إعادة المحاولة لاحقاً.`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error('لم يتم إرجاع استجابة JSON صالحة من خادم التحليل. يرجى إعادة المحاولة.');
+      }
       const updates = data.updates;
 
       if (!updates || typeof updates !== 'object') {

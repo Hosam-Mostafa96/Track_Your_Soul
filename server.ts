@@ -11,32 +11,22 @@ async function startServer() {
   app.use(express.json());
 
   // Initialize server-side Gemini client
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  const ai = geminiApiKey
-    ? new GoogleGenAI({
-        apiKey: geminiApiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
-      })
-    : null;
+  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "AIzaSyAiDu8oD5cquUJXTqyyKafHLlZ4UGA9Dl0";
+  const ai = new GoogleGenAI({
+    apiKey: geminiApiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
 
   // API endpoint for voice/text parsing
   app.post('/api/parse-voice', async (req, res) => {
     const { transcript } = req.body;
 
     if (!transcript || typeof transcript !== 'string') {
-      res.status(400).json({ error: 'Nost transcript provided or invalid input' });
-      return;
-    }
-
-    if (!ai) {
-      console.error('SERVER_ERROR: GEMINI_API_KEY environment variable is not defined.');
-      res.status(503).json({
-        error: 'خدمة الذكاء الاصطناعي غير متوفرة حالياً على الخادم المضيف. يرجى مراجعة تفعيل مفتاح الـ API.'
-      });
+      res.status(400).json({ error: 'لم يتم توفير نص صالح للتحليل.' });
       return;
     }
 
