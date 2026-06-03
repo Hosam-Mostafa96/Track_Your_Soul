@@ -103,6 +103,7 @@ export interface DailyLog {
   athkar: {
     checklists: { morning: boolean; evening: boolean; sleep: boolean; travel: boolean };
     counters: Record<string, number>;
+    completedDetailedAthkar?: Record<string, number>;
   };
   nawafil: { duhaDuration: number; witrDuration: number; qiyamDuration: number; fasting: boolean; custom: Array<{ id: string; value: number }> };
   sleep: { sessions: SleepSession[] };

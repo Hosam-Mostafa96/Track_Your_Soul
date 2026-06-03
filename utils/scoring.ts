@@ -4,6 +4,7 @@ import {
   TRANQUILITY_MULTIPLIERS,
   DEFAULT_WEIGHTS
 } from '../constants';
+import { MORNING_ATHKAR, EVENING_ATHKAR } from '../components/AthkarRead';
 
 export const calculatePrayerScore = (entry: PrayerEntry, hasBurden: boolean, weights: AppWeights = DEFAULT_WEIGHTS) => {
   if (!entry.performed) return 0;
@@ -40,6 +41,20 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   const athkarCheck = Object.values(log.athkar.checklists).filter(Boolean).length * weights.athkarChecklist;
   const athkarCount = Object.values(log.athkar.counters || {}).reduce((sum, count) => sum + ((count as number) * weights.athkarCounter), 0);
   
+  // نقاط الأذكار التفصيلية المقروءة من الشاشة التفاعلية (بحد أقصى 100 لصباح كامل و100 لمساء كامل)
+  let detailedAthkarPoints = 0;
+  const detailedData = log.athkar.completedDetailedAthkar || {};
+  
+  if (MORNING_ATHKAR.length > 0) {
+    const morningDoneCount = MORNING_ATHKAR.filter(item => (detailedData[item.id] || 0) >= item.count).length;
+    detailedAthkarPoints += Math.round((morningDoneCount / MORNING_ATHKAR.length) * 100);
+  }
+  
+  if (EVENING_ATHKAR.length > 0) {
+    const eveningDoneCount = EVENING_ATHKAR.filter(item => (detailedData[item.id] || 0) >= item.count).length;
+    detailedAthkarPoints += Math.round((eveningDoneCount / EVENING_ATHKAR.length) * 100);
+  }
+  
   const nawafilPrayers = (log.nawafil.duhaDuration + log.nawafil.witrDuration + log.nawafil.qiyamDuration) * weights.nawafilPerMin;
   const fasting = log.nawafil.fasting ? weights.fastingDay : 0;
   
@@ -65,7 +80,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   
   const deductionMultiplier = 1 - (weights.burdenDeduction / 100);
   
-  const total = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + knowledge + athkarCheck + athkarCount + nawafilPrayers + fasting + customSunnahPoints + heartPoints + duasPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
+  const total = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + knowledge + athkarCheck + athkarCount + detailedAthkarPoints + nawafilPrayers + fasting + customSunnahPoints + heartPoints + duasPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
 
   return Math.round(total);
 };

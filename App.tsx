@@ -20,7 +20,8 @@ import {
   BookMarked,
   Lightbulb,
   Heart,
-  ChevronLeft
+  ChevronLeft,
+  ScrollText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
@@ -44,6 +45,7 @@ import Subha from './components/Subha';
 import QuranPage from './components/QuranPage';
 import Notifications from './components/Notifications';
 import HeartTazkiya from './components/HeartTazkiya';
+import AthkarRead from './components/AthkarRead';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -80,7 +82,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'entry' | 'heart' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide' | 'notifications';
+  type Tab = 'dashboard' | 'entry' | 'athkar' | 'heart' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide' | 'notifications';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
@@ -233,7 +235,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBookProgress} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onUpdateLog={updateLog} />;
-      case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} />;
+      case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} onSwitchTab={setActiveTab} />;
       case 'heart': return <HeartTazkiya log={currentLog} onUpdate={updateLog} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
       case 'timer': return (
@@ -265,6 +267,7 @@ const App: React.FC = () => {
         />
       );
       case 'subha': return <Subha log={currentLog} onUpdateLog={updateLog} />;
+      case 'athkar': return <AthkarRead log={currentLog} onUpdateLog={updateLog} />;
       case 'quran': return <QuranPage log={currentLog} logs={logs} plan="new_1" onUpdatePlan={() => {}} onUpdateLog={updateLog} />;
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const b = books.find(x => x.id === id); if(b) handleUpdateBookProgress(b, pages); }} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
@@ -304,6 +307,7 @@ const App: React.FC = () => {
             {[
               {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
               {id: 'entry', icon: PenLine, label: 'تسجيل'},
+              {id: 'athkar', icon: ScrollText, label: 'الأذكار'},
               {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
               {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
               {id: 'subha', icon: Orbit, label: 'السبحة'},

@@ -19,6 +19,7 @@ interface DailyEntryProps {
   onUpdateWeights: (weights: AppWeights) => void;
   currentDate: string;
   onDateChange: (date: string) => void;
+  onSwitchTab?: (tab: any) => void;
 }
 
 const PRAYER_SUNNAHS: Record<string, {id: string, label: string}[]> = {
@@ -40,7 +41,7 @@ const DEFAULT_DHIKR_LIST = [
   { id: 'istighfar', label: 'الاستغفار' }
 ];
 
-const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdateWeights, currentDate, onDateChange }) => {
+const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdateWeights, currentDate, onDateChange, onSwitchTab }) => {
   const [activePrayer, setActivePrayer] = useState<PrayerName>(PrayerName.FAJR);
   
   // States for adding custom items
@@ -312,6 +313,21 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
             return (<button key={id} onClick={() => updateSection('athkar', { checklists: { ...log.athkar.checklists, [id]: !log.athkar.checklists[id] } }, !log.athkar.checklists[id] ? `أتمَّ ${label}` : undefined, 'athkar')} className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${log.athkar.checklists[id] ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-slate-50 text-slate-400 border-slate-100'}`}><span className="text-xs font-bold">{label.split(' ')[1]}</span></button>);
           })}
         </div>
+
+        {onSwitchTab && (
+          <div className="mb-6 p-4 bg-emerald-50/40 rounded-2xl border border-dashed border-emerald-200/60 text-center text-slate-700">
+            <p className="text-[11px] font-bold leading-normal mb-2.5">
+              ✨ تفضل قراءة وحساب أورادك بلمسات تفاعليّة تصفيرية؟
+            </p>
+            <button 
+              onClick={() => onSwitchTab('athkar')}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black header-font shadow-md transition-all active:scale-95 inline-flex items-center gap-1"
+            >
+              افتح شاشة الأذكار التفاعلية 🌅
+            </button>
+          </div>
+        )}
+
         <div className="space-y-3">
           {DEFAULT_DHIKR_LIST.map(d => counterItem(d.label, d.id, <Zap className="w-4 h-4" />))}
           {customDhikrs.map(d => counterItem(d.label, d.key, <Sparkle className="w-4 h-4" />, () => handleRemoveCustomDhikr(d.id)))}

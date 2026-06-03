@@ -179,12 +179,6 @@ export const NextPrayerWidget: React.FC = () => {
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       
-      {/* Date Header matching screenshot top */}
-      <div className="flex items-center justify-between px-3 text-[11px] font-bold text-slate-500/90 header-font" dir="rtl">
-        <span className="bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full">{formattedHijriStr}</span>
-        <span>{formattedGregorianStr}</span>
-      </div>
-
       {/* Main Prayer Card */}
       <div className="bg-gradient-to-br from-emerald-700 via-emerald-800 to-teal-950 text-white rounded-[2.5rem] p-6 shadow-xl relative overflow-hidden border border-white/5" dir="rtl">
         {/* Modern decorative mosques watermark graphic */}

@@ -64,6 +64,79 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [readingInput, setReadingInput] = useState('');
   const [showiOSInstructions, setShowiOSInstructions] = useState(false);
   
+  // حفظ ومزامنة ساعات تسجيل العبادات لتقديم جراف إيماني ديناميكي معبر
+  const [worshipHours, setWorshipHours] = useState<Record<string, Record<string, number>>>(() => {
+    try {
+      const saved = localStorage.getItem('worship_log_times');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  // مراقبة وحفظ توقيت تسجيل العبادات التفاعلية المخصصة لرفع الايمان بدقة في ساعة التسجيل الفعلي
+  useEffect(() => {
+    if (!log) return;
+    const dateStr = log.date;
+    const now = new Date();
+    const isToday = dateStr === format(now, 'yyyy-MM-dd');
+    const currentHour = now.getHours();
+
+    let updated = false;
+    const times = { ...worshipHours };
+    if (!times[dateStr]) {
+      times[dateStr] = {};
+    }
+
+    const dayTimes = { ...times[dateStr] };
+
+    // 1. ورد القرآن الكريم
+    const hasQuranVal = (log.quran.revisionRub || 0) > 0 || (log.quran.hifzRub || 0) > 0;
+    if (hasQuranVal && dayTimes['quran'] === undefined) {
+      dayTimes['quran'] = isToday ? currentHour : 15;
+      updated = true;
+    } else if (!hasQuranVal && dayTimes['quran'] !== undefined) {
+      delete dayTimes['quran'];
+      updated = true;
+    }
+
+    // 2. الأذكار المطلقة العدادات
+    const hasAbsoluteAthkarVal = Object.values(log.athkar.counters || {}).some(val => val > 0);
+    if (hasAbsoluteAthkarVal && dayTimes['absolute_athkar'] === undefined) {
+      dayTimes['absolute_athkar'] = isToday ? currentHour : 11;
+      updated = true;
+    } else if (!hasAbsoluteAthkarVal && dayTimes['absolute_athkar'] !== undefined) {
+      delete dayTimes['absolute_athkar'];
+      updated = true;
+    }
+
+    // 3. أوراد طلب العلم والقراءة
+    const hasKnowledgeVal = (log.knowledge.shariDuration || 0) > 0 || (log.knowledge.readingDuration || 0) > 0;
+    if (hasKnowledgeVal && dayTimes['knowledge'] === undefined) {
+      dayTimes['knowledge'] = isToday ? currentHour : 16;
+      updated = true;
+    } else if (!hasKnowledgeVal && dayTimes['knowledge'] !== undefined) {
+      delete dayTimes['knowledge'];
+      updated = true;
+    }
+
+    // 4. الأعمال والسنن المخصصة
+    const hasCustomActionsVal = (log.customSunnahIds || []).length > 0 || (log.nawafil.custom || []).some(c => c.value > 0);
+    if (hasCustomActionsVal && dayTimes['custom'] === undefined) {
+      dayTimes['custom'] = isToday ? currentHour : 10;
+      updated = true;
+    } else if (!hasCustomActionsVal && dayTimes['custom'] !== undefined) {
+      delete dayTimes['custom'];
+      updated = true;
+    }
+
+    if (updated) {
+      times[dateStr] = dayTimes;
+      setWorshipHours(times);
+      localStorage.setItem('worship_log_times', JSON.stringify(times));
+    }
+  }, [log, worshipHours]);
+  
   const isFirstRender = useRef(true);
   const prevBadgesActiveState = useRef<Record<string, boolean>>({});
 
@@ -162,6 +235,218 @@ const Dashboard: React.FC<DashboardProps> = ({
     }).reverse();
   }, [logs, weights, targetScore]);
 
+  // دالة حساب منحنى الإيمان التفاعلي على مدار اليوم (24 ساعة)
+  const intradayFaithData = useMemo(() => {
+    const prayers = log.prayers;
+    const athkar = log.athkar;
+    const quran = log.quran;
+    const nawafil = log.nawafil;
+    const mood = log.mood || 3;
+
+    const isFajr = prayers[PrayerName.FAJR]?.performed;
+    const isFajrCong = prayers[PrayerName.FAJR]?.inCongregation;
+    const isDhuhr = prayers[PrayerName.DHUHR]?.performed;
+    const isDhuhrCong = prayers[PrayerName.DHUHR]?.inCongregation;
+    const isAsr = prayers[PrayerName.ASR]?.performed;
+    const isAsrCong = prayers[PrayerName.ASR]?.inCongregation;
+    const isMaghrib = prayers[PrayerName.MAGHRIB]?.performed;
+    const isMaghribCong = prayers[PrayerName.MAGHRIB]?.inCongregation;
+    const isIsha = prayers[PrayerName.ISHA]?.performed;
+    const isIshaCong = prayers[PrayerName.ISHA]?.inCongregation;
+
+    const isMorningAthkar = athkar.checklists.morning;
+    const isEveningAthkar = athkar.checklists.evening;
+    const isSleepAthkar = athkar.checklists.sleep;
+
+    const hasQuran = (quran.revisionRub || 0) > 0 || (quran.hifzRub || 0) > 0;
+    const hasDuha = (nawafil.duhaDuration || 0) > 0;
+    const hasQiyam = (nawafil.qiyamDuration || 0) > 0;
+    const hasWitr = (nawafil.witrDuration || 0) > 0;
+    const hasFasting = !!nawafil.fasting;
+
+    // جلب أوقات التسجيل الفعلية لكل عبادة عبر سجل الساعات المسجلة محلياً
+    const dayTimes = worshipHours[log.date] || {};
+    const quranHour = dayTimes['quran'] !== undefined ? dayTimes['quran'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 15);
+    const athkarHour = dayTimes['absolute_athkar'] !== undefined ? dayTimes['absolute_athkar'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 11);
+    const knowledgeHour = dayTimes['knowledge'] !== undefined ? dayTimes['knowledge'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 16);
+    const customHour = dayTimes['custom'] !== undefined ? dayTimes['custom'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 10);
+
+    // حساب المسافة الدائرية في نظام 24 ساعة لضمان السلاسة حتى عابر الليل والمنتصف
+    const distance24 = (h1: number, h2: number) => {
+      const diff = Math.abs(h1 - h2);
+      return Math.min(diff, 24 - diff);
+    };
+
+    // تمثيل 12 نقطة زمنية كل ساعتين لتوضيح الانسيابية
+    const hoursToMap = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
+
+    return hoursToMap.map((hour) => {
+      let level = 45; // خط الأساس الوسطي للإنسان الطبيعي
+
+      // جودة الحالة الذهنية والقلبية تؤثر على الارتياح العام
+      level += (mood - 3) * 6;
+
+      // أثر الصيام نهاراً
+      if (hasFasting && hour >= 5 && hour <= 18) {
+        level += 12;
+      }
+
+      // الليل والقيام (الساعة 0 إلى 4)
+      if (hour >= 0 && hour <= 4) {
+        if (hasQiyam) {
+          level += 35; // دفعة روحيّة هائلة للتهجد والقيام
+        } else {
+          level -= 5; // فتور طفيف طبيعي أثناء النوم
+        }
+      }
+
+      // الفجر والذكر الصباحي (الساعة 4 إلى 7)
+      if (hour >= 4 && hour <= 7) {
+        if (isFajr) {
+          level += isFajrCong ? 35 : 22;
+        }
+        if (isMorningAthkar) {
+          level += 12;
+        }
+      }
+
+      // الضحى والعمل الباكر (الساعة 8 إلى 11)
+      if (hour >= 8 && hour <= 11) {
+        if (isFajr) level += 8; // بركة الفجر الباقية
+        if (hasDuha) {
+          level += 15; // رفعة روحية لصلاة الأوابين
+        }
+      }
+
+      // الظهر (الساعة 12 إلى 14)
+      if (hour >= 12 && hour <= 14) {
+        if (isDhuhr) {
+          level += isDhuhrCong ? 30 : 18;
+        }
+      }
+
+      // العصر وصلاة الجماعة المنفصلة من الورد القرآني
+      if (hour >= 15 && hour <= 17) {
+        if (isAsr) {
+          level += isAsrCong ? 30 : 18;
+        }
+      }
+
+      // المغرب والذكر المسائي (الساعة 18 إلى 19)
+      if (hour >= 18 && hour <= 19) {
+        if (isMaghrib) {
+          level += isMaghribCong ? 30 : 18;
+        }
+        if (isEveningAthkar) {
+          level += 12;
+        }
+      }
+
+      // العشاء والوتر وأوراد النوم (الساعة 20 إلى 23)
+      if (hour >= 20 && hour <= 23) {
+        if (isIsha) {
+          level += isIshaCong ? 30 : 18;
+        }
+        if (hasWitr) {
+          level += 12; // ركعة الوتر حرز ونعمة
+        }
+        if (isSleepAthkar && hour >= 22) {
+          level += 10;
+        }
+      }
+
+      // ───────────────────────────────────────────────
+      // المحرّكات الإيمانية الديناميكية غير المقيدة بوقت ثابت
+      // ───────────────────────────────────────────────
+      
+      // 1. ورد القرآن الكريم (ديناميكي)
+      if (hasQuran) {
+        const qDist = distance24(hour, quranHour);
+        if (qDist <= 1) {
+          level += 25; // ذروة طاقة الارتباط الروحي بالقرآن في ساعة التسجيل
+        } else if (qDist <= 3 && (hour > quranHour || (quranHour >= 22 && hour <= 2))) {
+          level += 12; // السكينة الباقية بعد قراءة القرآن الكريم
+        }
+      }
+
+      // 2. أوراد العدادات المطلقة الأذكار (ديناميكي)
+      const hasAbsoluteAthkar = Object.values(log.athkar.counters || {}).some(val => val > 0);
+      if (hasAbsoluteAthkar) {
+        const aDist = distance24(hour, athkarHour);
+        if (aDist <= 1) {
+          level += 15; // شحنة نورانية وقرب من الله بالذكر المطلق عند قيامك بها
+        } else if (aDist <= 3 && (hour > athkarHour || (athkarHour >= 22 && hour <= 2))) {
+          level += 8; // البركة والهدوء القلبية المستقرة بعد تلهيج اللسان
+        }
+      }
+
+      // 3. أوراد طلب العلم والقراءة (ديناميكي)
+      const hasKnowledge = (log.knowledge.shariDuration || 0) > 0 || (log.knowledge.readingDuration || 0) > 0;
+      if (hasKnowledge) {
+        const kDist = distance24(hour, knowledgeHour);
+        if (kDist <= 1) {
+          level += 20; // رقي روحي من بركة مداد العلماء ونور الكلمة والمعرفة
+        } else if (kDist <= 3 && (hour > knowledgeHour || (knowledgeHour >= 22 && hour <= 2))) {
+          level += 10; // حالة صفاء ذهني روحي بعد التعلم والاطلاع
+        }
+      }
+
+      // 4. الأعمال والسنن المخصصة المنجزة (ديناميكي)
+      const hasCustomActions = (log.customSunnahIds || []).length > 0 || (log.nawafil.custom || []).some(c => c.value > 0);
+      if (hasCustomActions) {
+        const cDist = distance24(hour, customHour);
+        if (cDist <= 1) {
+          level += 18; // دفعة روحيّة إضافية لابتكار عبادة صالحة تهذيبية للنفس
+        } else if (cDist <= 3 && (hour > customHour || (customHour >= 22 && hour <= 2))) {
+          level += 8; // الأثر المعنوي والدفاعي للهمم
+        }
+      }
+
+      // حد أقصى وحد أدنى لتفادي الشذوذ الرسومي
+      level = Math.max(15, Math.min(100, level));
+
+      // صياغة اللفظ الإرشادي للقلب
+      let description = 'حالة قلبية مستقرة ومتزنة.';
+      let label = `${hour}:00`;
+
+      if (level >= 85) {
+        description = 'إيمان مشعّ غامر بالسكينة والخشوع المتصل 🌟';
+      } else if (level >= 70) {
+        description = 'طاعة حاضرة ونور قلبي منشرح بحمد الله 🌿';
+      } else if (level >= 50) {
+        description = 'سعي صالح ونشاط قلبي معتدل يحتاج رعاية دؤوبة ✨';
+      } else if (level >= 30) {
+        description = 'خط الأساس العام المقبول - مجاهدة مستمرة لدفع الفتور 💪';
+      } else {
+        description = 'حالة فتور وثقل طفيف، ننصح ببدء ذكر أو استغفار فوري ⚠️';
+      }
+
+      return {
+        hour: label,
+        level,
+        description
+      };
+    });
+  }, [log, worshipHours]);
+
+  // مكوّن مخصص لعرض البيانات داخل نافذة منبثقة عند التفاعل مع الرسم البياني لليوم
+  const CustomFaithTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl border border-white/10 shadow-2xl space-y-1.5 font-sans text-right max-w-xs" dir="rtl">
+          <p className="text-[10px] font-black tracking-widest text-emerald-400 uppercase">الساعة {data.hour}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-slate-300">مستوى الإيمان والسكينة:</span>
+            <span className="text-xs font-black text-white font-mono">{data.level}%</span>
+          </div>
+          <p className="text-[10px] font-bold text-emerald-50 leading-relaxed bg-white/5 p-2 rounded-xl border border-white/5">{data.description}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const moodConfig = [
     { value: 1, label: 'ضيق', icon: <Ghost className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-slate-50' },
     { value: 2, label: 'قلق', icon: <Frown className="w-5 h-5" />, color: 'text-amber-500', bg: 'bg-amber-50' },
@@ -192,6 +477,30 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* 1. مواقيت الصلاة القادمة والعد التنازلي */}
       <NextPrayerWidget />
+
+      {/* 1.1. بطاقة أذكار اليوم التفاعلية */}
+      <div className="bg-gradient-to-r from-emerald-800 via-emerald-900 to-teal-950 text-white rounded-[2rem] p-6 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/20 rounded-full opacity-30 translate-x-12 -translate-y-12 blur-2xl"></div>
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 bg-white/10 rounded-2xl border border-white/10 shrink-0">
+              <Sparkles className="w-6 h-6 text-yellow-300 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black header-font leading-tight">الأذكار والتحصين التفاعلي 🌅 🌃</h3>
+              <p className="text-[10px] text-emerald-200 mt-1 font-bold leading-relaxed">
+                اضغط لقراءة أذكار الصباح والمساء. تحكّم بالعداد بلمسة مع تغذية ونقاط فوريّة للرصيد الروحي!
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => onSwitchTab('athkar')} 
+            className="w-full sm:w-auto px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-emerald-950 rounded-xl font-black text-xs header-font shadow-md transition-all active:scale-95 whitespace-nowrap"
+          >
+            ابدأ القراءة
+          </button>
+        </div>
+      </div>
 
       {/* 2. الهدف اليومي */}
       <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
@@ -302,6 +611,70 @@ const Dashboard: React.FC<DashboardProps> = ({
               </span>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* مخطط الحالة الإيمانية على مدار ساعات اليوم */}
+      <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600">
+              <Activity className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-800 header-font">نبض طمأنينة الإيمان والسكينة</h3>
+              <p className="text-[10px] text-slate-400 font-bold header-font">منحنًى بياني تفاعلي يمثل صعود وهبوط نشاط قلبك الإيماني على مدار اليوم</p>
+            </div>
+          </div>
+          <div className="text-[9px] font-black text-emerald-600 bg-emerald-50/50 px-2.5 py-1.5 rounded-lg border border-emerald-100/50 self-start md:self-auto">
+            تلقائي بنسبة 100٪ بناءً على توقيت عباداتك المسجلة
+          </div>
+        </div>
+
+        <div className="h-56 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={intradayFaithData}>
+              <defs>
+                <linearGradient id="faithGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.35}/>
+                  <stop offset="95%" stopColor="#059669" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis 
+                dataKey="hour" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700, fontFamily: 'Cairo' }} 
+              />
+              <YAxis domain={[0, 100]} hide />
+              <Tooltip content={<CustomFaithTooltip />} />
+              <Area 
+                type="monotone" 
+                dataKey="level" 
+                stroke="#10b981" 
+                fill="url(#faithGradient)" 
+                strokeWidth={3} 
+                animationDuration={1500}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        
+        {/* دليل سريع لشرح المؤشر ودفع الهمّة */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 border-t border-slate-50 pt-4">
+          <div className="flex gap-2.5 items-start p-2.5 rounded-xl hover:bg-slate-50/60 transition-colors">
+            <span className="text-emerald-500 font-bold text-sm">💡</span>
+            <p className="text-[10px] text-slate-500 leading-normal font-bold">
+              <span className="text-emerald-700 font-black">غذاء الروح:</span> صلاتك الحاضرة بالمسجد تمنح قلبك نبضاً مشرقاً يمتد طوال اليوم، بينما الخمول عن الأوراد يسبب فتوراً في مؤشرك.
+            </p>
+          </div>
+          <div className="flex gap-2.5 items-start p-2.5 rounded-xl hover:bg-slate-50/60 transition-colors">
+            <span className="text-emerald-500 font-bold text-sm">🕰️</span>
+            <p className="text-[10px] text-slate-500 leading-normal font-bold">
+              <span className="text-amber-600 font-black">استثمار الأوقات:</span> تفاعُل المؤشر ذكي جداً ويعرف التوقيت الفعلي والمستهدف للفرائض، الأذكار، قيام الليل، والضحى لتجديد حيويتك.
+            </p>
+          </div>
         </div>
       </div>
 
