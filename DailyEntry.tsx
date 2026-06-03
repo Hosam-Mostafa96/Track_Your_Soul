@@ -11,7 +11,6 @@ import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from
 import { SURROUNDING_SUNNAH_LIST } from './constants';
 import { format, addDays } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
-import { VoiceLogger } from './components/VoiceLogger';
 
 interface DailyEntryProps {
   log: DailyLog;
@@ -201,9 +200,6 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         </div>
         <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))} disabled={currentDate === format(new Date(), 'yyyy-MM-dd')} className="p-2 rounded-xl text-slate-400 disabled:opacity-20"><ChevronLeft className="w-5 h-5" /></button>
       </div>
-
-      {/* Voice/Smart Input Assistant */}
-      <VoiceLogger log={log} onUpdate={onUpdate} />
 
       {/* 1. الصلوات والفرائض */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">

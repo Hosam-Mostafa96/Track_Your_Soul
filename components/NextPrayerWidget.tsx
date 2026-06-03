@@ -205,8 +205,7 @@ export const NextPrayerWidget: React.FC = () => {
                 </h2>
               </div>
               <p className="text-sm font-light text-emerald-100 flex items-center gap-1.5 mt-1">
-                <span className="bg-white/10 px-2.5 py-0.5 rounded-lg text-xs font-bold">{nextPrayerInfo.timeStr}</span>{" "}
-                بشكل تقريبي في أقصى دقة
+                <span className="bg-white/10 px-2.5 py-0.5 rounded-lg text-xs font-bold">{nextPrayerInfo.timeStr}</span>
               </p>
             </div>
 
@@ -218,36 +217,36 @@ export const NextPrayerWidget: React.FC = () => {
           </div>
 
           {/* Right section: SVG Radial Countdown Wheel with Segmented Badge Display */}
-          <div className="relative flex flex-col items-center justify-center shrink-0 w-40 h-40">
+          <div className="relative flex flex-col items-center justify-center shrink-0 w-48 h-48">
             {/* Soft background ambient glow */}
             <div className="absolute inset-2 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
             
-            <svg className="w-full h-full -rotate-90 drop-shadow-[0_0_12px_rgba(52,211,153,0.35)] pointer-events-none">
+            <svg className="w-full h-full -rotate-90 drop-shadow-[0_0_12px_rgba(52,211,153,0.35)] pointer-events-none" viewBox="0 0 192 192">
               {/* Thin alignment reference ring */}
               <circle
-                cx="80"
-                cy="80"
-                r="64"
+                cx="96"
+                cy="96"
+                r="86"
                 className="stroke-emerald-900/15 fill-none"
                 strokeWidth="1.5"
               />
               {/* Back track ring */}
               <circle
-                cx="80"
-                cy="80"
-                r="58"
+                cx="96"
+                cy="96"
+                r="80"
                 className="stroke-emerald-950/50 fill-none"
                 strokeWidth="6"
               />
               {/* Active countdown progress ring */}
               <circle
-                cx="80"
-                cy="80"
-                r="58"
+                cx="96"
+                cy="96"
+                r="80"
                 className="stroke-emerald-400 fill-none transition-all duration-1000"
                 strokeWidth="6"
-                strokeDasharray={2 * Math.PI * 58}
-                strokeDashoffset={2 * Math.PI * 58 * (1 - progressPercent / 100)}
+                strokeDasharray={2 * Math.PI * 80}
+                strokeDashoffset={2 * Math.PI * 80 * (1 - progressPercent / 100)}
                 strokeLinecap="round"
               />
             </svg>
