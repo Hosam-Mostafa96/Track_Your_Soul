@@ -1,0 +1,315 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { MapPin, Info, ArrowLeftRight, Compass, Settings, HelpCircle, ChevronDown, ChevronUp, Bell, BellOff } from 'lucide-react';
+import { getPrayerTimesForDate, CITIES_DATABASE, PrayerTimes } from '../utils/prayerTimes';
+
+export const NextPrayerWidget: React.FC = () => {
+  const [currentCityName, setCurrentCityName] = useState<string>('الشيخ زايد');
+  const [isEgyptianMethod, setIsEgyptianMethod] = useState<boolean>(true);
+  const [showAllPrayers, setShowAllPrayers] = useState<boolean>(false);
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  
+  // Custom manual coordinates state (used if GPS geolocation is active instead of preset)
+  const [customCoords, setCustomCoords] = useState<{ lat: number; lng: number; name: string } | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [gpsLoading, setGpsLoading] = useState<boolean>(false);
+  
+  // Sound alerts (optional client side toggle)
+  const [alertsEnabled, setAlertsEnabled] = useState<boolean>(true);
+
+  // Time ticks
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Retrieve saved custom location from localStorage on mount, or request GPS automatically
+  useEffect(() => {
+    const savedMethod = localStorage.getItem('local_prayer_method');
+    if (savedMethod) {
+      setIsEgyptianMethod(savedMethod === 'egypt');
+    }
+    const savedCoords = localStorage.getItem('local_prayer_gps');
+    if (savedCoords) {
+      try {
+        setCustomCoords(JSON.parse(savedCoords));
+      } catch (e) {
+        console.error('Error parsing saved GPS', e);
+      }
+    } else {
+      // Auto request GPS location on first mount
+      navigator.geolocation?.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const newCoords = {
+            lat: latitude,
+            lng: longitude,
+            name: 'الموقع الجغرافي الفعلي'
+          };
+          setCustomCoords(newCoords);
+          localStorage.setItem('local_prayer_gps', JSON.stringify(newCoords));
+        },
+        (err) => {
+          console.log('Fallback to default location coordinates since GPS was denied/unavailable');
+        },
+        { enableHighAccuracy: false, timeout: 6000 }
+      );
+    }
+  }, []);
+
+  // Get current active coordinates and offset
+  const activeCity = CITIES_DATABASE[currentCityName] || CITIES_DATABASE['الشيخ زايد'];
+  const lat = customCoords ? customCoords.lat : activeCity.lat;
+  const lng = customCoords ? customCoords.lng : activeCity.lng;
+  // Browser timezone offset in hours
+  const tzOffset = -new Date().getTimezoneOffset() / 60;
+
+  // Calculate times
+  const { times, rawTimes } = getPrayerTimesForDate(currentTime, lat, lng, tzOffset, isEgyptianMethod);
+
+  // Determine Next Prayer and remaining seconds
+  const currentHourDecimal = currentTime.getHours() + currentTime.getMinutes() / 60 + currentTime.getSeconds() / 3600;
+  
+  const prayerSeq = [
+    { id: 'fajr', label: 'الفجر', hour: rawTimes.fajr, timeStr: times.fajr, icon: '🌅' },
+    { id: 'sunrise', label: 'الشروق', hour: rawTimes.sunrise, timeStr: times.sunrise, icon: '☀️' },
+    { id: 'dhuhr', label: 'الظهر', hour: rawTimes.dhuhr, timeStr: times.dhuhr, icon: '☀️' },
+    { id: 'asr', label: 'العصر', hour: rawTimes.asr, timeStr: times.asr, icon: '⛅' },
+    { id: 'maghrib', label: 'المغرب', hour: rawTimes.maghrib, timeStr: times.maghrib, icon: '🌤️' },
+    { id: 'isha', label: 'العشاء', hour: rawTimes.isha, timeStr: times.isha, icon: '🌙' }
+  ];
+
+  // Excluding sunrise for next prayer countdown, but keeping it in times list
+  const corePrayers = prayerSeq.filter(p => p.id !== 'sunrise');
+  
+  // Find first prayer that is ahead
+  let nextPrayerInfo = corePrayers.find(p => p.hour > currentHourDecimal);
+  let isNextDay = false;
+  let remainingHours = 0;
+
+  if (!nextPrayerInfo) {
+    // If past Isha, next prayer is Fajr tomorrow
+    nextPrayerInfo = corePrayers[0]; // Fajr
+    isNextDay = true;
+    remainingHours = (24 - currentHourDecimal) + nextPrayerInfo.hour;
+  } else {
+    remainingHours = nextPrayerInfo.hour - currentHourDecimal;
+  }
+
+  const remainingSecondsTotal = Math.max(0, Math.floor(remainingHours * 3600));
+  
+  // Format Countdown hh:mm:ss
+  const formatCountdown = (totalSecs: number) => {
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    
+    const hStr = h < 10 ? `0${h}` : `${h}`;
+    const mStr = m < 10 ? `0${m}` : `${m}`;
+    const sStr = s < 10 ? `0${s}` : `${s}`;
+    
+    return `${hStr} : ${mStr} : ${sStr}`;
+  };
+
+  // Progress percentage (approx 4 hours max between prayers for a generic radial ring)
+  const maxPeriodSeconds = 4 * 3600; // 4 hours standard scale
+  const progressPercent = Math.max(0, Math.min(100, (1 - remainingSecondsTotal / maxPeriodSeconds) * 100));
+
+  // Determine location label
+  const locationLabel = customCoords ? customCoords.name : `${activeCity.nameAr}، ${activeCity.countryAr}`;
+
+  // Gregorian & Hijri Dates
+  const formattedGregorianStr = new Intl.DateTimeFormat('ar-SA', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(currentTime);
+
+  let formattedHijriStr = '';
+  try {
+    formattedHijriStr = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(currentTime);
+  } catch (e) {
+    // fallback if not supported
+    formattedHijriStr = 'ذو الحجة ١٤٤٧ هـ';
+  }
+
+  // Handle GPS location lookup
+  const handleGPSLocation = () => {
+    if (!navigator.geolocation) {
+      setGpsError('نظام تحديد المواقع غير مدعوم في متصفحك.');
+      return;
+    }
+    setGpsLoading(true);
+    setGpsError(null);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const newCoords = {
+          lat: latitude,
+          lng: longitude,
+          name: 'الموقع الجغرافي الفعلي'
+        };
+        setCustomCoords(newCoords);
+        localStorage.setItem('local_prayer_gps', JSON.stringify(newCoords));
+        setGpsLoading(false);
+      },
+      (error) => {
+        console.error('Error fetching GPS', error);
+        setGpsError('تعذر تحديد موقعك بدقة. يرجى تفعيل إذن تحديد الموقع الجغرافي في جهازك.');
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Change Method
+  const toggleMethod = () => {
+    const nextMethod = !isEgyptianMethod;
+    setIsEgyptianMethod(nextMethod);
+    localStorage.setItem('local_prayer_method', nextMethod ? 'egypt' : 'umm_alqura');
+  };
+
+  return (
+    <div className="space-y-4 animate-in fade-in duration-300">
+      
+      {/* Date Header matching screenshot top */}
+      <div className="flex items-center justify-between px-3 text-[11px] font-bold text-slate-500/90 header-font" dir="rtl">
+        <span className="bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full">{formattedHijriStr}</span>
+        <span>{formattedGregorianStr}</span>
+      </div>
+
+      {/* Main Prayer Card */}
+      <div className="bg-gradient-to-br from-emerald-700 via-emerald-800 to-teal-950 text-white rounded-[2.5rem] p-6 shadow-xl relative overflow-hidden border border-white/5" dir="rtl">
+        {/* Modern decorative mosques watermark graphic */}
+        <div className="absolute right-0 bottom-4 opacity-10 pointer-events-none text-[8rem]">🕌</div>
+        
+        <div className="absolute -top-24 -right-24 w-60 h-60 bg-emerald-500/20 rounded-full blur-[80px] animate-pulse"></div>
+        <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-teal-400/10 rounded-full blur-[80px]"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Left section: Next prayer details */}
+          <div className="flex-1 w-full text-right space-y-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black tracking-widest text-emerald-300/80 uppercase">الصلاة القادمة • Next Prayer</span>
+              <div className="flex items-center gap-3">
+                <h2 className="text-3xl font-black header-font tracking-tight text-white flex items-center gap-2">
+                  {nextPrayerInfo.label}
+                  <span className="text-2xl">{nextPrayerInfo.icon}</span>
+                </h2>
+              </div>
+              <p className="text-sm font-light text-emerald-100 flex items-center gap-1.5 mt-1">
+                <span className="bg-white/10 px-2.5 py-0.5 rounded-lg text-xs font-bold">{nextPrayerInfo.timeStr}</span>{" "}
+                بشكل تقريبي في أقصى دقة
+              </p>
+            </div>
+
+             {/* Geographical Location */}
+             <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-200/90">
+               <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+               <span>{locationLabel}</span>
+             </div>
+          </div>
+
+          {/* Right section: SVG Radial Countdown Wheel */}
+          <div className="relative flex flex-col items-center justify-center shrink-0 w-36 h-36">
+            <svg className="w-full h-full -rotate-90">
+              {/* Back track ring */}
+              <circle
+                cx="72"
+                cy="72"
+                r="56"
+                className="stroke-emerald-950/40 fill-none"
+                strokeWidth="7"
+              />
+              {/* Active countdown progress ring */}
+              <circle
+                cx="72"
+                cy="72"
+                r="56"
+                className="stroke-emerald-400 fill-none transition-all duration-1000"
+                strokeWidth="7"
+                strokeDasharray={2 * Math.PI * 56}
+                strokeDashoffset={2 * Math.PI * 56 * (1 - progressPercent / 100)}
+                strokeLinecap="round"
+              />
+            </svg>
+            
+            {/* Center timing details */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center space-y-0.5">
+              <span className="font-mono text-base font-black tracking-tight text-emerald-100">
+                {formatCountdown(remainingSecondsTotal)}
+              </span>
+              <span className="text-[10px] font-black text-emerald-300">
+                متبقي
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer controls inside the card */}
+        <div className="relative z-10 grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/10 text-center text-[10px] font-bold text-emerald-100/80">
+          <button 
+            onClick={() => setShowAllPrayers(!showAllPrayers)}
+            className="flex items-center justify-center gap-1 py-1 px-2.5 rounded-xl hover:bg-white/5 transition-all text-emerald-200"
+          >
+            {showAllPrayers ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            <span>كل الصلوات</span>
+          </button>
+
+          <button 
+            onClick={toggleMethod}
+            className="py-1 px-2.5 rounded-xl hover:bg-white/5 transition-all text-emerald-200"
+            title="تغيير منهجية وطريقة حساب الأوقات"
+          >
+            {isEgyptianMethod ? 'المساحة المصرية 🇪🇬' : 'أم القرى 🕋'}
+          </button>
+
+          <button 
+            onClick={handleGPSLocation}
+            disabled={gpsLoading}
+            className="flex items-center justify-center gap-1 py-1 px-2.5 rounded-xl hover:bg-white/5 transition-all text-emerald-200 disabled:opacity-40"
+          >
+            <Compass className="w-3.5 h-3.5 animate-spin-slow" />
+            <span>{gpsLoading ? 'جاري التحديد...' : 'تحديد بموقعي'}</span>
+          </button>
+        </div>
+
+        {/* Expandable all prayers board */}
+        {showAllPrayers && (
+          <div className="relative z-10 mt-4 pt-4 border-t border-white/5 text-xs text-white divide-y divide-white/5 space-y-2 animate-in slide-in-from-top-3 duration-200">
+            {prayerSeq.map((prayer) => {
+              const isNext = prayer.id === nextPrayerInfo.id;
+              return (
+                <div key={prayer.id} className={`flex items-center justify-between py-2 transition-all ${isNext ? 'bg-white/5 px-2.5 rounded-xl border border-white/10 shadow-inner' : ''}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{prayer.icon}</span>
+                    <span className={`font-black header-font ${isNext ? 'text-emerald-300' : 'text-emerald-100'}`}>
+                      {prayer.label}
+                      {isNext && <span className="text-[9px] bg-emerald-400 text-emerald-950 px-1.5 py-0.5 rounded-full mr-1.5">التالية</span>}
+                    </span>
+                  </div>
+                  <span className="font-mono font-bold text-sm">{prayer.timeStr}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {gpsError && (
+        <div className="text-[10px] bg-rose-50 text-rose-800 p-2.5 rounded-xl border border-rose-100 font-bold">
+          {gpsError}
+        </div>
+      )}
+
+      {/* Removed manual city selection buttons, relying completely on precise GPS location */}
+    </div>
+  );
+};
