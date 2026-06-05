@@ -235,7 +235,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     }).reverse();
   }, [logs, weights, targetScore]);
 
-  // دالة حساب منحنى الإيمان التفاعلي على مدار اليوم (24 ساعة)
+  // دالة حساب منحنى الإيمان التفاعلي على مدار اليوم (24 ساعة) ساعة بساعة تبدأ من 5 صباحاً
   const intradayFaithData = useMemo(() => {
     const prayers = log.prayers;
     const athkar = log.athkar;
@@ -262,7 +262,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     const hasDuha = (nawafil.duhaDuration || 0) > 0;
     const hasQiyam = (nawafil.qiyamDuration || 0) > 0;
     const hasWitr = (nawafil.witrDuration || 0) > 0;
-    const hasFasting = !!nawafil.fasting;
+
+    const detailedData = athkar.completedDetailedAthkar || {};
 
     // جلب أوقات التسجيل الفعلية لكل عبادة عبر سجل الساعات المسجلة محلياً
     const dayTimes = worshipHours[log.date] || {};
@@ -271,158 +272,125 @@ const Dashboard: React.FC<DashboardProps> = ({
     const knowledgeHour = dayTimes['knowledge'] !== undefined ? dayTimes['knowledge'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 16);
     const customHour = dayTimes['custom'] !== undefined ? dayTimes['custom'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 10);
 
-    // حساب المسافة الدائرية في نظام 24 ساعة لضمان السلاسة حتى عابر الليل والمنتصف
-    const distance24 = (h1: number, h2: number) => {
-      const diff = Math.abs(h1 - h2);
-      return Math.min(diff, 24 - diff);
+    // دالة تحديد ترتيب الساعات في اليوم بحيث تبدأ من 5 صباحاً كأول ساعة (index 0)
+    const getHourOrder = (h: number) => {
+      return (h - 5 + 24) % 24;
     };
 
-    // تمثيل 12 نقطة زمنية كل ساعتين لتوضيح الانسيابية
-    const hoursToMap = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
+    // نحدد العبادات المنجزة والوقت الفعلي أو التقديري لأدائها والوزن المضاف لكل منها
+    interface FaithActivity {
+      id: string;
+      hour: number;
+      weight: number;
+    }
+
+    const activities: FaithActivity[] = [];
+
+    // 1. صلاة الفجر
+    if (isFajr) {
+      activities.push({ id: 'fajr', hour: 5, weight: isFajrCong ? 20 : 15 });
+    }
+    // 2. أذكار الصباح
+    const hasMorningAthkar = isMorningAthkar || Object.keys(detailedData).some(k => k.startsWith('m_') && detailedData[k] > 0);
+    if (hasMorningAthkar) {
+      activities.push({ id: 'morning_athkar', hour: Math.min(6, athkarHour), weight: 10 });
+    }
+    // 3. صلاة الضحى
+    if (hasDuha) {
+      activities.push({ id: 'duha', hour: 9, weight: 8 });
+    }
+    // 4. أوراد الأذكار المطلقة والعدادات
+    const hasDhikrCounters = Object.values(athkar.counters || {}).some(val => val > 0);
+    if (hasDhikrCounters) {
+      activities.push({ id: 'dhikr', hour: customHour, weight: 8 });
+    }
+    // 5. صلاة الظهر
+    if (isDhuhr) {
+      activities.push({ id: 'dhuhr', hour: 12, weight: isDhuhrCong ? 15 : 12 });
+    }
+    // 6. ورد القرآن الكريم
+    if (hasQuran) {
+      activities.push({ id: 'quran', hour: quranHour, weight: 15 });
+    }
+    // 7. صلاة العصر
+    if (isAsr) {
+      activities.push({ id: 'asr', hour: 15, weight: isAsrCong ? 15 : 12 });
+    }
+    // 8. أوراد العلم والقراءة
+    const hasKnowledge = (log.knowledge.shariDuration || 0) > 0 || (log.knowledge.readingDuration || 0) > 0;
+    if (hasKnowledge) {
+      activities.push({ id: 'knowledge', hour: knowledgeHour, weight: 10 });
+    }
+    // 9. أذكار المساء
+    const hasEveningAthkar = isEveningAthkar || Object.keys(detailedData).some(k => k.startsWith('e_') && detailedData[k] > 0);
+    if (hasEveningAthkar) {
+      activities.push({ id: 'evening_athkar', hour: Math.max(17, athkarHour), weight: 10 });
+    }
+    // 10. صلاة المغرب
+    if (isMaghrib) {
+      activities.push({ id: 'maghrib', hour: 18, weight: isMaghribCong ? 15 : 12 });
+    }
+    // 11. صلاة العشاء
+    if (isIsha) {
+      activities.push({ id: 'isha', hour: 20, weight: isIshaCong ? 15 : 12 });
+    }
+    // 12. صلاة الوتر
+    if (hasWitr) {
+      activities.push({ id: 'witr', hour: 21, weight: 8 });
+    }
+    // 13. قيام الليل
+    if (hasQiyam) {
+      activities.push({ id: 'qiyam', hour: 22, weight: 12 });
+    }
+    // 14. أذكار النوم
+    if (isSleepAthkar) {
+      activities.push({ id: 'sleep', hour: 23, weight: 5 });
+    }
+
+    // بناء مصفوفة الساعات الـ 24 ساعة بساعة بدءاً من 5 صباحاً
+    const hoursToMap = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4];
 
     return hoursToMap.map((hour) => {
-      let level = 45; // خط الأساس الوسطي للإنسان الطبيعي
+      // الاسكور التلقائي يبدأ من صفر
+      let level = 0;
 
-      // جودة الحالة الذهنية والقلبية تؤثر على الارتياح العام
-      level += (mood - 3) * 6;
+      // حساب مجموع الأوزان للعبادات التي تم إنهاؤها عند أو قبل هذه الساعة (بناءً على ترتيب اليوم من 5 صباحاً)
+      const currentHourOrder = getHourOrder(hour);
+      activities.forEach((act) => {
+        if (getHourOrder(act.hour) <= currentHourOrder) {
+          level += act.weight;
+        }
+      });
 
-      // أثر الصيام نهاراً
-      if (hasFasting && hour >= 5 && hour <= 18) {
-        level += 12;
-      }
+      // إضافة أثر الحالة القلبية (التعديل المزاجي على السكينة)
+      level += (mood - 3) * 4;
 
-      // الليل والقيام (الساعة 0 إلى 4)
-      if (hour >= 0 && hour <= 4) {
-        if (hasQiyam) {
-          level += 35; // دفعة روحيّة هائلة للتهجد والقيام
-        } else {
-          level -= 5; // فتور طفيف طبيعي أثناء النوم
-        }
-      }
-
-      // الفجر والذكر الصباحي (الساعة 4 إلى 7)
-      if (hour >= 4 && hour <= 7) {
-        if (isFajr) {
-          level += isFajrCong ? 35 : 22;
-        }
-        if (isMorningAthkar) {
-          level += 12;
-        }
-      }
-
-      // الضحى والعمل الباكر (الساعة 8 إلى 11)
-      if (hour >= 8 && hour <= 11) {
-        if (isFajr) level += 8; // بركة الفجر الباقية
-        if (hasDuha) {
-          level += 15; // رفعة روحية لصلاة الأوابين
-        }
-      }
-
-      // الظهر (الساعة 12 إلى 14)
-      if (hour >= 12 && hour <= 14) {
-        if (isDhuhr) {
-          level += isDhuhrCong ? 30 : 18;
-        }
-      }
-
-      // العصر وصلاة الجماعة المنفصلة من الورد القرآني
-      if (hour >= 15 && hour <= 17) {
-        if (isAsr) {
-          level += isAsrCong ? 30 : 18;
-        }
-      }
-
-      // المغرب والذكر المسائي (الساعة 18 إلى 19)
-      if (hour >= 18 && hour <= 19) {
-        if (isMaghrib) {
-          level += isMaghribCong ? 30 : 18;
-        }
-        if (isEveningAthkar) {
-          level += 12;
-        }
-      }
-
-      // العشاء والوتر وأوراد النوم (الساعة 20 إلى 23)
-      if (hour >= 20 && hour <= 23) {
-        if (isIsha) {
-          level += isIshaCong ? 30 : 18;
-        }
-        if (hasWitr) {
-          level += 12; // ركعة الوتر حرز ونعمة
-        }
-        if (isSleepAthkar && hour >= 22) {
-          level += 10;
-        }
-      }
-
-      // ───────────────────────────────────────────────
-      // المحرّكات الإيمانية الديناميكية غير المقيدة بوقت ثابت
-      // ───────────────────────────────────────────────
-      
-      // 1. ورد القرآن الكريم (ديناميكي)
-      if (hasQuran) {
-        const qDist = distance24(hour, quranHour);
-        if (qDist <= 1) {
-          level += 25; // ذروة طاقة الارتباط الروحي بالقرآن في ساعة التسجيل
-        } else if (qDist <= 3 && (hour > quranHour || (quranHour >= 22 && hour <= 2))) {
-          level += 12; // السكينة الباقية بعد قراءة القرآن الكريم
-        }
-      }
-
-      // 2. أوراد العدادات المطلقة الأذكار (ديناميكي)
-      const hasAbsoluteAthkar = Object.values(log.athkar.counters || {}).some(val => val > 0);
-      if (hasAbsoluteAthkar) {
-        const aDist = distance24(hour, athkarHour);
-        if (aDist <= 1) {
-          level += 15; // شحنة نورانية وقرب من الله بالذكر المطلق عند قيامك بها
-        } else if (aDist <= 3 && (hour > athkarHour || (athkarHour >= 22 && hour <= 2))) {
-          level += 8; // البركة والهدوء القلبية المستقرة بعد تلهيج اللسان
-        }
-      }
-
-      // 3. أوراد طلب العلم والقراءة (ديناميكي)
-      const hasKnowledge = (log.knowledge.shariDuration || 0) > 0 || (log.knowledge.readingDuration || 0) > 0;
-      if (hasKnowledge) {
-        const kDist = distance24(hour, knowledgeHour);
-        if (kDist <= 1) {
-          level += 20; // رقي روحي من بركة مداد العلماء ونور الكلمة والمعرفة
-        } else if (kDist <= 3 && (hour > knowledgeHour || (knowledgeHour >= 22 && hour <= 2))) {
-          level += 10; // حالة صفاء ذهني روحي بعد التعلم والاطلاع
-        }
-      }
-
-      // 4. الأعمال والسنن المخصصة المنجزة (ديناميكي)
-      const hasCustomActions = (log.customSunnahIds || []).length > 0 || (log.nawafil.custom || []).some(c => c.value > 0);
-      if (hasCustomActions) {
-        const cDist = distance24(hour, customHour);
-        if (cDist <= 1) {
-          level += 18; // دفعة روحيّة إضافية لابتكار عبادة صالحة تهذيبية للنفس
-        } else if (cDist <= 3 && (hour > customHour || (customHour >= 22 && hour <= 2))) {
-          level += 8; // الأثر المعنوي والدفاعي للهمم
-        }
-      }
-
-      // حد أقصى وحد أدنى لتفادي الشذوذ الرسومي
-      level = Math.max(15, Math.min(100, level));
+      // ضبط الحدود الدنيا والقصوى (0 إلى 100) بدقة
+      level = Math.max(0, Math.min(100, level));
 
       // صياغة اللفظ الإرشادي للقلب
-      let description = 'حالة قلبية مستقرة ومتزنة.';
-      let label = `${hour}:00`;
+      let description = 'حالة قلبية في طور الاستعداد وشحذ الهمة للذكر والتعبد.';
+      
+      const formatHourLabel = (h: number) => {
+        if (h === 0) return '12:00 ص';
+        if (h === 12) return '12:00 م';
+        return h > 12 ? `${h - 12}:00 م` : `${h}:00 ص`;
+      };
 
       if (level >= 85) {
         description = 'إيمان مشعّ غامر بالسكينة والخشوع المتصل 🌟';
       } else if (level >= 70) {
         description = 'طاعة حاضرة ونور قلبي منشرح بحمد الله 🌿';
       } else if (level >= 50) {
-        description = 'سعي صالح ونشاط قلبي معتدل يحتاج رعاية دؤوبة ✨';
+        description = 'سعي صالح ونشاط قلبي معتدل مفعم بالحيوية ✨';
       } else if (level >= 30) {
-        description = 'خط الأساس العام المقبول - مجاهدة مستمرة لدفع الفتور 💪';
-      } else {
-        description = 'حالة فتور وثقل طفيف، ننصح ببدء ذكر أو استغفار فوري ⚠️';
+        description = 'بداية تذوق حلاوة العبادة وإشراق بوارق السلام 💪';
+      } else if (level > 0) {
+        description = 'خطوات أولى مباركة، استمر لتشعر بتدفق الطمأنينة الكاملة 🚀';
       }
 
       return {
-        hour: label,
+        hour: formatHourLabel(hour),
         level,
         description
       };
@@ -631,9 +599,14 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        <div className="h-56 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={intradayFaithData}>
+        <p className="text-[10px] text-emerald-600 bg-emerald-50/40 p-2.5 rounded-xl border border-dashed border-emerald-200/50 mb-3 font-bold leading-normal">
+          👈 مرّر المخطط يميناً ويساراً لمتابعة خط التطور ساعة بساعة على مدار اليوم بالكامل!
+        </p>
+
+        <div className="overflow-x-auto w-full pb-2 select-none" dir="rtl">
+          <div className="h-56 min-w-[850px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={intradayFaithData}>
               <defs>
                 <linearGradient id="faithGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#10b981" stopOpacity={0.35}/>
@@ -660,6 +633,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </div>
         
         {/* دليل سريع لشرح المؤشر ودفع الهمّة */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 border-t border-slate-50 pt-4">
