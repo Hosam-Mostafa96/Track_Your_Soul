@@ -421,16 +421,8 @@ interface QuranPageProps {
 }
 
 const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, onUpdateLog }) => {
-  const [subTab, setSubTab] = useState<'mushaf' | 'hifz' | 'tadabbur'>('mushaf');
+  const [subTab, setSubTab] = useState<'hifz' | 'tadabbur'>('hifz');
   const [hifzUnit, setHifzUnit] = useState<'page' | 'rub'>('rub');
-
-  // المصحف التفاعلي
-  const [currentPage, setCurrentPage] = useState<number>(() => {
-    const saved = localStorage.getItem('worship_quran_last_page');
-    return saved ? parseInt(saved, 10) : 1;
-  });
-  const [zoom, setZoom] = useState<'sm' | 'md' | 'lg' | 'full'>('md');
-  const [isImgLoading, setIsImgLoading] = useState<boolean>(false);
 
   // تدبر القرآن
   const [tadabburSurah, setTadabburSurah] = useState<string>("الفاتحة");
@@ -440,11 +432,6 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     const savedUnit = localStorage.getItem('worship_quran_unit') as 'page' | 'rub';
     if (savedUnit) setHifzUnit(savedUnit);
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('worship_quran_last_page', String(currentPage));
-    setIsImgLoading(true);
-  }, [currentPage]);
 
   const handleUnitChange = (unit: 'page' | 'rub') => {
     setHifzUnit(unit);
@@ -467,47 +454,6 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
   const updateReps = (val: number) => {
     onUpdateLog({ ...log, quran: { ...quranData, todayReps: Math.max(0, val) } });
-  };
-
-  const togglePageRead = (pageNum: number) => {
-    let nextReadPages = [...readPages];
-    if (nextReadPages.includes(pageNum)) {
-      nextReadPages = nextReadPages.filter(p => p !== pageNum);
-    } else {
-      nextReadPages.push(pageNum);
-    }
-    onUpdateLog({
-      ...log,
-      quran: {
-        ...quranData,
-        readPages: nextReadPages
-      }
-    });
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < 604) {
-      setCurrentPage(prev => prev + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
-    }
-  };
-
-  // إيجاد السورة الحالية بناءً على رقم الصفحة
-  const getCurrentSurahName = (pageNum: number) => {
-    let currentSurah = QURAN_SURAHS[0];
-    for (let i = 0; i < QURAN_SURAHS.length; i++) {
-      if (QURAN_SURAHS[i].page <= pageNum) {
-        currentSurah = QURAN_SURAHS[i];
-      } else {
-        break;
-      }
-    }
-    return currentSurah.name;
   };
 
   // تدبر وتدوين
@@ -597,23 +543,10 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     { id: 'record', label: 'التسجيل الصوتي والمطابقة', desc: 'قراءة غيبية ومطابقتها للتصحيح', icon: <Mic className="w-4 h-4" /> },
   ];
 
-  const zoomClasses = {
-    sm: 'max-w-[400px]',
-    md: 'max-w-[500px]',
-    lg: 'max-w-[650px]',
-    full: 'max-w-full'
-  };
-
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-500 text-right" dir="rtl">
-      {/* التبويبات الثلاثية الفاخرة */}
+      {/* التبويبات الثنائية الفاخرة */}
       <div className="bg-white p-1 rounded-2xl shadow-sm border border-slate-100 flex gap-1">
-        <button 
-          onClick={() => setSubTab('mushaf')} 
-          className={`flex-1 py-3 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'mushaf' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          <BookOpen className="w-4 h-4" /> مصحف المدينة التفاعلي
-        </button>
         <button 
           onClick={() => setSubTab('hifz')} 
           className={`flex-1 py-3 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'hifz' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
@@ -628,201 +561,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
         </button>
       </div>
 
-      {subTab === 'mushaf' ? (
-        <div className="space-y-6">
-          {/* لوحة التحكم بالمصحف */}
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-              {/* اختيار السورة */}
-              <div>
-                <label className="block text-[11px] font-black text-slate-400 mb-2 header-font">الانتقال إلى سورة:</label>
-                <div className="relative">
-                  <select
-                    value={getCurrentSurahName(currentPage)}
-                    onChange={(e) => {
-                      const surah = QURAN_SURAHS.find(s => s.name === e.target.value);
-                      if (surah) setCurrentPage(surah.page);
-                    }}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 pr-8 text-xs font-black header-font appearance-none outline-none focus:border-emerald-500 text-slate-700"
-                  >
-                    {QURAN_SURAHS.map((surah) => (
-                      <option key={surah.id} value={surah.name}>
-                        سورة {surah.name} ({surah.page})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* اختيار رقم الصفحة */}
-              <div>
-                <label className="block text-[11px] font-black text-slate-400 mb-2 header-font">رقم الصفحة (1 - 604):</label>
-                <div className="relative">
-                  <select
-                    value={currentPage}
-                    onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 pr-8 text-xs font-black header-font appearance-none outline-none focus:border-emerald-500 text-slate-700 font-mono"
-                  >
-                    {Array.from({ length: 604 }, (_, i) => i + 1).map((p) => (
-                      <option key={p} value={p}>
-                        الصفحة {p} ({getCurrentSurahName(p)})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* حجم الصفحة */}
-              <div>
-                <label className="block text-[11px] font-black text-slate-400 mb-2 header-font">حجم عرض المصحف:</label>
-                <div className="flex gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100">
-                  {(['sm', 'md', 'lg', 'full'] as const).map((z) => (
-                    <button
-                      key={z}
-                      onClick={() => setZoom(z)}
-                      className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all ${zoom === z ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-400'}`}
-                    >
-                      {z === 'sm' ? 'صغير' : z === 'md' ? 'متوسط' : z === 'lg' ? 'كبير' : 'كامل'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* عرض صفحة المصحف */}
-          <div className="bg-[#fbf9f4] rounded-[2.5rem] p-4 sm:p-8 border-4 border-[#eadaa6] shadow-lg flex flex-col items-center justify-center relative overflow-hidden">
-            {/* زخرفة دائرية علوية وسفلية للمصحف */}
-            <div className="w-full flex justify-between items-center px-4 mb-4 text-[#b28e46] font-bold header-font text-[10px] border-b border-[#ebdca9] pb-2">
-              <span>الجزء {Math.ceil(currentPage / 20)}</span>
-              <span className="text-sm font-black">سورة {getCurrentSurahName(currentPage)}</span>
-              <span>صفحة {currentPage}</span>
-            </div>
-
-            {/* الصورة التفاعلية لصفحة المصحف */}
-            <div className="relative w-full flex justify-center py-4 select-none min-h-[40vh]">
-              {isImgLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#fbf9f4]/80 z-20 gap-3">
-                  <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-xs text-slate-500 font-bold header-font">جاري تنزيل الصفحة المباركة...</p>
-                </div>
-              )}
-              <img
-                src={`https://raw.githubusercontent.com/rno0/mushaf-images/master/images/${String(currentPage).padStart(3, '0')}.png`}
-                alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
-                className={`w-full ${zoomClasses[zoom]} h-auto object-contain transition-all duration-300 rounded-lg shadow-sm`}
-                onLoad={() => setIsImgLoading(false)}
-                onError={() => setIsImgLoading(false)}
-                referrerPolicy="no-referrer"
-              />
-            </div>
-
-            {/* أزرار التنقل السفلية المتوافقة مع الاتجاه العربي */}
-            <div className="w-full grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-[#ebdca9]">
-              {/* زر السابق (يزيد الصفحة في الترتيب العربي) */}
-              <button
-                onClick={handleNextPage}
-                disabled={currentPage === 604}
-                className="flex items-center justify-center gap-2 p-4 bg-white/70 hover:bg-white border border-[#ebdca9] text-emerald-800 rounded-2xl font-black text-xs transition-all disabled:opacity-40"
-              >
-                <ChevronRight className="w-4 h-4" />
-                <span>الصفحة التالية ({currentPage + 1})</span>
-              </button>
-
-              {/* زر التالي (يقلل الصفحة في الترتيب العربي) */}
-              <button
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-                className="flex items-center justify-center gap-2 p-4 bg-white/70 hover:bg-white border border-[#ebdca9] text-emerald-800 rounded-2xl font-black text-xs transition-all disabled:opacity-40"
-              >
-                <span>({currentPage - 1}) الصفحة السابقة</span>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* لوحة تسجيل النقاط وإنجاز اليوم */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col items-center gap-5 text-center">
-            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-right">
-                <h3 className="text-sm font-black text-slate-800 header-font">احتساب نقاط القراءة التفاعلية</h3>
-                <p className="text-[10px] text-slate-400 font-bold mt-1">
-                  تمنحك كل صفحة تقرؤها وتسجلها هنا <span className="text-emerald-600 font-black">+15 نقطة مباشرة</span> في رصيدك اليومي!
-                </p>
-              </div>
-
-              {/* عداد الإنجاز */}
-              <div className="bg-emerald-50 px-4 py-2.5 rounded-2xl border border-emerald-100 flex items-center gap-3">
-                <Bookmark className="w-5 h-5 text-emerald-600" />
-                <div className="text-right">
-                  <p className="text-[9px] text-emerald-700 font-bold">قرأت اليوم:</p>
-                  <p className="text-xs font-black text-emerald-950 header-font">
-                    {readPages.length} صفحات <span className="text-[10px] text-emerald-600 font-mono">(+{readPages.length * 15} نقطة)</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* الزر الرئيسي لتسجيل قراءة الصفحة */}
-            <button
-              onClick={() => togglePageRead(currentPage)}
-              className={`w-full py-4 rounded-2xl font-black header-font text-xs flex items-center justify-center gap-2 transition-all shadow-md ${
-                readPages.includes(currentPage)
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
-              }`}
-            >
-              {readPages.includes(currentPage) ? (
-                <>
-                  <CheckCircle2 className="w-5 h-5 animate-bounce" />
-                  <span>الصفحة {currentPage} مسجلة مقروءة اليوم (اضغط للإلغاء) ✓</span>
-                </>
-              ) : (
-                <>
-                  <BookOpen className="w-5 h-5" />
-                  <span>سجل إتمام قراءة الصفحة {currentPage} الآن (+15 نقطة) 📖</span>
-                </>
-              )}
-            </button>
-
-            {/* عرض أرقام الصفحات المقروءة اليوم */}
-            {readPages.length > 0 && (
-              <div className="w-full text-right bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-black text-slate-500 header-font">الصفحات المقروءة اليوم:</span>
-                  <button
-                    onClick={() => {
-                      if (window.confirm("هل تريد تصفير كافة صفحات القراءة التفاعلية لليوم؟")) {
-                        onUpdateLog({ ...log, quran: { ...quranData, readPages: [] } });
-                      }
-                    }}
-                    className="text-[10px] text-red-500 font-bold hover:underline flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" /> تفريغ القائمة
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {readPages.sort((a,b)=>a-b).map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setCurrentPage(p)}
-                      className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[10px] font-black font-mono shadow-sm transition-all"
-                    >
-                      ص {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <p className="text-[10px] text-slate-400 font-bold italic leading-relaxed">
-              💡 "يقال لقارئ القرآن اقرأ وارتق ورتل كما كنت ترتل في الدنيا فإن منزلتك عند آخر آية تقرؤها"
-            </p>
-          </div>
-        </div>
-      ) : subTab === 'hifz' ? (
+      {subTab === 'hifz' ? (
         <div className="space-y-6">
           <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
              <div className="flex items-center gap-2 mb-4">
