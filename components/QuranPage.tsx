@@ -710,7 +710,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
                 </div>
               )}
               <img
-                src={`https://raw.githubusercontent.com/rn0/mushaf-images/master/images/${currentPage}.png`}
+                src={`https://raw.githubusercontent.com/rno0/mushaf-images/master/images/${String(currentPage).padStart(3, '0')}.png`}
                 alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
                 className={`w-full ${zoomClasses[zoom]} h-auto object-contain transition-all duration-300 rounded-lg shadow-sm`}
                 onLoad={() => setIsImgLoading(false)}
