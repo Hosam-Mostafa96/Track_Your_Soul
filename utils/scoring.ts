@@ -4,7 +4,7 @@ import {
   TRANQUILITY_MULTIPLIERS,
   DEFAULT_WEIGHTS
 } from '../constants';
-import { MORNING_ATHKAR, EVENING_ATHKAR } from '../components/AthkarRead';
+import { MORNING_ATHKAR, EVENING_ATHKAR, SLEEP_ATHKAR } from '../components/AthkarRead';
 
 export const calculatePrayerScore = (entry: PrayerEntry, hasBurden: boolean, weights: AppWeights = DEFAULT_WEIGHTS) => {
   if (!entry.performed) return 0;
@@ -33,6 +33,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
     .length * weights.quranRevision;
   const revisionRubPoints = (log.quran.revisionRub || 0) * weights.quranRevision;
   const quranTasksPoints = (log.quran.tasksCompleted || []).filter(id => !id.startsWith('rabt_') && !id.startsWith('mur_')).length * 50; 
+  const quranReadPagesPoints = (log.quran.readPages || []).length * 15; // 15 نقطة لكل صفحة مقروءة من المصحف التفاعلي
   
   const knowledge = (log.knowledge.shariDuration * weights.knowledgeShari) + 
                     (log.knowledge.readingDuration * weights.knowledgeGeneral) +
@@ -41,7 +42,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   const athkarCheck = Object.values(log.athkar.checklists).filter(Boolean).length * weights.athkarChecklist;
   const athkarCount = Object.values(log.athkar.counters || {}).reduce((sum, count) => sum + ((count as number) * weights.athkarCounter), 0);
   
-  // نقاط الأذكار التفصيلية المقروءة من الشاشة التفاعلية (بحد أقصى 100 لصباح كامل و100 لمساء كامل)
+  // نقاط الأذكار التفصيلية المقروءة من الشاشة التفاعلية (بحد أقصى 100 لصباح كامل، و100 لمساء كامل، و100 لأذكار نوم كاملة)
   let detailedAthkarPoints = 0;
   const detailedData = log.athkar.completedDetailedAthkar || {};
   
@@ -53,6 +54,11 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   if (EVENING_ATHKAR.length > 0) {
     const eveningDoneCount = EVENING_ATHKAR.filter(item => (detailedData[item.id] || 0) >= item.count).length;
     detailedAthkarPoints += Math.round((eveningDoneCount / EVENING_ATHKAR.length) * 100);
+  }
+
+  if (SLEEP_ATHKAR.length > 0) {
+    const sleepDoneCount = SLEEP_ATHKAR.filter(item => (detailedData[item.id] || 0) >= item.count).length;
+    detailedAthkarPoints += Math.round((sleepDoneCount / SLEEP_ATHKAR.length) * 100);
   }
   
   const nawafilPrayers = (log.nawafil.duhaDuration + log.nawafil.witrDuration + log.nawafil.qiyamDuration) * weights.nawafilPerMin;
@@ -80,7 +86,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   
   const deductionMultiplier = 1 - (weights.burdenDeduction / 100);
   
-  const total = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + knowledge + athkarCheck + athkarCount + detailedAthkarPoints + nawafilPrayers + fasting + customSunnahPoints + heartPoints + duasPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
+  const total = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + quranReadPagesPoints + knowledge + athkarCheck + athkarCount + detailedAthkarPoints + nawafilPrayers + fasting + customSunnahPoints + heartPoints + duasPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
 
   return Math.round(total);
 };

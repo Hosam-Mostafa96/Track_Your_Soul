@@ -12,7 +12,8 @@ import {
   Award, 
   Info,
   ChevronLeft,
-  Check
+  Check,
+  Bed
 } from 'lucide-react';
 import { DailyLog } from '../types';
 
@@ -221,16 +222,73 @@ export const EVENING_ATHKAR: AthkarItem[] = [
   }
 ];
 
+export const SLEEP_ATHKAR: AthkarItem[] = [
+  {
+    id: 's_1',
+    text: 'أعوذ بالله من الشيطان الرجيم: "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ..." (آية الكرسي)',
+    count: 1,
+    virtue: 'من قرأها إذا أوى إلى فراشه لم يزل عليه من الله حافظ ولا يقربه شيطان حتى يصبح.'
+  },
+  {
+    id: 's_2',
+    text: 'بسم الله الرحمن الرحيم: "قُلْ هُوَ اللَّهُ أَحَدٌ..."، "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ..."، "قُلْ أَعُوذُ بِرَبِّ النَّاسِ..." (ثم يمسح بهما ما استطاع من جسده)',
+    count: 3,
+    virtue: 'سنة نبوية تفعل عند النوم لحفظ البدن والروح من الآفات والشرور.'
+  },
+  {
+    id: 's_3',
+    text: 'أعوذ بالله من الشيطان الرجيم: "آمَنَ الرَّسُولُ بِمَا أُنْزِلَ إِلَيْهِ مِنْ رَبِّهِ وَالْمُؤْمِنُونَ ۚ كُلٌّ آمَنَ بِاللَّهِ وَمَلَائِكَتِهِ..." (آخر آيتين من سورة البقرة)',
+    count: 1,
+    virtue: 'من قرأهما في ليلة كفتاه (أي كفتاه شرور ليلته، وقيل كفتاه عن قيام الليل).'
+  },
+  {
+    id: 's_4',
+    text: 'باسمِكَ ربِّي وضَعْتُ جَنْبي وبِكَ أَرْفَعُهُ، فإنْ أَمْسَكْتَ نَفْسي فارْحَمْها، وإنْ أَرْسَلْتَها فاحْفَظْها بما تَحْفَظُ به عِبادَكَ الصَّالِحِينَ.',
+    count: 1,
+    virtue: 'دعاء النوم العظيم وتفويض الروح لله حال النوم الذي هو الموتة الصغرى.'
+  },
+  {
+    id: 's_5',
+    text: 'اللَّهُمَّ خَلَقْتَ نَفْسِي وَأَنْتَ تَوَفَّاهَا، لَكَ مَمَاتُهَا وَمَحْيَاهَا، إِنْ أَحْيَيْتَهَا فَاحْفَظْهَا، وَإِنْ أَمَتَّهَا فَاغْفِرْ لَهَا. اللَّهُمَّ إِنِّي أَسْأَلُكَ العَافِيَةَ.',
+    count: 1,
+    virtue: 'سؤال الله دوام العافية وحفظ النفس في اليقظة والممات.'
+  },
+  {
+    id: 's_6',
+    text: 'اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ.',
+    count: 3,
+    virtue: 'كان النبي صلى الله عليه وسلم يقولها إذا وضع يده اليمنى تحت خده عند النوم.'
+  },
+  {
+    id: 's_7',
+    text: 'بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا.',
+    count: 1,
+    virtue: 'إعلان الاستسلام والتوحيد باسم الله عند النوم والاستيقاظ.'
+  },
+  {
+    id: 's_8',
+    text: 'التسبيح والتحميد والتكبير عند النوم: سبحان الله (33 مرة)، الحمد لله (33 مرة)، الله أكبر (34 مرة).',
+    count: 1,
+    virtue: 'من قالها عند النوم كانت خيراً له من خادم، وتمنحه قوة ونشاطاً في اليوم التالي.'
+  },
+  {
+    id: 's_9',
+    text: 'اللَّهُمَّ أَسْلَمْتُ نَفْسِي إلَيْكَ، وَفَوَّضْتُ أَمْرِي إلَيْكَ، وَوَجَّهْتُ وَجْهِي إلَيْكَ، وَأَلْجَأْتُ ظَهْرِي إلَيْكَ، رَغْبَةً وَرَهْبَةً إلَيْكَ، لا مَلْجَأَ وَلا مَنْجَا مِنْكَ إلَّا إلَيْكَ، آمَنْتُ بِكِتَابِكَ الذي أَنْزَلْتَ، وَبِنَبِيِّكَ الذي أَرْسَلْتَ.',
+    count: 1,
+    virtue: 'من قالها ومات من ليلته مات على الفطرة، واجعلهن آخر ما تقول.'
+  }
+];
+
 interface AthkarReadProps {
   log: DailyLog;
   onUpdateLog: (log: DailyLog, activityLabel?: string, activityType?: string) => void;
 }
 
 const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
-  const [activeTab, setActiveTab] = useState<'morning' | 'evening'>('morning');
+  const [activeTab, setActiveTab] = useState<'morning' | 'evening' | 'sleep'>('morning');
   const [showVirtues, setShowVirtues] = useState<Record<string, boolean>>({});
 
-  const listToUse = activeTab === 'morning' ? MORNING_ATHKAR : EVENING_ATHKAR;
+  const listToUse = activeTab === 'morning' ? MORNING_ATHKAR : (activeTab === 'evening' ? EVENING_ATHKAR : SLEEP_ATHKAR);
   const detailedData = log.athkar.completedDetailedAthkar || {};
 
   const handleThikrTap = (id: string, maxCount: number) => {
@@ -251,7 +309,7 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
     };
 
     // حساب نسبة الإنجاز والمساندة لتعليم قائمتي (أذكار الصباح) أو (أذكار المساء) تلقائياً
-    const currentList = activeTab === 'morning' ? MORNING_ATHKAR : EVENING_ATHKAR;
+    const currentList = activeTab === 'morning' ? MORNING_ATHKAR : (activeTab === 'evening' ? EVENING_ATHKAR : SLEEP_ATHKAR);
     const completedCountInList = currentList.filter(item => {
       // إما مكتمل تماماً في التحديث الجديد
       if (item.id === id) return nextCount >= item.count;
@@ -309,12 +367,16 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
         }
       };
       
-      onUpdateLog(updatedLog, `صَفّر عدادات أذكار ${activeTab === 'morning' ? 'الصباح' : 'المساء'}`, 'athkar');
+      onUpdateLog(updatedLog, `صَفّر عدادات أذكار ${activeTab === 'morning' ? 'الصباح' : (activeTab === 'evening' ? 'المساء' : 'النوم')}`, 'athkar');
     }
   };
 
+  const getCompletedCountFor = (list: AthkarItem[]) => {
+    return list.filter(item => (detailedData[item.id] || 0) >= item.count).length;
+  };
+
   const getCompletedCount = () => {
-    return listToUse.filter(item => (detailedData[item.id] || 0) >= item.count).length;
+    return getCompletedCountFor(listToUse);
   };
 
   return (
@@ -324,8 +386,20 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className={`p-3 rounded-2xl ${activeTab === 'morning' ? 'bg-amber-50 text-amber-600' : 'bg-slate-900 text-slate-100'}`}>
-              {activeTab === 'morning' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+            <div className={`p-3 rounded-2xl ${
+              activeTab === 'morning' 
+                ? 'bg-amber-50 text-amber-600' 
+                : activeTab === 'evening' 
+                  ? 'bg-slate-900 text-slate-100' 
+                  : 'bg-indigo-950 text-indigo-300'
+            }`}>
+              {activeTab === 'morning' ? (
+                <Sun className="w-6 h-6" />
+              ) : activeTab === 'evening' ? (
+                <Moon className="w-6 h-6" />
+              ) : (
+                <Bed className="w-6 h-6" />
+              )}
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-800 header-font leading-tight">الأذكار والتحصين اليومي</h2>
@@ -342,34 +416,49 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
         </div>
 
         {/* أزرار التبديل الفخمة */}
-        <div className="grid grid-cols-2 gap-2 mt-6 p-1 bg-slate-50 rounded-2xl">
+        <div className="grid grid-cols-3 gap-1.5 mt-6 p-1 bg-slate-50 rounded-2xl">
           <button
             onClick={() => setActiveTab('morning')}
-            className={`py-4 rounded-xl font-bold header-font text-xs flex items-center justify-center gap-2 transition-all ${
+            className={`py-4.5 rounded-xl font-bold header-font text-[10px] sm:text-xs flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all ${
               activeTab === 'morning'
                 ? 'bg-white text-amber-600 shadow-md transform scale-[1.02]'
                 : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             <Sun className={`w-4 h-4 ${activeTab === 'morning' ? 'text-amber-500 animate-spin-slow' : ''}`} />
-            <span>أذكار الصباح</span>
-            <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full font-mono text-slate-500">
-              {activeTab === 'morning' ? `${getCompletedCount()}/${MORNING_ATHKAR.length}` : ''}
+            <span>الصباح</span>
+            <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded-full font-mono text-slate-500">
+              {`${getCompletedCountFor(MORNING_ATHKAR)}/${MORNING_ATHKAR.length}`}
             </span>
           </button>
           
           <button
             onClick={() => setActiveTab('evening')}
-            className={`py-4 rounded-xl font-bold header-font text-xs flex items-center justify-center gap-2 transition-all ${
+            className={`py-4.5 rounded-xl font-bold header-font text-[10px] sm:text-xs flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all ${
               activeTab === 'evening'
                 ? 'bg-slate-900 text-slate-100 shadow-lg transform scale-[1.02]'
                 : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             <Moon className={`w-4 h-4 ${activeTab === 'evening' ? 'text-blue-300' : ''}`} />
-            <span>أذكار المساء</span>
-            <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">
-              {activeTab === 'evening' ? `${getCompletedCount()}/${EVENING_ATHKAR.length}` : ''}
+            <span>المساء</span>
+            <span className="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded-full font-mono">
+              {`${getCompletedCountFor(EVENING_ATHKAR)}/${EVENING_ATHKAR.length}`}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('sleep')}
+            className={`py-4.5 rounded-xl font-bold header-font text-[10px] sm:text-xs flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all ${
+              activeTab === 'sleep'
+                ? 'bg-indigo-950 text-indigo-300 shadow-lg transform scale-[1.02]'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Bed className={`w-4 h-4 ${activeTab === 'sleep' ? 'text-indigo-400' : ''}`} />
+            <span>النوم</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono ${activeTab === 'sleep' ? 'bg-indigo-900 text-indigo-200' : 'bg-slate-200 text-slate-500'}`}>
+              {`${getCompletedCountFor(SLEEP_ATHKAR)}/${SLEEP_ATHKAR.length}`}
             </span>
           </button>
         </div>
@@ -393,7 +482,7 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
           ></div>
         </div>
         <p className="text-[10px] opacity-90 leading-relaxed font-bold">
-          💡 <span className="underline">المعادلة الإيمانية الذكية:</span> نسبة إنجاز هذه القائمة تمنحك درجات بحد أقصى <span className="text-yellow-200 font-black">100 درجة كاملة</span> لأذكار {activeTab === 'morning' ? 'الصباح 🌅' : 'المساء 🌃'} بالتناسب مع ما قرأته، وبمجرد إنهائك لـ 70% من القائمة يُفعّل لك تلقائياً العداد الإيماني العام.
+          💡 <span className="underline">المعادلة الإيمانية الذكية:</span> نسبة إنجاز هذه القائمة تمنحك درجات بحد أقصى <span className="text-yellow-200 font-black">100 درجة كاملة</span> لأذكار {activeTab === 'morning' ? 'الصباح 🌅' : (activeTab === 'evening' ? 'المساء 🌃' : 'النوم 🛌')} بالتناسب مع ما قرأته، وبمجرد إنهائك لـ 70% من القائمة يُفعّل لك تلقائياً العداد الإيماني العام.
         </p>
       </div>
 

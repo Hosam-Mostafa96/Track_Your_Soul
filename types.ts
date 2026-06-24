@@ -98,6 +98,7 @@ export interface DailyLog {
     tasksCompleted?: string[];
     khatmaNumber?: number; // حقل جديد
     surahName?: string;    // حقل جديد
+    readPages?: number[];   // الصفحات المقروءة اليوم من المصحف التفاعلي
   };
   knowledge: { shariDuration: number; readingDuration: number; readingPages?: number };
   athkar: {
