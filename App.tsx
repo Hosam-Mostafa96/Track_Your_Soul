@@ -283,7 +283,7 @@ const App: React.FC = () => {
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const b = books.find(x => x.id === id); if(b) handleUpdateBookProgress(b, pages); }} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
-      case 'profile': return <UserProfile user={user} weights={weights} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} />;
+      case 'profile': return <UserProfile user={user} weights={weights} logs={logs} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} />;
       case 'history': return <WorshipHistory logs={logs} weights={weights} />;
       case 'guide': return <WorshipGuide />;
       case 'contact': return <ContactUs />;

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   User, ShieldCheck, LogOut, CheckCircle, 
   Settings2, ChevronDown, ChevronUp, Save, RotateCcw,
@@ -10,9 +10,10 @@ import {
   Smartphone, Download, Share, X, Heart, ShieldAlert,
   MessageCircle
 } from 'lucide-react';
-import { AppWeights, User as UserType } from '../types';
+import { AppWeights, User as UserType, DailyLog } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
 import confetti from 'canvas-confetti';
+import { BadgesSection } from './BadgesSection';
 
 interface UserProfileProps {
   user: UserType | null;
@@ -23,9 +24,20 @@ interface UserProfileProps {
   onUpdateWeights: (weights: AppWeights) => void;
   installPrompt: any;
   onClearInstallPrompt: () => void;
+  logs?: Record<string, DailyLog>;
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, onToggleSync, onUpdateUser, onUpdateWeights, installPrompt, onClearInstallPrompt }) => {
+const UserProfile: React.FC<UserProfileProps> = ({ 
+  user, 
+  weights, 
+  isGlobalSync, 
+  onToggleSync, 
+  onUpdateUser, 
+  onUpdateWeights, 
+  installPrompt, 
+  onClearInstallPrompt,
+  logs = {}
+}) => {
   const [localWeights, setLocalWeights] = useState<AppWeights>({ ...weights });
   const [showWeights, setShowWeights] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
@@ -33,6 +45,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
   const [importJson, setImportJson] = useState('');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [showiOSInstructions, setShowiOSInstructions] = useState(false);
+
+  const effectiveLogs = useMemo(() => {
+    if (logs && Object.keys(logs).length > 0) return logs;
+    try {
+      return JSON.parse(localStorage.getItem('worship_logs') || '{}');
+    } catch {
+      return {};
+    }
+  }, [logs]);
 
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
@@ -172,6 +193,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, weights, isGlobalSync, 
           </div>
         </div>
       </div>
+
+      {/* نظام الأوسمة والإنجاز الإيماني - وسام الـ 30 يوماً متتالياً */}
+      <BadgesSection logs={effectiveLogs} weights={weights} user={user} />
 
       {/* خيار تثبيت التطبيق */}
       {(!isStandalone && (installPrompt || isIOS)) && (

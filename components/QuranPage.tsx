@@ -413,6 +413,8 @@ export const QURAN_SURAHS = [
   { id: 114, name: "الناس", page: 604 }
 ];
 
+export type HifzUnitType = 'page' | 'rub' | '2rub' | '3rub' | '4rub';
+
 interface QuranPageProps {
   log: DailyLog;
   logs: Record<string, DailyLog>;
@@ -421,16 +423,56 @@ interface QuranPageProps {
   onUpdateLog: (log: DailyLog) => void;
 }
 
+const PLAN_UNIT_OPTIONS = [
+  { id: 'page' as const, label: 'صفحة واحدة', sub: 'وجه واحد', icon: FileText },
+  { id: 'rub' as const, label: 'ربع حزب', sub: 'ربع واحد', icon: LayoutGrid },
+  { id: '2rub' as const, label: 'ربعين', sub: 'نصف حزب', icon: LayoutGrid },
+  { id: '3rub' as const, label: '٣ أرباع', sub: 'ثلاثة أرباع', icon: LayoutGrid },
+  { id: '4rub' as const, label: '٤ أرباع', sub: 'حزب كامل', icon: BookOpen },
+];
+
+const getRubCount = (unit: HifzUnitType): number => {
+  switch (unit) {
+    case 'rub': return 1;
+    case '2rub': return 2;
+    case '3rub': return 3;
+    case '4rub': return 4;
+    default: return 1;
+  }
+};
+
+const getRepeatStepLabel = (unit: HifzUnitType): string => {
+  switch (unit) {
+    case 'page': return 'تكرار الوجه ٤٠ مرة';
+    case 'rub': return 'تكرار الربع ٤٠ مرة';
+    case '2rub': return 'تكرار الربعين ٤٠ مرة';
+    case '3rub': return 'تكرار الثلاثة أرباع ٤٠ مرة';
+    case '4rub': return 'تكرار الحزب (٤ أرباع) ٤٠ مرة';
+  }
+};
+
+const getRepsTitle = (unit: HifzUnitType): string => {
+  switch (unit) {
+    case 'page': return 'عدد تكرار الوجه';
+    case 'rub': return 'عدد تكرار الربع';
+    case '2rub': return 'عدد تكرار الربعين';
+    case '3rub': return 'عدد تكرار الثلاثة أرباع';
+    case '4rub': return 'عدد تكرار الأربعة أرباع';
+  }
+};
+
 const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, onUpdateLog }) => {
   const [subTab, setSubTab] = useState<'hifz' | 'tadabbur'>('hifz');
-  const [hifzUnit, setHifzUnit] = useState<'page' | 'rub'>('rub');
+  const [hifzUnit, setHifzUnit] = useState<HifzUnitType>('rub');
 
   useEffect(() => {
-    const savedUnit = localStorage.getItem('worship_quran_unit') as 'page' | 'rub';
-    if (savedUnit) setHifzUnit(savedUnit);
+    const savedUnit = localStorage.getItem('worship_quran_unit') as HifzUnitType;
+    if (savedUnit && ['page', 'rub', '2rub', '3rub', '4rub'].includes(savedUnit)) {
+      setHifzUnit(savedUnit);
+    }
   }, []);
 
-  const handleUnitChange = (unit: 'page' | 'rub') => {
+  const handleUnitChange = (unit: HifzUnitType) => {
     setHifzUnit(unit);
     localStorage.setItem('worship_quran_unit', unit);
     onUpdateLog({ ...log, quran: { ...log.quran, todayPortion: '' } });
@@ -446,24 +488,84 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
   };
 
   const updatePortionName = (name: string) => {
-    onUpdateLog({ ...log, quran: { ...quranData, todayPortion: name } });
+    const rubCount = hifzUnit === 'page' ? 0 : getRubCount(hifzUnit);
+    onUpdateLog({ 
+      ...log, 
+      quran: { 
+        ...quranData, 
+        todayPortion: name,
+        hifzRub: rubCount > 0 ? Math.max(quranData.hifzRub || 0, rubCount) : quranData.hifzRub
+      } 
+    });
   };
 
   const updateReps = (val: number) => {
     onUpdateLog({ ...log, quran: { ...quranData, todayReps: Math.max(0, val) } });
   };
 
+  // قائمة المقاطع المتاحة للاختيار بناءً على الخطة المحددة
+  const portionsList = useMemo(() => {
+    if (hifzUnit === 'page') return QURAN_PAGES_LIST;
+    if (hifzUnit === 'rub') return QURAN_PORTIONS_NAMES;
+
+    const count = getRubCount(hifzUnit);
+    const unitTitle = hifzUnit === '2rub' ? 'الربعان' : hifzUnit === '3rub' ? '٣ أرباع' : '٤ أرباع (حزب)';
+
+    const list: string[] = [];
+    for (let i = 0; i <= QURAN_PORTIONS_NAMES.length - count; i++) {
+      const startName = QURAN_PORTIONS_NAMES[i];
+      const endName = QURAN_PORTIONS_NAMES[i + count - 1];
+
+      const startShort = startName.split(':')[0]?.trim() || startName;
+      const endShort = endName.split(':')[0]?.trim() || endName;
+
+      list.push(`${unitTitle} (${i + 1} - ${i + count}): ${startShort} ⬅ ${endShort}`);
+    }
+    return list;
+  }, [hifzUnit]);
+
+  // الأرباع الفردية المشمولة في محفوظ اليوم متعدد الأرباع
+  const includedQuarters = useMemo(() => {
+    if (!quranData.todayPortion || hifzUnit === 'page' || hifzUnit === 'rub') return [];
+    const match = quranData.todayPortion.match(/\((\d+)\s*-\s*(\d+)\)/);
+    if (!match || !match[1] || !match[2]) return [];
+    const start = parseInt(match[1], 10);
+    const end = parseInt(match[2], 10);
+    const res: string[] = [];
+    for (let i = start; i <= end; i++) {
+      if (QURAN_PORTIONS_NAMES[i - 1]) {
+        res.push(QURAN_PORTIONS_NAMES[i - 1]);
+      }
+    }
+    return res;
+  }, [quranData.todayPortion, hifzUnit]);
+
   const currentIndex = useMemo(() => {
     if (!quranData.todayPortion) return 0;
-    const list = hifzUnit === 'rub' ? QURAN_PORTIONS_NAMES : QURAN_PAGES_LIST;
-    const idx = list.indexOf(quranData.todayPortion);
-    return idx !== -1 ? idx + 1 : 0;
-  }, [quranData.todayPortion, hifzUnit]);
+    if (hifzUnit === 'page') {
+      const idx = QURAN_PAGES_LIST.indexOf(quranData.todayPortion);
+      return idx !== -1 ? idx + 1 : 0;
+    }
+    if (hifzUnit === 'rub') {
+      const idx = QURAN_PORTIONS_NAMES.indexOf(quranData.todayPortion);
+      return idx !== -1 ? idx + 1 : 0;
+    }
+    // في حالة الخطة المتعددة (ربعين أو ٣ أو ٤)، استخراج نهاية موضع الحفظ (آخر ربع تم بلوغه)
+    const match = quranData.todayPortion.match(/\((\d+)\s*-\s*(\d+)\)/);
+    if (match && match[2]) {
+      return parseInt(match[2], 10);
+    }
+    const idx = portionsList.indexOf(quranData.todayPortion);
+    if (idx !== -1) {
+      return idx + getRubCount(hifzUnit);
+    }
+    return 0;
+  }, [quranData.todayPortion, hifzUnit, portionsList]);
 
   const rabtPortions = useMemo(() => {
     if (currentIndex <= 1) return [];
     const portions = [];
-    const list = hifzUnit === 'rub' ? QURAN_PORTIONS_NAMES : QURAN_PAGES_LIST;
+    const list = hifzUnit === 'page' ? QURAN_PAGES_LIST : QURAN_PORTIONS_NAMES;
     const limit = Math.max(1, currentIndex - 10);
     for (let i = currentIndex - 1; i >= limit; i--) {
       portions.push({ id: `rabt_${i}`, label: list[i - 1], index: i });
@@ -473,8 +575,8 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
   // منطق مراجعة المحفوظ القديم (تقسيم على 7 أيام تبدأ من الأحد)
   const murajaaData = useMemo(() => {
-    const list = hifzUnit === 'rub' ? QURAN_PORTIONS_NAMES : QURAN_PAGES_LIST;
-    const buffer = hifzUnit === 'rub' ? 11 : 25; 
+    const list = hifzUnit === 'page' ? QURAN_PAGES_LIST : QURAN_PORTIONS_NAMES;
+    const buffer = hifzUnit === 'page' ? 25 : 11; 
     
     if (currentIndex <= buffer) return null;
     
@@ -503,7 +605,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
     return { 
       items,
       total: totalOldPortions,
-      unitLabel: hifzUnit === 'rub' ? 'أرباع' : 'صفحات',
+      unitLabel: hifzUnit === 'page' ? 'صفحات' : 'أرباع',
       quota: items.length,
       dayName: ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'][cycleDay]
     };
@@ -512,7 +614,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
   const hifzSteps = [
     { id: 'prev_repeat', label: 'تكرار محفوظ الأمس ٥ مرات', desc: 'لربط محفوظ اليوم بما سبقه وتثبيته', icon: <History className="w-4 h-4" /> },
     { id: 'listen', label: 'الاستماع لمجود مع النظر', desc: 'للتأكد من سلامة النطق', icon: <Clock className="w-4 h-4" /> },
-    { id: 'repeat', label: `تكرار ال${hifzUnit === 'rub' ? 'ربع' : 'وجه'} ٤٠ مرة`, desc: 'تثبيت الحفظ في الذاكرة العميقة', icon: <Repeat className="w-4 h-4" /> },
+    { id: 'repeat', label: `${getRepeatStepLabel(hifzUnit)}`, desc: 'تثبيت الحفظ في الذاكرة العميقة', icon: <Repeat className="w-4 h-4" /> },
     { id: 'record', label: 'التسجيل الصوتي والمطابقة', desc: 'قراءة غيبية ومطابقتها للتصحيح', icon: <Mic className="w-4 h-4" /> },
   ];
 
@@ -541,34 +643,53 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
                <Settings className="w-4 h-4 text-slate-400" />
                <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest header-font">تخصيص خطة الحفظ اليومية</h4>
              </div>
-             <div className="grid grid-cols-2 gap-3">
-               <button 
-                 onClick={() => handleUnitChange('page')}
-                 className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${hifzUnit === 'page' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-slate-50 border-transparent text-slate-400'}`}
-               >
-                 <FileText className="w-4 h-4" />
-                 <span className="text-xs font-bold header-font">صفحة واحدة</span>
-               </button>
-               <button 
-                 onClick={() => handleUnitChange('rub')}
-                 className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${hifzUnit === 'rub' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-slate-50 border-transparent text-slate-400'}`}
-               >
-                 <LayoutGrid className="w-4 h-4" />
-                 <span className="text-xs font-bold header-font">ربع حزب</span>
-               </button>
+             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+               {PLAN_UNIT_OPTIONS.map((opt) => {
+                 const Icon = opt.icon;
+                 const isActive = hifzUnit === opt.id;
+                 return (
+                   <button 
+                     key={opt.id}
+                     onClick={() => handleUnitChange(opt.id)}
+                     className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center gap-1 ${
+                       isActive 
+                         ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm font-black' 
+                         : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-700 font-bold'
+                     }`}
+                   >
+                     <div className="flex items-center gap-1.5">
+                       <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                       <span className="text-xs header-font">{opt.label}</span>
+                     </div>
+                     <span className={`text-[9px] ${isActive ? 'text-emerald-600/80 font-bold' : 'text-slate-400 font-normal'}`}>
+                       {opt.sub}
+                     </span>
+                   </button>
+                 );
+               })}
              </div>
           </div>
 
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
              <div className="flex items-center gap-3 mb-4"><Book className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-sm">المحفوظ الجديد لليوم</h3></div>
-             <div className="relative mb-6">
+             <div className="relative mb-4">
                <select 
                  value={quranData.todayPortion || ''} 
                  onChange={(e) => updatePortionName(e.target.value)} 
                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-10 text-xs font-black header-font appearance-none outline-none focus:border-emerald-500 transition-all text-slate-700"
                >
-                 <option value="">{`اختر ${hifzUnit === 'rub' ? 'الربع' : 'الصفحة'} التي ستحفظها اليوم..`}</option>
-                 {(hifzUnit === 'rub' ? QURAN_PORTIONS_NAMES : QURAN_PAGES_LIST).map((name, idx) => (
+                 <option value="">
+                   {hifzUnit === 'page'
+                     ? 'اختر الصفحة التي ستحفظها اليوم..'
+                     : hifzUnit === 'rub'
+                       ? 'اختر الربع الذي ستحفظه اليوم..'
+                       : hifzUnit === '2rub'
+                         ? 'اختر الربعين اللذين ستحفظهما اليوم..'
+                         : hifzUnit === '3rub'
+                           ? 'اختر الثلاثة أرباع التي ستحفظها اليوم..'
+                           : 'اختر الحزب (٤ أرباع) الذي ستحفظه اليوم..'}
+                 </option>
+                 {portionsList.map((name, idx) => (
                    <option key={idx} value={name}>{name}</option>
                  ))}
                </select>
@@ -576,11 +697,11 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
              </div>
              
              {quranData.todayPortion && (
-               <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100 animate-in zoom-in duration-300">
-                 <div className="flex items-center justify-between mb-3">
+               <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100 animate-in zoom-in duration-300 space-y-3">
+                 <div className="flex items-center justify-between">
                    <div className="flex items-center gap-2">
                      <Repeat className="w-4 h-4 text-emerald-600" />
-                     <span className="text-xs font-black text-emerald-800 header-font">{`عدد تكرار ال${hifzUnit === 'rub' ? 'ربع' : 'وجه'}`}</span>
+                     <span className="text-xs font-black text-emerald-800 header-font">{getRepsTitle(hifzUnit)}</span>
                    </div>
                    <div className="flex items-center gap-3">
                      <button onClick={() => updateReps((quranData.todayReps || 0) - 1)} className="p-1.5 bg-white rounded-lg border border-emerald-200 text-emerald-600"><Minus className="w-4 h-4" /></button>
@@ -588,6 +709,25 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
                      <button onClick={() => updateReps((quranData.todayReps || 0) + 1)} className="p-1.5 bg-white rounded-lg border border-emerald-200 text-emerald-600"><Plus className="w-4 h-4" /></button>
                    </div>
                  </div>
+
+                 {includedQuarters.length > 0 && (
+                   <div className="pt-3 border-t border-emerald-200/60 space-y-2">
+                     <div className="text-[11px] font-black text-emerald-900 header-font flex items-center gap-1.5">
+                       <LayoutGrid className="w-3.5 h-3.5 text-emerald-600" />
+                       <span>تفاصيل الأرباع المقررة في هذا الورد ({includedQuarters.length} أرباع):</span>
+                     </div>
+                     <div className="grid grid-cols-1 gap-1.5">
+                       {includedQuarters.map((qText, qIdx) => (
+                         <div key={qIdx} className="bg-white/90 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 flex items-center gap-2.5 border border-emerald-100 shadow-2xs">
+                           <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 font-mono">
+                             {qIdx + 1}
+                           </span>
+                           <span className="truncate leading-relaxed">{qText}</span>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
                </div>
              )}
           </div>
