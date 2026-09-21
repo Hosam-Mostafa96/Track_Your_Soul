@@ -14,9 +14,11 @@ import {
   ChevronLeft,
   Check,
   Bed,
-  Compass
+  Compass,
+  Shield
 } from 'lucide-react';
 import { DailyLog } from '../types';
+import { HisnAlMuslimSection } from './HisnAlMuslimSection';
 
 export interface AthkarItem {
   id: string;
@@ -440,7 +442,7 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-28 max-w-xl mx-auto text-right" dir="rtl">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-28 max-w-3xl mx-auto text-right" dir="rtl">
       
       {/* رأس الشاشة مع خيارات الانتقال */}
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
@@ -519,7 +521,7 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
                 : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <Bed className={`w-4 h-4 ${activeTab === 'sleep' ? 'text-indigo-400' : ''}`} />
+            <Bed className={`w-4 h-4 ${activeTab === 'sleep' ? 'text-indigo-300' : ''}`} />
             <span>النوم</span>
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono ${activeTab === 'sleep' ? 'bg-indigo-900 text-indigo-200' : 'bg-slate-200 text-slate-500'}`}>
               {`${getCompletedCountFor(SLEEP_ATHKAR)}/${SLEEP_ATHKAR.length}`}
@@ -539,6 +541,24 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono ${activeTab === 'travel' ? 'bg-teal-900 text-teal-200' : 'bg-slate-200 text-slate-500'}`}>
               {`${getCompletedCountFor(TRAVEL_ATHKAR)}/${TRAVEL_ATHKAR.length}`}
             </span>
+          </button>
+        </div>
+
+        {/* زر الانتقال السريع لأدعية حصن المسلم بالأسفل */}
+        <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[11px] sm:text-xs text-slate-500 font-bold">
+            <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>أدعية حصن المسلم والمناسبات اليومية بالأسفل</span>
+          </div>
+          <button
+            onClick={() => {
+              const el = document.getElementById('hisn-al-muslim-section');
+              el?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-[11px] font-black header-font flex items-center gap-1.5 transition-all border border-emerald-200/80 active:scale-95 shadow-2xs"
+          >
+            <span>انتقل لأدعية الحصن ({log.duaIdsCompleted?.length || 0})</span>
+            <ChevronDown className="w-3.5 h-3.5 text-emerald-600" />
           </button>
         </div>
       </div>
@@ -650,6 +670,11 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
             </div>
           );
         })}
+      </div>
+
+      {/* قسم أدعية حصن المسلم والمناسبات الحياتية بالأسفل */}
+      <div id="hisn-al-muslim-section" className="pt-4">
+        <HisnAlMuslimSection log={log} onUpdateLog={onUpdateLog} />
       </div>
     </div>
   );
