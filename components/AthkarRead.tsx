@@ -13,7 +13,8 @@ import {
   Info,
   ChevronLeft,
   Check,
-  Bed
+  Bed,
+  Compass
 } from 'lucide-react';
 import { DailyLog } from '../types';
 
@@ -23,6 +24,45 @@ export interface AthkarItem {
   count: number;
   virtue: string;
 }
+
+export const TRAVEL_ATHKAR: AthkarItem[] = [
+  {
+    id: 't_1',
+    text: 'الله أكبر، الله أكبر، الله أكبر، سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ، وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ.',
+    count: 1,
+    virtue: 'دعاء ركوب الدابة وبدء السفر؛ يورث شكر المنعم واستشعار الرجوع إلى الله.'
+  },
+  {
+    id: 't_2',
+    text: 'اللَّهُمَّ إِنَّا نَسْأَلُكَ فِي سَفَرِنَا هَذَا الْبِرَّ وَالتَّقْوَى، وَمِنَ الْعَمَلِ مَا تَرْضَى.',
+    count: 1,
+    virtue: 'سؤال الله التوفيق للطاعة وصلاح العمل أثناء المسير والغربة.'
+  },
+  {
+    id: 't_3',
+    text: 'اللَّهُمَّ هَوِّنْ عَلَيْنَا سَفَرَنَا هَذَا وَاطْوِ عَنَّا بُعْدَهُ، اللَّهُمَّ أَنْتَ الصَّاحِبُ فِي السَّفَرِ، وَالْخَلِيفَةُ فِي الأَهْلِ.',
+    count: 1,
+    virtue: 'استيداع النفس والأهل والمال عند من لا تضيع ودائعه سبحانه.'
+  },
+  {
+    id: 't_4',
+    text: 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ وَعْثَاءِ السَّفَرِ، وَكَآبَةِ الْمَنْظَرِ، وَسُوءِ الْمُنْقَلَبِ فِي الْمَالِ وَالأَهْلِ.',
+    count: 1,
+    virtue: 'استعاذة شاملة من مشقة السفر وحزنه وفجائع الأقدار.'
+  },
+  {
+    id: 't_5',
+    text: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ.',
+    count: 1,
+    virtue: 'يقال عند نزول أي منزل أو محطة سفر؛ حرز وأمان تام حتى يرتحل.'
+  },
+  {
+    id: 't_6',
+    text: 'آيِبُونَ، تَائِبُونَ، عَابِدُونَ، لِرَبِّنَا حَامِدُونَ.',
+    count: 1,
+    virtue: 'دعاء الرجوع والعودة من السفر شكراً لله على تمام العافية والأوبة.'
+  }
+];
 
 export const MORNING_ATHKAR: AthkarItem[] = [
   {
@@ -297,14 +337,16 @@ interface AthkarReadProps {
 }
 
 const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
-  const [activeTab, setActiveTab] = useState<'morning' | 'evening' | 'sleep'>('morning');
+  const [activeTab, setActiveTab] = useState<'morning' | 'evening' | 'sleep' | 'travel'>('morning');
   const [showVirtues, setShowVirtues] = useState<Record<string, boolean>>({});
 
   const listToUse = activeTab === 'morning' 
     ? MORNING_ATHKAR 
     : activeTab === 'evening' 
       ? EVENING_ATHKAR 
-      : SLEEP_ATHKAR;
+      : activeTab === 'sleep'
+        ? SLEEP_ATHKAR
+        : TRAVEL_ATHKAR;
 
   const detailedData = log.athkar.completedDetailedAthkar || {};
 
@@ -384,7 +426,7 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
         }
       };
       
-      const tabName = activeTab === 'morning' ? 'الصباح' : (activeTab === 'evening' ? 'المساء' : 'النوم');
+      const tabName = activeTab === 'morning' ? 'الصباح' : (activeTab === 'evening' ? 'المساء' : (activeTab === 'sleep' ? 'النوم' : 'السفر'));
       onUpdateLog(updatedLog, `صَفّر عدادات أذكار ${tabName}`, 'athkar');
     }
   };
@@ -409,14 +451,18 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
                 ? 'bg-amber-50 text-amber-600' 
                 : activeTab === 'evening' 
                   ? 'bg-slate-900 text-slate-100' 
-                  : 'bg-indigo-950 text-indigo-300'
+                  : activeTab === 'sleep'
+                    ? 'bg-indigo-950 text-indigo-300'
+                    : 'bg-teal-900 text-teal-300'
             }`}>
               {activeTab === 'morning' ? (
                 <Sun className="w-6 h-6" />
               ) : activeTab === 'evening' ? (
                 <Moon className="w-6 h-6" />
-              ) : (
+              ) : activeTab === 'sleep' ? (
                 <Bed className="w-6 h-6" />
+              ) : (
+                <Compass className="w-6 h-6" />
               )}
             </div>
             <div>
@@ -434,7 +480,7 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
         </div>
 
         {/* أزرار التبديل الفخمة */}
-        <div className="grid grid-cols-3 gap-1.5 mt-6 p-1 bg-slate-50 rounded-2xl">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-6 p-1 bg-slate-50 rounded-2xl">
           <button
             onClick={() => setActiveTab('morning')}
             className={`py-4.5 rounded-xl font-bold header-font text-[10px] sm:text-xs flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all ${
@@ -479,6 +525,21 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
               {`${getCompletedCountFor(SLEEP_ATHKAR)}/${SLEEP_ATHKAR.length}`}
             </span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('travel')}
+            className={`py-4.5 rounded-xl font-bold header-font text-[10px] sm:text-xs flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all ${
+              activeTab === 'travel'
+                ? 'bg-teal-800 text-teal-100 shadow-lg transform scale-[1.02]'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Compass className={`w-4 h-4 ${activeTab === 'travel' ? 'text-teal-300' : ''}`} />
+            <span>السفر</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono ${activeTab === 'travel' ? 'bg-teal-900 text-teal-200' : 'bg-slate-200 text-slate-500'}`}>
+              {`${getCompletedCountFor(TRAVEL_ATHKAR)}/${TRAVEL_ATHKAR.length}`}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -500,7 +561,7 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
           ></div>
         </div>
         <p className="text-[10px] opacity-90 leading-relaxed font-bold">
-          💡 <span className="underline">المعادلة الإيمانية الذكية:</span> نسبة إنجاز هذه القائمة تمنحك درجات بحد أقصى <span className="text-yellow-200 font-black">100 درجة كاملة</span> لأذكار {activeTab === 'morning' ? 'الصباح 🌅' : (activeTab === 'evening' ? 'المساء 🌃' : 'النوم 🛌')} بالتناسب مع ما قرأته، وبمجرد إنهائك لـ 70% من القائمة يُفعّل لك تلقائياً العداد الإيماني العام.
+          💡 <span className="underline">المعادلة الإيمانية الذكية:</span> نسبة إنجاز هذه القائمة تمنحك درجات بحد أقصى <span className="text-yellow-200 font-black">100 درجة كاملة</span> لأذكار {activeTab === 'morning' ? 'الصباح 🌅' : (activeTab === 'evening' ? 'المساء 🌃' : (activeTab === 'sleep' ? 'النوم 🛌' : 'السفر 🚗'))} بالتناسب مع ما قرأته، وبمجرد إنهائك لـ 70% من القائمة يُفعّل لك تلقائياً العداد الإيماني العام.
         </p>
       </div>
 

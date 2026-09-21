@@ -114,6 +114,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (athkar.checklists?.morning) athkarScore += 35;
     if (athkar.checklists?.evening) athkarScore += 35;
     if (athkar.checklists?.sleep) athkarScore += 20;
+    if (athkar.checklists?.travel) athkarScore += 10;
     const counters = Object.values(athkar.counters || {}).reduce((a, b) => a + (Number(b) || 0), 0);
     const detailedCount = Object.values(log?.athkar?.completedDetailedAthkar || {}).reduce((a, b) => a + (Number(b) || 0), 0);
     if (counters > 0 || detailedCount > 0) athkarScore += 10;
@@ -258,14 +259,39 @@ const Dashboard: React.FC<DashboardProps> = ({
     const allUserSunnahs = (Object.values(log.prayers) as PrayerEntry[]).flatMap(p => p.surroundingSunnahIds || []);
     const fullRawatibDone = rawatibIds.every(id => allUserSunnahs.includes(id));
     
-    return [
-      { id: 'rawatib', title: 'بيت في الجنة', desc: 'من صلى ثنتي عشرة ركعة..', icon: <Home className="w-6 h-6" />, active: fullRawatibDone, color: 'from-emerald-400 to-emerald-600' },
-      { id: 'fajr', title: 'بشرى الرؤية', desc: 'تستحق رؤية الله في الآخرة', icon: <Sun className="w-6 h-6" />, active: log.prayers[PrayerName.FAJR]?.performed, color: 'from-orange-400 to-orange-500' },
-      { id: 'istighfar', title: 'مفتاح الرزق', desc: 'فقلت استغفروا ربكم.. يرسل السماء', icon: <Coins className="w-6 h-6" />, active: log.athkar.counters.istighfar > 0, color: 'from-blue-400 to-blue-600' },
-      { id: 'fasting', title: 'بعيد عن النار', desc: 'باعد الله وجهه عن النار ٧٠ خريفاً', icon: <Flame className="w-6 h-6" />, active: log.nawafil.fasting, color: 'from-rose-400 to-rose-600' },
-      { id: 'hawqalah', title: 'مفتاح النجاح', desc: 'لا حول ولا قوة إلا بالله كنز الجنة', icon: <Key className="w-6 h-6" />, active: log.athkar.counters.hawqalah > 0, color: 'from-indigo-400 to-indigo-600' },
-      { id: 'salawat', title: 'مفتاح القرب', desc: 'أقربكم مني مجلساً أكثركم صلاة علي', icon: <Heart className="w-6 h-6" />, active: log.athkar.counters.salawat > 0, color: 'from-pink-400 to-pink-600' },
-    ];
+      const istighfarCount = log.athkar.counters.istighfar || 0;
+      const hawqalahCount = log.athkar.counters.hawqalah || 0;
+      const salawatCount = log.athkar.counters.salawat || 0;
+
+      return [
+        { id: 'rawatib', title: 'بيت في الجنة', desc: 'من صلى ثنتي عشرة ركعة..', icon: <Home className="w-6 h-6" />, active: fullRawatibDone, color: 'from-emerald-400 to-emerald-600' },
+        { id: 'fajr', title: 'بشرى الرؤية', desc: 'تستحق رؤية الله في الآخرة', icon: <Sun className="w-6 h-6" />, active: log.prayers[PrayerName.FAJR]?.performed, color: 'from-orange-400 to-orange-500' },
+        { 
+          id: 'istighfar', 
+          title: 'مفتاح الرزق', 
+          desc: istighfarCount >= 500 ? 'فقلت استغفروا ربكم.. يرسل السماء (أنجزت ٥٠٠)' : `يتفعّل عند ٥٠٠ استغفار (${istighfarCount}/500)`, 
+          icon: <Coins className="w-6 h-6" />, 
+          active: istighfarCount >= 500, 
+          color: 'from-blue-400 to-blue-600' 
+        },
+        { id: 'fasting', title: 'بعيد عن النار', desc: 'باعد الله وجهه عن النار ٧٠ خريفاً', icon: <Flame className="w-6 h-6" />, active: log.nawafil.fasting, color: 'from-rose-400 to-rose-600' },
+        { 
+          id: 'hawqalah', 
+          title: 'مفتاح النجاح', 
+          desc: hawqalahCount >= 500 ? 'لا حول ولا قوة إلا بالله كنز الجنة (أنجزت ٥٠٠)' : `يتفعّل عند ٥٠٠ حوقلة (${hawqalahCount}/500)`, 
+          icon: <Key className="w-6 h-6" />, 
+          active: hawqalahCount >= 500, 
+          color: 'from-indigo-400 to-indigo-600' 
+        },
+        { 
+          id: 'salawat', 
+          title: 'مفتاح القرب من النبي', 
+          desc: salawatCount >= 500 ? 'أقربكم مني مجلساً أكثركم صلاة علي (أنجزت ٥٠٠)' : `يتفعّل عند ٥٠٠ صلاة على النبي (${salawatCount}/500)`, 
+          icon: <Heart className="w-6 h-6" />, 
+          active: salawatCount >= 500, 
+          color: 'from-pink-400 to-pink-600' 
+        },
+      ];
   }, [log]);
 
   useEffect(() => {

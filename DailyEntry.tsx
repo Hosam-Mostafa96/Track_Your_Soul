@@ -307,16 +307,22 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-2.5 mb-6">
-          {(['morning', 'evening', 'sleep'] as const).map(id => {
-            const label = id === 'morning' ? 'أذكار الصباح' : id === 'evening' ? 'أذكار المساء' : 'أذكار النوم';
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-6">
+          {([
+            { id: 'morning', label: 'أذكار الصباح', short: 'الصباح' },
+            { id: 'evening', label: 'أذكار المساء', short: 'المساء' },
+            { id: 'sleep', label: 'أذكار النوم', short: 'النوم' },
+            { id: 'travel', label: 'أذكار السفر', short: 'السفر' },
+          ] as const).map(({ id, label, short }) => {
+            const isChecked = Boolean(log.athkar.checklists?.[id]);
             return (
               <button 
                 key={id} 
-                onClick={() => updateSection('athkar', { checklists: { ...log.athkar.checklists, [id]: !log.athkar.checklists[id] } }, !log.athkar.checklists[id] ? `أتمَّ ${label}` : undefined, 'athkar')} 
-                className={`flex items-center justify-center p-3 rounded-2xl border transition-all ${log.athkar.checklists[id] ? 'bg-emerald-600 text-white border-emerald-600 shadow-md font-black' : 'bg-slate-50 text-slate-400 border-slate-100 font-bold'}`}
+                onClick={() => updateSection('athkar', { checklists: { ...log.athkar.checklists, [id]: !isChecked } }, !isChecked ? `أتمَّ ${label}` : undefined, 'athkar')} 
+                className={`flex items-center justify-center py-3 px-2 rounded-2xl border transition-all active:scale-95 ${isChecked ? 'bg-emerald-600 text-white border-emerald-600 shadow-md font-black' : 'bg-slate-50 text-slate-500 border-slate-100 font-bold hover:bg-slate-100'}`}
+                title={label}
               >
-                <span className="text-xs">{label.split(' ')[1]}</span>
+                <span className="text-xs">أذكار {short}</span>
               </button>
             );
           })}

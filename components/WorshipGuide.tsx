@@ -71,7 +71,7 @@ const WorshipGuide: React.FC = () => {
              <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><Coins className="w-5 h-5 text-blue-600" /></div>
              <div>
                <h4 className="text-xs font-black text-slate-800 header-font mb-1">مفتاح الرزق</h4>
-               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند تسجيل أي عدد في عداد <span className="text-blue-600">الاستغفار</span>.</p>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند إتمام <span className="text-blue-600 font-black">500</span> في عداد الاستغفار.</p>
              </div>
           </div>
 
@@ -79,15 +79,15 @@ const WorshipGuide: React.FC = () => {
              <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><Key className="w-5 h-5 text-indigo-600" /></div>
              <div>
                <h4 className="text-xs font-black text-slate-800 header-font mb-1">مفتاح النجاح</h4>
-               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند تسجيل أي عدد في عداد <span className="text-indigo-600">الحوقلة</span>.</p>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند إتمام <span className="text-indigo-600 font-black">500</span> في عداد الحوقلة.</p>
              </div>
           </div>
 
           <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100 flex gap-4">
              <div className="p-2 bg-white rounded-xl h-fit shadow-sm"><Heart className="w-5 h-5 text-rose-500" /></div>
              <div>
-               <h4 className="text-xs font-black text-slate-800 header-font mb-1">مفتاح القرب</h4>
-               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند تسجيل أي عدد في عداد <span className="text-rose-500">الصلاة على النبي</span>.</p>
+               <h4 className="text-xs font-black text-slate-800 header-font mb-1">مفتاح القرب من النبي</h4>
+               <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يُستحق عند إتمام <span className="text-rose-500 font-black">500</span> في عداد الصلاة على النبي.</p>
              </div>
           </div>
         </div>

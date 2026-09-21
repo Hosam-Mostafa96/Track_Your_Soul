@@ -84,6 +84,7 @@ async function startServer() {
            - "أذكار الصباح": { athkar: { checklists: { morning: true } } }
            - "أذكار المساء": { athkar: { checklists: { evening: true } } }
            - "أذكار النوم": { athkar: { checklists: { sleep: true } } }
+           - "أذكار السفر": { athkar: { checklists: { travel: true } } }
         5. بالنسبة السنن والنوافل:
            - "صليت الضحى": { nawafil: { duhaDuration: 10 } }
            - "صليت الوتر": { nawafil: { witrDuration: 10 } }

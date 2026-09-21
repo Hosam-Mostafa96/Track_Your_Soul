@@ -119,23 +119,25 @@ export const FortressOfFaith: React.FC<FortressOfFaithProps> = ({ log, onSwitchT
   // 3. حالة الأذكار والتحصين
   const athkarShield = useMemo(() => {
     if (isSimulation) {
-      return { morning: true, evening: true, sleep: true, counters: 500, totalPercent: 100 };
+      return { morning: true, evening: true, sleep: true, travel: true, counters: 500, totalPercent: 100 };
     }
     const morning = Boolean(athkar.checklists?.morning);
     const evening = Boolean(athkar.checklists?.evening);
     const sleep = Boolean(athkar.checklists?.sleep);
+    const travel = Boolean(athkar.checklists?.travel);
     const countersSum = Object.values(athkar.counters || {}).reduce((a, b) => a + (Number(b) || 0), 0);
     const detailedSum = Object.values(athkar.completedDetailedAthkar || {}).reduce((a, b) => a + (Number(b) || 0), 0);
     const totalCounters = countersSum + detailedSum;
     
     let score = 0;
-    if (morning) score += 35;
-    if (evening) score += 35;
+    if (morning) score += 30;
+    if (evening) score += 30;
     if (sleep) score += 20;
+    if (travel) score += 10;
     if (totalCounters >= 100) score += 10;
     else if (totalCounters > 0) score += 5;
 
-    return { morning, evening, sleep, counters: totalCounters, totalPercent: Math.min(100, score) };
+    return { morning, evening, sleep, travel, counters: totalCounters, totalPercent: Math.min(100, score) };
   }, [isSimulation, athkar]);
 
   // 4. حالة النوافل
