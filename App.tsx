@@ -54,6 +54,7 @@ import { FortressOfFaith } from './components/FortressOfFaith';
 import { CurrentWeekEvaluationModal } from './components/CurrentWeekEvaluationModal';
 import { WeeklyCardModal } from './components/WeeklyCardModal';
 import { useScheduledReminders } from './hooks/useScheduledReminders';
+import { InAppReminderBanner } from './components/InAppReminderBanner';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -347,6 +348,12 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
+      {/* التنبيه التفاعلي المباشر للصلوات والأذكار */}
+      <InAppReminderBanner
+        alert={scheduledReminders.activeAlert}
+        onDismiss={scheduledReminders.dismissAlert}
+      />
+
       <header className="bg-emerald-800 text-white p-4 pb-20 rounded-b-[3rem] shadow-xl relative overflow-hidden z-10">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-700 rounded-full -translate-y-16 translate-x-16 opacity-30 blur-2xl"></div>
         <div className="relative z-10 flex flex-col gap-4">

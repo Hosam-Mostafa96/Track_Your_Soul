@@ -79,6 +79,31 @@ const LAST_TRIGGERED_PREFIX = 'awrad_reminder_last_triggered_';
 
 export type NotificationStatus = 'granted' | 'denied' | 'default' | 'unsupported';
 
+/**
+ * فحص ما إذا كان التطبيق يعمل حالياً داخل إطار مضمن (iframe)
+ * المتصفحات الحديثة تمنع طلب إذن الإشعارات من داخل الـ iframes لأسباب أمنية
+ */
+export const isInsideIframe = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+};
+
+/**
+ * فتح التطبيق في نافذة/تبويب مستقل لتمكين صلاحيات النظام الكاملة
+ */
+export const openInStandaloneWindow = (): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.open(window.location.href, '_blank', 'noopener,noreferrer');
+  } catch (e) {
+    console.warn('Failed to open window:', e);
+  }
+};
+
 export const getNotificationPermissionStatus = (): NotificationStatus => {
   if (typeof window === 'undefined' || !('Notification' in window)) {
     return 'unsupported';
@@ -86,16 +111,70 @@ export const getNotificationPermissionStatus = (): NotificationStatus => {
   return Notification.permission;
 };
 
-export const requestNotificationPermission = async (): Promise<boolean> => {
+export interface RequestPermissionResult {
+  granted: boolean;
+  status: NotificationStatus;
+  inIframe: boolean;
+  reason?: 'granted' | 'iframe_blocked' | 'denied_by_user' | 'unsupported' | 'error';
+  message?: string;
+}
+
+export const requestNotificationPermission = async (): Promise<RequestPermissionResult> => {
   if (typeof window === 'undefined' || !('Notification' in window)) {
-    return false;
+    return {
+      granted: false,
+      status: 'unsupported',
+      inIframe: false,
+      reason: 'unsupported',
+      message: 'متصفحك الحالي لا يدعم تقنية إشعارات الويب.'
+    };
   }
+
+  const inIframe = isInsideIframe();
+
+  // إذا كان الإذن ممنوحاً بالفعل
+  if (Notification.permission === 'granted') {
+    return {
+      granted: true,
+      status: 'granted',
+      inIframe,
+      reason: 'granted',
+      message: 'تم تفعيل إشعارات المتصفح بنجاح!'
+    };
+  }
+
+  // إذا كنا داخل iframe، تمنع المتصفحات إظهار نافذة الإذن
+  if (inIframe) {
+    return {
+      granted: false,
+      status: Notification.permission,
+      inIframe: true,
+      reason: 'iframe_blocked',
+      message: 'المتصفح يمنع طلب الإشعارات من داخل نافذة المعاينة المدمجة. يرجى فتح التطبيق في تبويب مستقل.'
+    };
+  }
+
   try {
     const permission = await Notification.requestPermission();
-    return permission === 'granted';
-  } catch (error) {
-    console.error('Failed to request notification permission:', error);
-    return false;
+    const granted = permission === 'granted';
+    return {
+      granted,
+      status: permission as NotificationStatus,
+      inIframe: false,
+      reason: granted ? 'granted' : 'denied_by_user',
+      message: granted 
+        ? 'تم منح إذن الإشعارات بنجاح!'
+        : 'تم رفض الإذن أو إغلاق نافذة الموافقة. يمكنك تفعيله من إعدادات المتصفح.'
+    };
+  } catch (error: any) {
+    console.warn('Failed to request notification permission:', error);
+    return {
+      granted: false,
+      status: Notification.permission,
+      inIframe,
+      reason: 'error',
+      message: error?.message || 'تعذر طلب الإذن من المتصفح.'
+    };
   }
 };
 
@@ -138,41 +217,102 @@ export const playSpiritualChime = () => {
   }
 };
 
-export const sendBrowserNotification = (
+export interface SendNotificationResult {
+  systemSent: boolean;
+  soundPlayed: boolean;
+  inIframe: boolean;
+  status: NotificationStatus;
+  details: string;
+}
+
+export const sendBrowserNotification = async (
   title: string,
   body: string,
   options?: { sound?: boolean; icon?: string; tag?: string }
-): boolean => {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    return false;
-  }
-
+): Promise<SendNotificationResult> => {
+  let soundPlayed = false;
   if (options?.sound !== false) {
     playSpiritualChime();
+    soundPlayed = true;
   }
 
-  if (Notification.permission === 'granted') {
-    try {
-      const notification = new Notification(title, {
-        body,
-        icon: options?.icon || '/favicon.ico',
-        tag: options?.tag || `reminder-${Date.now()}`,
-        dir: 'rtl',
-        lang: 'ar'
-      });
+  const inIframe = isInsideIframe();
 
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
-      return true;
-    } catch (e) {
-      console.error('Error instantiating Notification:', e);
-      return false;
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return {
+      systemSent: false,
+      soundPlayed,
+      inIframe,
+      status: 'unsupported',
+      details: 'المتصفح لا يدعم إشعارات النظام.'
+    };
+  }
+
+  const status = Notification.permission;
+  if (status !== 'granted') {
+    return {
+      systemSent: false,
+      soundPlayed,
+      inIframe,
+      status,
+      details: inIframe
+        ? 'التطبيق داخل نافذة معاينة (iframe)؛ تتطلب إشعارات النظام فتح التطبيق في تبويب مستقل.'
+        : 'إذن إشعارات النظام غير ممنوح حالياً في المتصفح.'
+    };
+  }
+
+  const notifOptions: NotificationOptions = {
+    body,
+    icon: options?.icon || '/favicon.ico',
+    badge: '/favicon.ico',
+    tag: options?.tag || `reminder-${Date.now()}`,
+    dir: 'rtl',
+    lang: 'ar'
+  };
+
+  // محاولة الإرسال عبر Service Worker أولاً (للأجهزة المحمولة وأنظمة PWA)
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && 'showNotification' in reg) {
+        await reg.showNotification(title, notifOptions);
+        return {
+          systemSent: true,
+          soundPlayed,
+          inIframe,
+          status: 'granted',
+          details: 'تم إرسال الإشعار عبر خدمة النظام (Service Worker).'
+        };
+      }
+    } catch (swErr) {
+      console.warn('ServiceWorker showNotification failed:', swErr);
     }
   }
 
-  return false;
+  // محاولة الإرسال عبر Notification API القياسية
+  try {
+    const notification = new Notification(title, notifOptions);
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+    return {
+      systemSent: true,
+      soundPlayed,
+      inIframe,
+      status: 'granted',
+      details: 'تم إرسال إشعار المتصفح بنجاح.'
+    };
+  } catch (e: any) {
+    console.warn('Error instantiating Notification:', e);
+    return {
+      systemSent: false,
+      soundPlayed,
+      inIframe,
+      status: 'granted',
+      details: e?.message || 'تعذر إنشاء الإشعار المنبثق.'
+    };
+  }
 };
 
 export const getStoredReminders = (): ScheduledReminder[] => {

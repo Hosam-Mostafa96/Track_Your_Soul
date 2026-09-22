@@ -162,6 +162,7 @@ const Notifications: React.FC<NotificationsProps> = ({
         <ScheduledRemindersManager
           reminders={manager.reminders}
           permissionStatus={manager.permissionStatus}
+          inIframe={manager.inIframe}
           history={manager.history}
           nextUpcoming={manager.nextUpcoming}
           onRequestPermission={manager.requestPermission}
@@ -172,6 +173,8 @@ const Notifications: React.FC<NotificationsProps> = ({
           onResetToDefaults={manager.resetToDefaults}
           onTestNotification={manager.testNotification}
           onClearHistory={manager.clearHistory}
+          onOpenInStandalone={manager.openInStandalone}
+          onRefreshPermissions={manager.refreshPermissions}
         />
       ) : (
         /* قائمة سجل التحديثات */

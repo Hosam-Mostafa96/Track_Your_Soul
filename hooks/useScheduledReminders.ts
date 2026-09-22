@@ -11,18 +11,34 @@ import {
   getReminderHistory,
   clearReminderHistory,
   getNextUpcomingReminder,
-  NotificationStatus
+  NotificationStatus,
+  isInsideIframe,
+  openInStandaloneWindow,
+  RequestPermissionResult
 } from '../utils/reminderManager';
+
+export interface TestNotificationOutcome {
+  success: boolean;
+  systemSent: boolean;
+  soundPlayed: boolean;
+  inAppShown: boolean;
+  inIframe: boolean;
+  status: NotificationStatus;
+  message: string;
+}
 
 export const useScheduledReminders = () => {
   const [reminders, setReminders] = useState<ScheduledReminder[]>(() => getStoredReminders());
   const [permissionStatus, setPermissionStatus] = useState<NotificationStatus>(() => getNotificationPermissionStatus());
   const [history, setHistory] = useState<ReminderHistoryItem[]>(() => getReminderHistory());
   const [lastTriggeredItem, setLastTriggeredItem] = useState<ReminderHistoryItem | null>(null);
+  const [activeAlert, setActiveAlert] = useState<ReminderHistoryItem | null>(null);
+  const [inIframe, setInIframe] = useState<boolean>(() => isInsideIframe());
 
   // تحديث حالة الإذن
   const updatePermissionState = useCallback(() => {
     setPermissionStatus(getNotificationPermissionStatus());
+    setInIframe(isInsideIframe());
   }, []);
 
   useEffect(() => {
@@ -85,40 +101,81 @@ export const useScheduledReminders = () => {
   }, []);
 
   // طلب إذن الإشعارات
-  const requestPermission = useCallback(async () => {
-    const granted = await requestNotificationPermission();
+  const requestPermission = useCallback(async (): Promise<RequestPermissionResult> => {
+    const result = await requestNotificationPermission();
     updatePermissionState();
-    return granted;
+    return result;
   }, [updatePermissionState]);
 
-  // إرسال إشعار تجريبي
-  const testNotification = useCallback(async (customReminder?: ScheduledReminder) => {
-    let perm = getNotificationPermissionStatus();
-    if (perm !== 'granted') {
-      const granted = await requestNotificationPermission();
-      perm = granted ? 'granted' : 'denied';
-      updatePermissionState();
-      if (!granted) {
-        return false;
-      }
-    }
+  // إغلاق التنبيه التفاعلي داخل التطبيق
+  const dismissAlert = useCallback(() => {
+    setActiveAlert(null);
+  }, []);
 
+  // إرسال إشعار تجريبي
+  const testNotification = useCallback(async (customReminder?: ScheduledReminder): Promise<TestNotificationOutcome> => {
     const title = customReminder 
       ? `🔔 تجربة: ${customReminder.title}`
-      : '🔔 إشعار تجريبي من إدارة العبادات والأوراد';
+      : '🔔 إشعار تجريبي: إدارة العبادات والأوراد';
     
     const body = customReminder
       ? customReminder.message
       : 'هكذا ستصلك تنبيهات الصلوات والأذكار وأورادك اليومية في مواعيدها بإذن الله.';
 
-    const sent = sendBrowserNotification(title, body, {
-      sound: customReminder ? customReminder.soundEnabled : true
+    const soundEnabled = customReminder ? customReminder.soundEnabled : true;
+    const nowTime = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+
+    // إنشاء عنصر التنبيه التجريبي داخل التطبيق دائماً
+    const testItem: ReminderHistoryItem = {
+      id: `test_${Date.now()}`,
+      reminderId: customReminder?.id || 'test',
+      title,
+      message: body,
+      triggeredAt: Date.now(),
+      time: nowTime
+    };
+
+    // إظهار التنبيه التفاعلي داخل التطبيق فوراً
+    setActiveAlert(testItem);
+
+    // إذا لم يكن الإذن ممنوحاً وكنا خارج iframe، نحاول طلب الإذن
+    let currentStatus = getNotificationPermissionStatus();
+    const currentlyInIframe = isInsideIframe();
+
+    if (currentStatus !== 'granted' && !currentlyInIframe) {
+      const permResult = await requestNotificationPermission();
+      currentStatus = permResult.status;
+      updatePermissionState();
+    }
+
+    // إرسال إشعار النظام (المتصفح)
+    const sendResult = await sendBrowserNotification(title, body, {
+      sound: soundEnabled,
+      tag: 'test-notification'
     });
 
-    if (sent) {
-      setHistory(getReminderHistory());
+    setHistory(getReminderHistory());
+
+    let message = '';
+    if (sendResult.systemSent) {
+      message = 'تم إرسال إشعار المتصفح وتشغيل التنبيه الصوتي بنجاح!';
+    } else if (currentlyInIframe) {
+      message = 'تم تشغيل التنبيه الصوتي ونافذة التذكير داخل التطبيق بنجاح. لتلقي إشعارات النظام في خلفية جهازك، افتح التطبيق في نافذة مستقلة.';
+    } else if (currentStatus === 'denied') {
+      message = 'تم تشغيل التنبيه داخل التطبيق. المتصفح يحظر إشعارات النظام، يرجى السماح بالإشعارات من إعدادات الموقع 🔒.';
+    } else {
+      message = 'تم تشغيل التنبيه الصوتي ونافذة التذكير داخل التطبيق بنجاح.';
     }
-    return sent;
+
+    return {
+      success: true, // التجربة تنجح دائماً عبر التنبيه المدمج والرنة الصوتية
+      systemSent: sendResult.systemSent,
+      soundPlayed: sendResult.soundPlayed,
+      inAppShown: true,
+      inIframe: currentlyInIframe,
+      status: currentStatus,
+      message
+    };
   }, [updatePermissionState]);
 
   // مسح السجل
@@ -127,11 +184,17 @@ export const useScheduledReminders = () => {
     setHistory([]);
   }, []);
 
+  // فتح التطبيق في تبويب مستقل
+  const handleOpenInStandalone = useCallback(() => {
+    openInStandaloneWindow();
+  }, []);
+
   // الفحص الدوري الدقيق للتنبيهات كل 10 ثوانٍ
   useEffect(() => {
     const handleCheck = () => {
       checkAndTriggerReminders(reminders, (triggeredItem) => {
         setLastTriggeredItem(triggeredItem);
+        setActiveAlert(triggeredItem);
         setHistory(getReminderHistory());
       });
     };
@@ -163,16 +226,20 @@ export const useScheduledReminders = () => {
   return {
     reminders,
     permissionStatus,
+    inIframe,
     history,
     lastTriggeredItem,
+    activeAlert,
     nextUpcoming,
     requestPermission,
+    dismissAlert,
     toggleReminder,
     updateReminder,
     addCustomReminder,
     deleteReminder,
     resetToDefaults,
     testNotification,
+    openInStandalone: handleOpenInStandalone,
     clearHistory: handleClearHistory,
     refreshPermissions: updatePermissionState
   };

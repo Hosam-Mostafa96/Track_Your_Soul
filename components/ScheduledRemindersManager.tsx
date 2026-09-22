@@ -21,24 +21,31 @@ import {
   Send,
   HelpCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ExternalLink,
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 import { ScheduledReminder, ReminderCategory, ReminderHistoryItem } from '../types';
 import { NotificationStatus } from '../utils/reminderManager';
+import { TestNotificationOutcome } from '../hooks/useScheduledReminders';
 
 interface ScheduledRemindersManagerProps {
   reminders: ScheduledReminder[];
   permissionStatus: NotificationStatus;
+  inIframe?: boolean;
   history: ReminderHistoryItem[];
   nextUpcoming: { reminder: ScheduledReminder; minutesLeft: number } | null;
-  onRequestPermission: () => Promise<boolean>;
+  onRequestPermission: () => Promise<any>;
   onToggleReminder: (id: string) => void;
   onUpdateReminder: (id: string, updates: Partial<ScheduledReminder>) => void;
   onAddCustomReminder: (newReminder: Omit<ScheduledReminder, 'id' | 'isCustom' | 'createdAt'>) => void;
   onDeleteReminder: (id: string) => void;
   onResetToDefaults: () => void;
-  onTestNotification: (reminder?: ScheduledReminder) => Promise<boolean>;
+  onTestNotification: (reminder?: ScheduledReminder) => Promise<TestNotificationOutcome>;
   onClearHistory: () => void;
+  onOpenInStandalone?: () => void;
+  onRefreshPermissions?: () => void;
 }
 
 const DAYS_NAMES = [
@@ -54,6 +61,7 @@ const DAYS_NAMES = [
 export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps> = ({
   reminders,
   permissionStatus,
+  inIframe = false,
   history,
   nextUpcoming,
   onRequestPermission,
@@ -64,10 +72,14 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
   onResetToDefaults,
   onTestNotification,
   onClearHistory,
+  onOpenInStandalone,
+  onRefreshPermissions,
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'failed'>('idle');
+  const [showHelpGuide, setShowHelpGuide] = useState(false);
+  const [lastTestOutcome, setLastTestOutcome] = useState<TestNotificationOutcome | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
   const [activeEditingId, setActiveEditingId] = useState<string | null>(null);
 
   // New Reminder State
@@ -159,14 +171,17 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
   };
 
   const handleTest = async (reminder?: ScheduledReminder) => {
-    setTestStatus('idle');
-    const success = await onTestNotification(reminder);
-    if (success) {
-      setTestStatus('success');
-      setTimeout(() => setTestStatus('idle'), 3500);
-    } else {
-      setTestStatus('failed');
-      setTimeout(() => setTestStatus('idle'), 4000);
+    setIsTesting(true);
+    try {
+      const outcome = await onTestNotification(reminder);
+      setLastTestOutcome(outcome);
+      setTimeout(() => {
+        setLastTestOutcome(null);
+      }, 7000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -176,6 +191,8 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
       <div className={`rounded-3xl p-5 sm:p-6 border transition-all ${
         permissionStatus === 'granted'
           ? 'bg-emerald-50/80 border-emerald-200'
+          : inIframe
+          ? 'bg-sky-50/80 border-sky-200'
           : permissionStatus === 'denied'
           ? 'bg-rose-50 border-rose-200'
           : 'bg-amber-50 border-amber-200'
@@ -185,12 +202,16 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
             <div className={`p-3 rounded-2xl shrink-0 ${
               permissionStatus === 'granted'
                 ? 'bg-emerald-500 text-white shadow-sm'
+                : inIframe
+                ? 'bg-sky-600 text-white shadow-sm'
                 : permissionStatus === 'denied'
                 ? 'bg-rose-500 text-white'
                 : 'bg-amber-500 text-white animate-bounce'
             }`}>
               {permissionStatus === 'granted' ? (
                 <BellRing className="w-6 h-6" />
+              ) : inIframe ? (
+                <ExternalLink className="w-6 h-6" />
               ) : permissionStatus === 'denied' ? (
                 <BellOff className="w-6 h-6" />
               ) : (
@@ -199,32 +220,51 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
             </div>
 
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base font-black text-slate-800 header-font">
                   {permissionStatus === 'granted'
                     ? 'إشعارات المتصفح مفعلة ونشطة'
+                    : inIframe
+                    ? 'التنبيهات المدمجة تعمل (وضع المعاينة)'
                     : permissionStatus === 'denied'
                     ? 'تم حظر الإشعارات في متصفحك'
                     : 'تفعيل إشعارات المتصفح المجدولة'}
                 </h3>
-                {permissionStatus === 'granted' && (
+                {permissionStatus === 'granted' ? (
                   <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" /> متصل
                   </span>
-                )}
+                ) : inIframe ? (
+                  <span className="text-[10px] font-black bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-sky-600" /> تنبيهات مدمجة نشطة
+                  </span>
+                ) : null}
               </div>
-              <p className="text-xs text-slate-500 font-bold mt-1 leading-relaxed">
+              <p className="text-xs text-slate-600 font-bold mt-1 leading-relaxed">
                 {permissionStatus === 'granted'
-                  ? 'ستصلك تنبيهات الصلوات والأذكار في مواعيدها المحددة مع نغمة روحية هادئة.'
+                  ? 'ستصلك تنبيهات الصلوات والأذكار في مواعيدها المحددة مع نغمة روحية هادئة وإشعار نظام.'
+                  : inIframe
+                  ? 'تنبيهات الصوت ورسائل التذكير التفاعلية داخل التطبيق تعمل الآن. لإرسال إشعارات نظام التشغيل المنبثقة، افتح التطبيق في نافذة مستقلة.'
                   : permissionStatus === 'denied'
-                  ? 'يرجى السماح بالإشعارات من خلال النقر على أيقونة القفل 🔒 بجانب شريط العنوان لاكتمال إرسال التنبيهات.'
+                  ? 'تم حظر الإشعارات مسبقاً في إعدادات المتصفح لهذا الموقع. انقر على زر الدليل بالأسفل لمعرفة طريقة فك الحظر.'
                   : 'اضغط على الزر أدناه لمنح المتصفح صلاحية إرسال التنبيهات في مواعيد أورادك وصلواتك.'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-            {permissionStatus !== 'granted' ? (
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 flex-wrap">
+            {inIframe && onOpenInStandalone && (
+              <button
+                type="button"
+                onClick={onOpenInStandalone}
+                className="w-full sm:w-auto px-4 py-2.5 bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-black rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 header-font"
+              >
+                <ExternalLink className="w-4 h-4" />
+                فتح في نافذة مستقلة
+              </button>
+            )}
+
+            {!inIframe && permissionStatus !== 'granted' && (
               <button
                 type="button"
                 onClick={onRequestPermission}
@@ -233,30 +273,96 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
                 <BellRing className="w-4 h-4" />
                 تفعيل التنبيهات الآن
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleTest()}
-                className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 header-font"
-              >
-                <Send className="w-4 h-4" />
-                إرسال إشعار تجريبي
-              </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => handleTest()}
+              disabled={isTesting}
+              className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 header-font disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />
+              إرسال إشعار تجريبي
+            </button>
           </div>
         </div>
 
-        {testStatus === 'success' && (
-          <div className="mt-3 p-3 bg-emerald-100 text-emerald-800 text-xs font-black rounded-xl border border-emerald-200 flex items-center gap-2 animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            تم إرسال الإشعار التجريبي بنجاح! إذا لم يظهر، تأكد من عدم تفعيل وضع عدم الإزعاج (Do Not Disturb) في نظامك.
+        {/* نتيجة الاختبار */}
+        {lastTestOutcome && (
+          <div className={`mt-3 p-3.5 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 animate-in fade-in duration-200 ${
+            lastTestOutcome.systemSent
+              ? 'bg-emerald-100 text-emerald-900 border-emerald-200'
+              : 'bg-amber-100/90 text-amber-900 border-amber-200'
+          }`}>
+            <div className="flex items-center gap-2 text-xs font-bold leading-relaxed">
+              {lastTestOutcome.systemSent ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+              ) : (
+                <Sparkles className="w-4 h-4 text-amber-700 shrink-0" />
+              )}
+              <span>{lastTestOutcome.message}</span>
+            </div>
+
+            {lastTestOutcome.inIframe && onOpenInStandalone && (
+              <button
+                type="button"
+                onClick={onOpenInStandalone}
+                className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white text-[11px] font-black rounded-xl transition-all flex items-center gap-1 shrink-0 header-font"
+              >
+                <ExternalLink className="w-3 h-3" />
+                فتح في تبويب مستقل الآن
+              </button>
+            )}
           </div>
         )}
 
-        {testStatus === 'failed' && (
-          <div className="mt-3 p-3 bg-rose-100 text-rose-800 text-xs font-black rounded-xl border border-rose-200 flex items-center gap-2 animate-in fade-in">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-            تعذر إرسال الإشعار. تأكد من منح الإذن للمتصفح أولاً.
+        {/* زر إرشادات حل مشكلة الإشعارات المحظورة */}
+        {permissionStatus === 'denied' && (
+          <div className="mt-3 pt-3 border-t border-rose-200/80">
+            <button
+              type="button"
+              onClick={() => setShowHelpGuide(!showHelpGuide)}
+              className="text-xs font-black text-rose-700 hover:text-rose-800 flex items-center gap-1.5 header-font"
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span>كيف أسمح بالإشعارات في إعدادات المتصفح؟</span>
+              {showHelpGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {showHelpGuide && (
+              <div className="mt-2.5 p-3.5 bg-white rounded-2xl border border-rose-200 text-xs text-slate-700 font-bold space-y-2 leading-relaxed">
+                <p className="text-slate-800 font-black">خطوات السماح بالإشعارات في متصفح Google Chrome / Edge:</p>
+                <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-600">
+                  <li>اضغط على أيقونة الإعدادات أو القفل 🔒 بجانب رابط الموقع في شريط العنوان بالأعلى.</li>
+                  <li>انقر على «أذونات الموقع» أو «Site Settings».</li>
+                  <li>ابحث عن «الإشعارات» (Notifications) وغيّرها من (حظر / Block) إلى (سماح / Allow).</li>
+                  <li>أعد تحميل الصفحة أو اضغط على زر التحديث أدناه.</li>
+                </ol>
+
+                <div className="pt-2 flex items-center gap-2">
+                  {onRefreshPermissions && (
+                    <button
+                      type="button"
+                      onClick={onRefreshPermissions}
+                      className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl transition-all flex items-center gap-1.5 header-font"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      إعادة فحص حالة الإذن الآن
+                    </button>
+                  )}
+                  {onOpenInStandalone && (
+                    <button
+                      type="button"
+                      onClick={onOpenInStandalone}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black rounded-xl transition-all flex items-center gap-1.5 header-font"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      فتح في نافذة جديدة
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
