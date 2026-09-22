@@ -11,6 +11,8 @@ import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from
 import { SURROUNDING_SUNNAH_LIST } from './constants';
 import { format, addDays } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
+import { SleepHoursEntry } from './components/SleepHoursEntry';
+import { SinsAccountability } from './components/SinsAccountability';
 
 interface DailyEntryProps {
   log: DailyLog;
@@ -473,25 +475,56 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
         </div>
       </div>
 
-      {/* 8. المجاهدة والعبء الروحي */}
-      <div className="flex gap-4">
-        <div className="flex-1 bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest header-font">المجاهدة</span>
-            <Heart className={`w-3.5 h-3.5 ${log.jihadFactor > 1 ? 'text-rose-500 fill-rose-500' : 'text-slate-200'}`} />
+      {/* 8. ساعات النوم والراحة */}
+      <SleepHoursEntry 
+        log={log} 
+        onUpdate={onUpdate} 
+      />
+
+      {/* 9. محاسبة النفس والذنوب (بدلاً من زر العبء الروحي) */}
+      <SinsAccountability 
+        log={log} 
+        weights={weights} 
+        onUpdate={onUpdate} 
+        onUpdateWeights={onUpdateWeights} 
+      />
+
+      {/* 10. المجاهدة ومغالبة النفس */}
+      <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="p-2.5 bg-rose-50 text-rose-500 rounded-2xl">
+            <Heart className={`w-5 h-5 ${log.jihadFactor > 1 ? 'fill-rose-500 text-rose-500' : 'text-rose-400'}`} />
           </div>
-          <div className="flex gap-1.5">
-            {[1.0, 1.05, 1.1].map(f => (
-              <button key={f} onClick={() => onUpdate({ ...log, jihadFactor: f })} className={`flex-1 py-1.5 rounded-xl text-[9px] font-black transition-all header-font ${log.jihadFactor === f ? 'bg-rose-500 text-white shadow-md' : 'bg-slate-50 text-slate-400 border border-transparent'}`}>
-                {f === 1.0 ? 'عادي' : f === 1.05 ? 'مجاهدة' : 'شديدة'}
-              </button>
-            ))}
+          <div>
+            <span className="text-xs font-black text-slate-800 header-font block">
+              معامل المجاهدة ومغالبة النفس
+            </span>
+            <span className="text-[10px] text-slate-400 font-bold block">
+              مضاعفة إيمانية للمجاهدة في مواسم الفتور أو المشقة
+            </span>
           </div>
         </div>
-        <button onClick={() => onUpdate({ ...log, hasBurden: !log.hasBurden }, !log.hasBurden ? 'فترة عبء روحي' : undefined, 'status')} className={`flex-1 p-4 rounded-[2rem] shadow-sm border transition-all flex flex-col items-center justify-center gap-1 ${log.hasBurden ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-inner' : 'bg-white border-slate-100 text-slate-400'}`}>
-          <ShieldAlert className={`w-5 h-5 ${log.hasBurden ? 'text-amber-500' : 'text-slate-200'}`} />
-          <span className="text-[10px] font-black header-font">العبء الروحي</span>
-        </button>
+
+        <div className="flex gap-1.5 w-full sm:w-auto">
+          {[
+            { factor: 1.0, label: 'طبيعي' },
+            { factor: 1.05, label: 'مجاهدة (+5%)' },
+            { factor: 1.1, label: 'شديدة (+10%)' }
+          ].map(item => (
+            <button
+              key={item.factor}
+              type="button"
+              onClick={() => onUpdate({ ...log, jihadFactor: item.factor }, `تعديل معامل المجاهدة: ${item.label}`, 'status')}
+              className={`flex-1 sm:flex-initial px-3 py-2 rounded-xl text-xs font-black transition-all header-font ${
+                log.jihadFactor === item.factor
+                  ? 'bg-rose-500 text-white shadow-sm scale-105'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
 
     </div>

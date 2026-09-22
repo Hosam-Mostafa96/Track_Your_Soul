@@ -90,6 +90,27 @@ export interface SleepSession {
   end: string;
 }
 
+export interface SinDefinition {
+  id: string;
+  categoryId: 'kabair' | 'tongue' | 'senses' | 'neglect' | 'custom';
+  name: string;
+  defaultPenalty: number;
+  description?: string;
+}
+
+export interface LoggedSinEntry {
+  sinId: string;
+  count: number;
+  customPenalty?: number;
+  note?: string;
+}
+
+export interface SinsState {
+  entries: LoggedSinEntry[];
+  repented?: boolean;
+  notes?: string;
+}
+
 export interface AppWeights {
   fardCongregation: number;
   fardSolo: number;
@@ -106,6 +127,8 @@ export interface AppWeights {
   nawafilPerMin: number;
   fastingDay: number;
   burdenDeduction: number;
+  sinPenalties?: Record<string, number>;
+  customSins?: SinDefinition[];
   customSunnahs: CustomSunnah[];
   pointsPerPage: number;
   heartDeedPoint: number; 
@@ -158,7 +181,8 @@ export interface DailyLog {
     reflections?: Record<string, string>;
   };
   nawafil: { duhaDuration: number; witrDuration: number; qiyamDuration: number; fasting: boolean; custom: Array<{ id: string; value: number }> };
-  sleep: { sessions: SleepSession[] };
+  sleep: { sessions: SleepSession[]; hours?: number; bedtime?: string; wakeTime?: string };
+  sins?: SinsState;
   heartStates: {
     deeds: Record<string, string[]>; 
     diseases: Record<string, string[]>; 
@@ -194,5 +218,37 @@ export interface FortyDayChallenge {
   isCompleted?: boolean;
   notes?: string;
   createdAt: number;
+}
+
+export type ReminderCategory = 
+  | 'fajr' 
+  | 'athkar_morning' 
+  | 'duha' 
+  | 'quran' 
+  | 'athkar_evening' 
+  | 'sleep' 
+  | 'qiyam' 
+  | 'custom';
+
+export interface ScheduledReminder {
+  id: string;
+  title: string;
+  category: ReminderCategory;
+  time: string; // HH:mm format e.g. "04:45"
+  daysOfWeek: number[]; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  enabled: boolean;
+  message: string;
+  soundEnabled: boolean;
+  isCustom?: boolean;
+  createdAt?: number;
+}
+
+export interface ReminderHistoryItem {
+  id: string;
+  reminderId: string;
+  title: string;
+  message: string;
+  triggeredAt: number;
+  time: string;
 }
 

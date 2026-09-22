@@ -53,6 +53,7 @@ import FortyChallenge from './components/FortyChallenge';
 import { FortressOfFaith } from './components/FortressOfFaith';
 import { CurrentWeekEvaluationModal } from './components/CurrentWeekEvaluationModal';
 import { WeeklyCardModal } from './components/WeeklyCardModal';
+import { useScheduledReminders } from './hooks/useScheduledReminders';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -105,6 +106,15 @@ const App: React.FC = () => {
   const [lastCloudSync, setLastCloudSync] = useState<string | null>(localStorage.getItem('last_cloud_sync_time'));
   const [showWeekEvalModal, setShowWeekEvalModal] = useState(false);
   const [showWeeklyShareModal, setShowWeeklyShareModal] = useState(false);
+
+  // Scheduled Daily Reminders System
+  const scheduledReminders = useScheduledReminders();
+
+  useEffect(() => {
+    if (scheduledReminders.lastTriggeredItem && activeTab !== 'notifications') {
+      setHasNewNotifications(true);
+    }
+  }, [scheduledReminders.lastTriggeredItem, activeTab]);
 
   // Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -323,11 +333,11 @@ const App: React.FC = () => {
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const b = books.find(x => x.id === id); if(b) handleUpdateBookProgress(b, pages); }} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
-      case 'profile': return <UserProfile user={user} weights={weights} logs={logs} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} />;
+      case 'profile': return <UserProfile user={user} weights={weights} logs={logs} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onOpenReminders={() => setActiveTab('notifications')} />;
       case 'history': return <WorshipHistory logs={logs} weights={weights} />;
       case 'guide': return <WorshipGuide />;
       case 'contact': return <ContactUs />;
-      case 'notifications': return <Notifications onBack={() => setActiveTab('dashboard')} />;
+      case 'notifications': return <Notifications onBack={() => setActiveTab('dashboard')} remindersManager={scheduledReminders} />;
       default: return null;
     }
   };

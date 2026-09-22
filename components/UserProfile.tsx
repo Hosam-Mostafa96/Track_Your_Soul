@@ -8,7 +8,7 @@ import {
   Activity, Mail, MapPin, Calendar, Sparkles, Skull,
   Repeat, Database, AlertTriangle, FileJson, Check,
   Smartphone, Download, Share, X, Heart, ShieldAlert,
-  MessageCircle
+  MessageCircle, Bell, BellRing
 } from 'lucide-react';
 import { AppWeights, User as UserType, DailyLog } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
@@ -25,6 +25,7 @@ interface UserProfileProps {
   installPrompt: any;
   onClearInstallPrompt: () => void;
   logs?: Record<string, DailyLog>;
+  onOpenReminders?: () => void;
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ 
@@ -36,7 +37,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
   onUpdateWeights, 
   installPrompt, 
   onClearInstallPrompt,
-  logs = {}
+  logs = {},
+  onOpenReminders
 }) => {
   const [localWeights, setLocalWeights] = useState<AppWeights>({ ...weights });
   const [showWeights, setShowWeights] = useState(false);
@@ -242,6 +244,30 @@ const UserProfile: React.FC<UserProfileProps> = ({
         </div>
       </div>
       
+      {/* التذكير اليومي المجدول وإشعارات المتصفح */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 group">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl group-hover:scale-105 transition-all">
+              <BellRing className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 header-font">التذكير اليومي المجدول</h3>
+              <p className="text-[10px] text-slate-400 font-bold header-font">ضبط تنبيهات صلاة الفجر، أذكار الصباح والمساء، والسنن</p>
+            </div>
+          </div>
+          {onOpenReminders && (
+            <button
+              type="button"
+              onClick={onOpenReminders}
+              className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-black rounded-2xl transition-all header-font"
+            >
+              إدارة التنبيهات
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* استعادة البيانات */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden">
         <button onClick={() => setShowRecovery(!showRecovery)} className="w-full flex items-center justify-between">

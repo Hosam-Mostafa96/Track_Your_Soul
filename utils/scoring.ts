@@ -5,6 +5,19 @@ import {
   DEFAULT_WEIGHTS
 } from '../constants';
 import { MORNING_ATHKAR, EVENING_ATHKAR, SLEEP_ATHKAR } from '../components/AthkarRead';
+import { getSinPenalty } from '../data/sinsData';
+
+export const calculateSinsDeduction = (log: DailyLog, weights: AppWeights = DEFAULT_WEIGHTS): number => {
+  let totalDeduction = 0;
+  if (log.sins && Array.isArray(log.sins.entries)) {
+    log.sins.entries.forEach(entry => {
+      const penalty = entry.customPenalty 
+        ?? getSinPenalty(entry.sinId, weights.sinPenalties, weights.customSins || []);
+      totalDeduction += penalty * (entry.count || 1);
+    });
+  }
+  return totalDeduction;
+};
 
 export const calculatePrayerScore = (entry: PrayerEntry, hasBurden: boolean, weights: AppWeights = DEFAULT_WEIGHTS) => {
   if (!entry.performed) return 0;
@@ -91,9 +104,17 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   // نقاط التدبر القرآني (150 نقطة لكل وقفة تدبر موثقة مع نية عمل)
   const tadabburPoints = (log.tadabburNotes || []).length * 150;
   
-  const deductionMultiplier = 1 - (weights.burdenDeduction / 100);
-  
-  const total = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + quranReadPagesPoints + knowledge + athkarCheck + athkarCount + detailedAthkarPoints + athkarReflectionsPoints + nawafilPrayers + fasting + customSunnahPoints + heartPoints + duasPoints + tadabburPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
+  const grossPoints = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + quranReadPagesPoints + knowledge + athkarCheck + athkarCount + detailedAthkarPoints + athkarReflectionsPoints + nawafilPrayers + fasting + customSunnahPoints + heartPoints + duasPoints + tadabburPoints) * (log.jihadFactor || 1);
 
-  return Math.round(total);
+  const sinsDeduction = calculateSinsDeduction(log, weights);
+
+  let finalScore = grossPoints;
+  if (sinsDeduction > 0) {
+    finalScore = Math.max(0, grossPoints - sinsDeduction);
+  } else if (log.hasBurden) {
+    const deductionMultiplier = 1 - ((weights.burdenDeduction || 30) / 100);
+    finalScore = grossPoints * deductionMultiplier;
+  }
+
+  return Math.round(finalScore);
 };

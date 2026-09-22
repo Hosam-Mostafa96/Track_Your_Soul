@@ -45,7 +45,7 @@ import {
 import { DailyLog, AppWeights, User, PrayerEntry, Book, PrayerName } from '../types';
 import { endOfDay, format, addDays, formatDistanceToNow } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
-import { calculateTotalScore } from '../utils/scoring';
+import { calculateTotalScore, calculateSinsDeduction } from '../utils/scoring';
 
 interface StatisticsProps {
   user: User | null;
@@ -57,7 +57,7 @@ interface StatisticsProps {
 }
 
 type ActivityType = 
-  | 'all' | 'mood' | 'burden'
+  | 'all' | 'mood' | 'burden' | 'sleep_tracked'
   | 'fajr' | 'prayers_all' | 'takbir' | 'rawatib'
   | 'quran_hifz' | 'quran_rev' | 'knowledge'
   | 'qiyam' | 'duha' | 'fasting'
@@ -66,6 +66,7 @@ type ActivityType =
 
 const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, lastSyncTime, onManualSync }) => {
   const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'all'>('month');
+  const [sleepDaysRange, setSleepDaysRange] = useState<7 | 14 | 30>(14);
   const [activityFilter, setActivityFilter] = useState<ActivityType>('all');
   const [isExporting, setIsExporting] = useState(false);
   const [showWeeklyCard, setShowWeeklyCard] = useState(false);
@@ -87,7 +88,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
         { id: 'all', label: 'الالتزام العام', icon: <Activity className="w-3 h-3" />, color: 'emerald' },
         { id: 'mood', label: 'السكينة النفسية', icon: <Smile className="w-3 h-3" />, color: 'amber' },
         { id: 'heart_deeds', label: 'أعمال القلوب', icon: <Heart className="w-3 h-3" />, color: 'rose' },
-        { id: 'burden', label: 'العبء الروحي', icon: <ShieldAlert className="w-3 h-3" />, color: 'rose' },
+        { id: 'burden', label: 'محاسبة الذنوب', icon: <ShieldAlert className="w-3 h-3" />, color: 'rose' },
+        { id: 'sleep_tracked', label: 'ساعات النوم', icon: <Moon className="w-3 h-3" />, color: 'indigo' },
       ]
     },
     {
@@ -146,32 +148,91 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
   }, [logs, timeFilter]);
 
   const sleepStatsData = useMemo(() => {
-    const days = 30;
+    const days = sleepDaysRange;
     const data = [];
     for (let i = days - 1; i >= 0; i--) {
       const d = addDays(new Date(), -i);
       const dStr = format(d, 'yyyy-MM-dd');
       const log = logs[dStr];
       let totalHours = 0;
-      if (log && log.sleep?.sessions) {
-        log.sleep.sessions.forEach(s => {
-          const [startH, startM] = s.start.split(':').map(Number);
-          const [endH, endM] = s.end.split(':').map(Number);
-          let mins = (endH * 60 + endM) - (startH * 60 + startM);
-          if (mins < 0) mins += 24 * 60;
-          totalHours += mins / 60;
-        });
+      if (log && log.sleep) {
+        if (typeof log.sleep.hours === 'number' && log.sleep.hours > 0) {
+          totalHours = log.sleep.hours;
+        } else if (log.sleep.sessions && log.sleep.sessions.length > 0) {
+          log.sleep.sessions.forEach(s => {
+            const [startH, startM] = s.start.split(':').map(Number);
+            const [endH, endM] = s.end.split(':').map(Number);
+            let mins = (endH * 60 + endM) - (startH * 60 + startM);
+            if (mins < 0) mins += 24 * 60;
+            totalHours += mins / 60;
+          });
+        }
       }
-      data.push({ date: format(d, 'dd MMM', { locale: ar }), hours: parseFloat(totalHours.toFixed(1)) });
+      data.push({ 
+        date: format(d, 'dd MMM', { locale: ar }), 
+        hours: parseFloat(totalHours.toFixed(1)),
+        fullDate: dStr
+      });
     }
     return data;
-  }, [logs]);
+  }, [logs, sleepDaysRange]);
 
-  const avgSleepHours = useMemo(() => {
-    const total = sleepStatsData.reduce((acc, curr) => acc + curr.hours, 0);
-    const recordedDays = sleepStatsData.filter(d => d.hours > 0).length;
-    return recordedDays > 0 ? (total / recordedDays).toFixed(1) : "0";
+  const sleepMetrics = useMemo(() => {
+    const recorded = sleepStatsData.filter(d => d.hours > 0);
+    const total = recorded.reduce((acc, curr) => acc + curr.hours, 0);
+    const avg = recorded.length > 0 ? (total / recorded.length).toFixed(1) : "0";
+    const idealDays = recorded.filter(d => d.hours >= 6 && d.hours <= 8).length;
+    const idealPercent = recorded.length > 0 ? Math.round((idealDays / recorded.length) * 100) : 0;
+    const max = recorded.length > 0 ? Math.max(...recorded.map(d => d.hours)) : 0;
+    const min = recorded.length > 0 ? Math.min(...recorded.map(d => d.hours)) : 0;
+    return {
+      avg,
+      recordedDays: recorded.length,
+      idealDays,
+      idealPercent,
+      max,
+      min
+    };
   }, [sleepStatsData]);
+
+  const sinsStats = useMemo(() => {
+    let totalDeductions = 0;
+    let totalSinsCount = 0;
+    let daysWithSins = 0;
+    let daysLogged = 0;
+
+    const days = timeFilter === 'week' ? 7 : timeFilter === 'month' ? 30 : 90;
+    for (let i = days - 1; i >= 0; i--) {
+      const d = addDays(new Date(), -i);
+      const dStr = format(d, 'yyyy-MM-dd');
+      const log = logs[dStr];
+      if (log) {
+        daysLogged++;
+        const sinsDeduction = calculateSinsDeduction(log, weights);
+        if (sinsDeduction > 0) {
+          totalDeductions += sinsDeduction;
+          daysWithSins++;
+          const entriesCount = (log.sins?.entries || []).reduce((acc, e) => acc + (e.count || 1), 0);
+          totalSinsCount += entriesCount;
+        } else if (log.hasBurden) {
+          daysWithSins++;
+          totalDeductions += 300;
+        }
+      }
+    }
+
+    const pureDays = Math.max(0, daysLogged - daysWithSins);
+    const purityRate = daysLogged > 0 ? Math.round((pureDays / daysLogged) * 100) : 100;
+
+    return {
+      totalDeductions,
+      totalSinsCount,
+      daysWithSins,
+      pureDays,
+      purityRate,
+      daysLogged
+    };
+  }, [logs, weights, timeFilter]);
 
   const consistencyGrid = useMemo(() => {
     return Array.from({ length: 30 }).map((_, i) => {
@@ -185,7 +246,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
           case 'mood': isConnected = (log.mood || 0) >= 4; break; 
           // Fix: Explicitly cast Object.values to string[][] to fix "Property length does not exist on type unknown"
           case 'heart_deeds': isConnected = (Object.values(log.heartStates?.deeds || {}) as string[][]).some(arr => arr.length > 0); break;
-          case 'burden': isConnected = log.hasBurden; break;
+          case 'burden': isConnected = Boolean((log.sins?.entries && log.sins.entries.length > 0) || log.hasBurden); break;
+          case 'sleep_tracked': isConnected = Boolean((log.sleep?.hours ?? 0) > 0 || (log.sleep?.sessions?.length ?? 0) > 0); break;
           case 'prayers_all': isConnected = (Object.values(log.prayers) as PrayerEntry[]).filter(p => p.performed).length === 5; break;
           case 'fajr': isConnected = log.prayers[PrayerName.FAJR]?.performed; break;
           case 'takbir': isConnected = (Object.values(log.prayers) as PrayerEntry[]).some(p => p.surroundingSunnahIds?.includes('takbir')); break;
@@ -347,28 +409,213 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
         </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 overflow-hidden relative group">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full -translate-y-12 translate-x-12 opacity-50"></div>
-        <div className="flex items-center justify-between mb-6 relative z-10">
+      {/* تحليل وتتبع ساعات النوم */}
+      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 overflow-hidden relative group space-y-5">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/60 rounded-full -translate-y-12 translate-x-12 opacity-50 pointer-events-none"></div>
+
+        {/* الرأس وأزرار التصفية */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-700"><Moon className="w-6 h-6" /></div>
-            <div><h3 className="text-lg font-black text-slate-800 header-font leading-tight"><p className="text-[10px] text-slate-400 font-bold uppercase header-font">آخر 30 يوماً</p>تحليل ساعات النوم</h3></div>
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl shadow-xs">
+              <Moon className="w-6 h-6 stroke-[2.2]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black text-slate-800 header-font leading-tight">
+                  تتبع وتحليل ساعات النوم
+                </h3>
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 header-font">
+                  {sleepMetrics.recordedDays} ليلة مسجلة
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                متابعة توازن قسط النوم وأثره على النشاط في قيام الليل وصلاة الفجر
+              </p>
+            </div>
           </div>
-          <div className="text-right"><span className="text-2xl font-black font-mono text-indigo-600 leading-none">{avgSleepHours}</span><p className="text-[8px] font-bold text-slate-400 header-font mt-1">ساعة كمتوسط</p></div>
+
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl shrink-0 self-start sm:self-auto">
+            {([7, 14, 30] as const).map(days => (
+              <button
+                key={days}
+                type="button"
+                onClick={() => setSleepDaysRange(days)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all header-font ${
+                  sleepDaysRange === days
+                    ? 'bg-white text-indigo-700 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {days} يوماً
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="h-48 w-full relative z-10">
+
+        {/* إحصائيات وبطاقات سريعة للنوم */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 relative z-10">
+          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[9px] font-bold text-slate-400 block header-font">متوسط النوم اليومي</span>
+            <div className="flex items-baseline justify-center gap-1 mt-0.5">
+              <span className="text-xl font-black font-mono text-indigo-700">{sleepMetrics.avg}</span>
+              <span className="text-[10px] font-bold text-slate-500">ساعة</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[9px] font-bold text-slate-400 block header-font">نوم معتدل (6-8 ساعات)</span>
+            <div className="flex items-baseline justify-center gap-1 mt-0.5">
+              <span className="text-xl font-black font-mono text-emerald-600">
+                {sleepMetrics.idealDays}
+              </span>
+              <span className="text-[10px] font-bold text-slate-500">أيام ({sleepMetrics.idealPercent}%)</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[9px] font-bold text-slate-400 block header-font">أطول مدة نوم</span>
+            <div className="flex items-baseline justify-center gap-1 mt-0.5">
+              <span className="text-xl font-black font-mono text-slate-700">{sleepMetrics.max}</span>
+              <span className="text-[10px] font-bold text-slate-500">ساعة</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[9px] font-bold text-slate-400 block header-font">أقل مدة نوم</span>
+            <div className="flex items-baseline justify-center gap-1 mt-0.5">
+              <span className="text-xl font-black font-mono text-slate-700">{sleepMetrics.min}</span>
+              <span className="text-[10px] font-bold text-slate-500">ساعة</span>
+            </div>
+          </div>
+        </div>
+
+        {/* المخطط البياني لساعات النوم */}
+        <div className="h-52 w-full relative z-10 pt-2">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sleepStatsData}>
+            <BarChart data={sleepStatsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 700, fill: '#94a3b8', fontFamily: 'Cairo' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} width={20}/>
-              <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'Cairo' }} />
-              <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
-                {sleepStatsData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.hours >= 6 && entry.hours <= 8 ? '#6366f1' : '#a5b4fc'} />))}
+              <XAxis 
+                dataKey="date" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8', fontFamily: 'Cairo' }} 
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} 
+                domain={[0, 'dataMax + 2']}
+                unit="س"
+              />
+              <RechartsTooltip 
+                formatter={(value: any) => [`${value} ساعة نوم`, 'المدة']}
+                labelFormatter={(label: any) => `تاريخ: ${label}`}
+                contentStyle={{ 
+                  borderRadius: '16px', 
+                  border: 'none', 
+                  boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', 
+                  fontFamily: 'Cairo',
+                  direction: 'rtl',
+                  textAlign: 'right'
+                }} 
+              />
+              <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
+                {sleepStatsData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={
+                      entry.hours === 0 ? '#e2e8f0' :
+                      entry.hours >= 6 && entry.hours <= 8 ? '#4f46e5' : 
+                      entry.hours < 6 ? '#f59e0b' : '#818cf8'
+                    } 
+                  />
+                ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
+
+        <div className="flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 pt-2 border-t border-slate-50 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+            <span>نوم معتدل وصحي (6 - 8 ساعات)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <span>نوم قليل (أقل من 6 ساعات)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-300"></span>
+            <span>نوم وفير (أكثر من 8 ساعات)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* بطاقة إحصائيات محاسبة النفس ونقاء السجل */}
+      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl shadow-xs">
+              <ShieldAlert className="w-6 h-6 stroke-[2.2]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-800 header-font leading-tight">
+                سجل محاسبة النفس والذنوب
+              </h3>
+              <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                إحصائية التقصير والزلات المرصودة خلال {timeFilter === 'week' ? 'الأسبوع الحالي' : timeFilter === 'month' ? 'آخر 30 يوماً' : 'الفترة كاملة'}
+              </p>
+            </div>
+          </div>
+
+          <span className={`px-3 py-1 rounded-xl text-xs font-black header-font ${
+            sinsStats.purityRate >= 85 
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+              : 'bg-rose-50 text-rose-700 border border-rose-200'
+          }`}>
+            نسبة النقاء: {sinsStats.purityRate}%
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-bold text-slate-400 block header-font">أيام نقية بلا ذنوب</span>
+            <div className="flex items-baseline justify-center gap-1 mt-1">
+              <span className="text-2xl font-black font-mono text-emerald-600">{sinsStats.pureDays}</span>
+              <span className="text-[10px] font-bold text-slate-400">من {sinsStats.daysLogged}</span>
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-bold text-slate-400 block header-font">أيام سُجلت فيها زلات</span>
+            <div className="flex items-baseline justify-center gap-1 mt-1">
+              <span className="text-2xl font-black font-mono text-rose-600">{sinsStats.daysWithSins}</span>
+              <span className="text-[10px] font-bold text-slate-400">يوم</span>
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-bold text-slate-400 block header-font">إجمالي مرات الزلات</span>
+            <div className="flex items-baseline justify-center gap-1 mt-1">
+              <span className="text-2xl font-black font-mono text-slate-800">{sinsStats.totalSinsCount}</span>
+              <span className="text-[10px] font-bold text-slate-400">مرة</span>
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+            <span className="text-[10px] font-bold text-slate-400 block header-font">مجموع النقاط المخصومة</span>
+            <div className="flex items-baseline justify-center gap-1 mt-1">
+              <span className="text-2xl font-black font-mono text-rose-600">
+                {sinsStats.totalDeductions > 0 ? `-${sinsStats.totalDeductions.toLocaleString()}` : '0'}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">نقطة</span>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-slate-500 font-bold bg-amber-50/70 p-3 rounded-2xl border border-amber-100/70 leading-relaxed text-center">
+          💡 المحاسبة الصادقة والاستغفار الفوري طريق رفعة الدرجات وتكفير السيئات: ﴿وَالَّذِينَ إِذَا فَعَلُوا فَاحِشَةً أَوْ ظَلَمُوا أَنفُسَهُمْ ذَكَرُوا اللَّهَ فَاسْتَغْفَرُوا لِذُنُوبِهِمْ﴾.
+        </p>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
