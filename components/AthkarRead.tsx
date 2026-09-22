@@ -15,9 +15,18 @@ import {
   Check,
   Bed,
   Compass,
-  Shield
+  Shield,
+  NotebookPen,
+  Quote,
+  Share2,
+  Trash2,
+  History,
+  X,
+  Copy,
+  Search,
+  PenLine
 } from 'lucide-react';
-import { DailyLog } from '../types';
+import { DailyLog, AthkarReflectionEntry } from '../types';
 import { HisnAlMuslimSection } from './HisnAlMuslimSection';
 
 export interface AthkarItem {
@@ -333,6 +342,21 @@ export const SLEEP_ATHKAR: AthkarItem[] = [
   }
 ];
 
+const REFLECTION_PROMPTS = [
+  'عظمة التوحيد والملك',
+  'أثر الذكر على سلوكي اليومي',
+  'اعتراف بالذنب وافتقار للعفو',
+  'يقين بالحفظ ورضا بالله',
+  'دعاء ومناجاة مستنبطة'
+];
+
+export const ALL_ATHKAR_LIST = [
+  ...MORNING_ATHKAR.map(a => ({ ...a, category: 'morning' as const, categoryLabel: 'أذكار الصباح 🌅' })),
+  ...EVENING_ATHKAR.map(a => ({ ...a, category: 'evening' as const, categoryLabel: 'أذكار المساء 🌃' })),
+  ...SLEEP_ATHKAR.map(a => ({ ...a, category: 'sleep' as const, categoryLabel: 'أذكار النوم 🛌' })),
+  ...TRAVEL_ATHKAR.map(a => ({ ...a, category: 'travel' as const, categoryLabel: 'أذكار السفر 🚗' }))
+];
+
 interface AthkarReadProps {
   log: DailyLog;
   onUpdateLog: (log: DailyLog, activityLabel?: string, activityType?: string) => void;
@@ -341,6 +365,15 @@ interface AthkarReadProps {
 const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
   const [activeTab, setActiveTab] = useState<'morning' | 'evening' | 'sleep' | 'travel'>('morning');
   const [showVirtues, setShowVirtues] = useState<Record<string, boolean>>({});
+  
+  // حالات تدبرات الأذكار
+  const [openReflectionId, setOpenReflectionId] = useState<string | null>(null);
+  const [reflectionInputs, setReflectionInputs] = useState<Record<string, string>>({});
+  const [historyOpenId, setHistoryOpenId] = useState<string | null>(null);
+  const [showAllNotebookModal, setShowAllNotebookModal] = useState<boolean>(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [notebookFilter, setNotebookFilter] = useState<'all' | 'morning' | 'evening' | 'sleep' | 'travel'>('all');
+  const [notebookSearch, setNotebookSearch] = useState<string>('');
 
   const listToUse = activeTab === 'morning' 
     ? MORNING_ATHKAR 
@@ -439,6 +472,186 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
 
   const getCompletedCount = () => {
     return getCompletedCountFor(listToUse);
+  };
+
+  const toggleReflection = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (openReflectionId === id) {
+      setOpenReflectionId(null);
+      setHistoryOpenId(null);
+    } else {
+      setOpenReflectionId(id);
+      setHistoryOpenId(null);
+      if (reflectionInputs[id] === undefined) {
+        setReflectionInputs(prev => ({
+          ...prev,
+          [id]: log.athkar?.reflections?.[id] || ''
+        }));
+      }
+    }
+  };
+
+  const handleSaveReflection = (item: AthkarItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentVal = reflectionInputs[item.id] !== undefined
+      ? reflectionInputs[item.id]
+      : (log.athkar?.reflections?.[item.id] || '');
+    const trimmed = currentVal.trim();
+
+    if (!trimmed) {
+      handleDeleteReflection(item, e);
+      return;
+    }
+
+    const currentReflections = { ...(log.athkar?.reflections || {}) };
+    currentReflections[item.id] = trimmed;
+
+    const updatedLog: DailyLog = {
+      ...log,
+      athkar: {
+        ...log.athkar,
+        reflections: currentReflections
+      }
+    };
+
+    // حفظ في الأرشيف الشامل عبر الأيام
+    try {
+      const archiveKey = 'awrad_athkar_reflections_archive';
+      const existing = localStorage.getItem(archiveKey);
+      const archive: AthkarReflectionEntry[] = existing ? JSON.parse(existing) : [];
+      const matchIdx = archive.findIndex(a => a.athkarId === item.id && a.date === log.date);
+      const entry: AthkarReflectionEntry = {
+        id: matchIdx >= 0 ? archive[matchIdx].id : Math.random().toString(36).substring(2, 9),
+        athkarId: item.id,
+        athkarTextSnippet: item.text.slice(0, 80),
+        category: activeTab,
+        text: trimmed,
+        date: log.date,
+        timestamp: Date.now()
+      };
+      if (matchIdx >= 0) {
+        archive[matchIdx] = entry;
+      } else {
+        archive.unshift(entry);
+      }
+      localStorage.setItem(archiveKey, JSON.stringify(archive.slice(0, 400)));
+    } catch (err) {
+      console.error(err);
+    }
+
+    onUpdateLog(
+      updatedLog, 
+      `دوّن تدبراً في ذكر: "${item.text.slice(0, 25)}..." (+15 نقطة)`, 
+      'athkar'
+    );
+
+    setOpenReflectionId(null);
+    setHistoryOpenId(null);
+    setNotice('تم حفظ التدبر بنجاح واحتساب بركته الإيمانية (+15 نقطة) ✨');
+    setTimeout(() => setNotice(null), 3500);
+  };
+
+  const handleDeleteReflection = (item: AthkarItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('هل تريد حذف تدبرك لهذا الذكر؟')) return;
+
+    const currentReflections = { ...(log.athkar?.reflections || {}) };
+    delete currentReflections[item.id];
+
+    const updatedLog: DailyLog = {
+      ...log,
+      athkar: {
+        ...log.athkar,
+        reflections: currentReflections
+      }
+    };
+
+    onUpdateLog(updatedLog, `حذف تدبر ذكر`, 'athkar');
+    setReflectionInputs(prev => ({ ...prev, [item.id]: '' }));
+    setOpenReflectionId(null);
+    setHistoryOpenId(null);
+    setNotice('تم حذف التدبر');
+    setTimeout(() => setNotice(null), 2500);
+  };
+
+  const handleShareReflection = async (item: AthkarItem, reflectionText: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareText = `✨ وقفة تدبر مع الذكر:\n\n«${item.text}»\n\n💡 تدبري وخاطرتي:\n"${reflectionText}"\n\n— من يوميات رحلة الأوراد`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: 'تدبر الذكر', text: shareText });
+      } catch (err) {}
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(shareText);
+      setNotice('تم نسخ الذكر مع تدبرك للحافظة بنجاح');
+      setTimeout(() => setNotice(null), 3000);
+    }
+  };
+
+  const getPastReflectionsForItem = (itemId: string): AthkarReflectionEntry[] => {
+    try {
+      const archiveKey = 'awrad_athkar_reflections_archive';
+      const existing = localStorage.getItem(archiveKey);
+      if (!existing) return [];
+      const archive: AthkarReflectionEntry[] = JSON.parse(existing);
+      return archive.filter(a => a.athkarId === itemId);
+    } catch {
+      return [];
+    }
+  };
+
+  const getAllArchivedReflections = (): AthkarReflectionEntry[] => {
+    try {
+      const archiveKey = 'awrad_athkar_reflections_archive';
+      const existing = localStorage.getItem(archiveKey);
+      return existing ? JSON.parse(existing) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const handleInsertPrompt = (itemId: string, promptText: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentVal = reflectionInputs[itemId] !== undefined 
+      ? reflectionInputs[itemId] 
+      : (log.athkar?.reflections?.[itemId] || '');
+    const prefix = currentVal.trim() ? `${currentVal}\n• [${promptText}]: ` : `• [${promptText}]: `;
+    setReflectionInputs(prev => ({ ...prev, [itemId]: prefix }));
+  };
+
+  const handleApplyPastReflection = (itemId: string, pastText: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setReflectionInputs(prev => ({ ...prev, [itemId]: pastText }));
+    setHistoryOpenId(null);
+    setNotice('تم استحضار التدبر السابق إلى الحقل');
+    setTimeout(() => setNotice(null), 2500);
+  };
+
+  const todayReflections = log.athkar?.reflections || {};
+  const totalReflectionsCountToday = Object.values(todayReflections).filter(t => !!t?.trim()).length;
+
+  const handleCopyAllTodayReflections = async () => {
+    const entries = Object.entries(todayReflections).filter(([_, text]) => !!text?.trim());
+    if (entries.length === 0) return;
+
+    let fullText = `📔 تدبراتي في الأوراد والأذكار اليومية (${log.date}):\n\n`;
+    entries.forEach(([id, text], idx) => {
+      const found = ALL_ATHKAR_LIST.find(a => a.id === id);
+      const catLabel = found?.categoryLabel || 'ذكر';
+      const snippet = found?.text || id;
+      fullText += `[${idx + 1}] ${catLabel}\nالذكر: «${snippet}»\nالتدبر: "${text}"\n\n`;
+    });
+    fullText += `— من تطبيق الأوراد اليومية وإدارة العبادات`;
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(fullText);
+        setNotice('تم نسخ كافة تدبرات اليوم بنجاح!');
+        setTimeout(() => setNotice(null), 3000);
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -544,12 +757,23 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
           </button>
         </div>
 
-        {/* زر الانتقال السريع لأدعية حصن المسلم بالأسفل */}
+        {/* شريط الإجراءات: الانتقال للحصن ومفكرة تدبرات الأذكار */}
         <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-[11px] sm:text-xs text-slate-500 font-bold">
-            <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>أدعية حصن المسلم والمناسبات اليومية بالأسفل</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAllNotebookModal(true)}
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-black header-font flex items-center gap-1.5 transition-all border active:scale-95 shadow-2xs ${
+                totalReflectionsCountToday > 0
+                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+              }`}
+              title="استعراض مفكرة تدبرات الأذكار اليومية وتدويناتك"
+            >
+              <NotebookPen className="w-3.5 h-3.5 text-amber-600" />
+              <span>مفكرة التدبرات ({totalReflectionsCountToday})</span>
+            </button>
           </div>
+
           <button
             onClick={() => {
               const el = document.getElementById('hisn-al-muslim-section');
@@ -580,6 +804,18 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
             style={{ width: `${(getCompletedCount() / listToUse.length) * 100}%` }}
           ></div>
         </div>
+        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-white/10 opacity-95">
+          <span className="flex items-center gap-1 font-bold">
+            <NotebookPen className="w-3.5 h-3.5 text-yellow-200" />
+            <span>تدبرات أذكار اليوم: {totalReflectionsCountToday} (+{Math.min(75, totalReflectionsCountToday * 15)} نقطة بركة)</span>
+          </span>
+          <button 
+            onClick={() => setShowAllNotebookModal(true)}
+            className="text-[10px] text-yellow-200 underline hover:text-white font-bold"
+          >
+            فتح المفكرة
+          </button>
+        </div>
         <p className="text-[10px] opacity-90 leading-relaxed font-bold">
           💡 <span className="underline">المعادلة الإيمانية الذكية:</span> نسبة إنجاز هذه القائمة تمنحك درجات بحد أقصى <span className="text-yellow-200 font-black">100 درجة كاملة</span> لأذكار {activeTab === 'morning' ? 'الصباح 🌅' : (activeTab === 'evening' ? 'المساء 🌃' : (activeTab === 'sleep' ? 'النوم 🛌' : 'السفر 🚗'))} بالتناسب مع ما قرأته، وبمجرد إنهائك لـ 70% من القائمة يُفعّل لك تلقائياً العداد الإيماني العام.
         </p>
@@ -591,6 +827,12 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
           const countDone = detailedData[item.id] || 0;
           const isDone = countDone >= item.count;
           const virtueOpen = !!showVirtues[item.id];
+          const savedReflection = log.athkar?.reflections?.[item.id] || '';
+          const isEditingReflection = openReflectionId === item.id;
+          const reflectionTextValue = reflectionInputs[item.id] !== undefined
+            ? reflectionInputs[item.id]
+            : savedReflection;
+          const pastReflections = isEditingReflection ? getPastReflectionsForItem(item.id) : [];
 
           return (
             <div 
@@ -618,6 +860,21 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
                     {virtueOpen ? 'إخفاء الفضل' : 'فضل الذكر'}
                     <ChevronDown className={`w-3 h-3 transition-transform ${virtueOpen ? 'rotate-180 text-emerald-600' : ''}`} />
                   </button>
+
+                  <button 
+                    onClick={(e) => toggleReflection(item.id, e)}
+                    className={`p-1 px-2.5 rounded-xl transition-all flex items-center gap-1 text-[10px] font-bold ${
+                      savedReflection
+                        ? 'bg-amber-100/90 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                        : isEditingReflection
+                          ? 'bg-slate-800 text-white shadow-xs'
+                          : 'hover:bg-slate-100 text-slate-400 hover:text-slate-700'
+                    }`}
+                    title="تدوين خواطر وتدبر إيماني حول هذا الذكر"
+                  >
+                    <NotebookPen className={`w-3 h-3 ${savedReflection ? 'text-amber-700' : ''}`} />
+                    <span>{savedReflection ? 'تدبري مكتوب ✓' : 'تدبر الذكر'}</span>
+                  </button>
                 </div>
               </div>
 
@@ -631,6 +888,157 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
                 <div className="mt-2 mb-4 p-3 bg-slate-50 rounded-2xl border border-slate-100/50 text-[11px] text-slate-500 leading-normal font-bold flex gap-2 items-start animate-in fade-in slide-in-from-top-2 duration-200">
                   <Info className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                   <p>{item.virtue}</p>
+                </div>
+              )}
+
+              {/* بطاقة عرض التدبر المحفوظ (إن وُجد ولم يكن قيد التحرير) */}
+              {savedReflection && !isEditingReflection && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-2 mb-3 p-3.5 bg-gradient-to-br from-amber-50/90 via-amber-50/50 to-orange-50/40 rounded-2xl border border-amber-200/70 text-slate-800 animate-in fade-in slide-in-from-top-2 duration-200"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-900 header-font">
+                      <Quote className="w-3.5 h-3.5 text-amber-600 rotate-180" />
+                      <span>تدبري وخاطرتي الإيمانية:</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => handleShareReflection(item, savedReflection, e)}
+                        className="text-[10px] text-amber-800 hover:text-amber-950 flex items-center gap-0.5 font-bold transition-all"
+                        title="مشاركة الذكر والتدبر"
+                      >
+                        <Share2 className="w-3 h-3" />
+                        <span>مشاركة</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenReflectionId(item.id);
+                          setReflectionInputs(prev => ({ ...prev, [item.id]: savedReflection }));
+                        }}
+                        className="text-[10px] bg-white/90 hover:bg-white text-amber-900 px-2.5 py-0.5 rounded-lg border border-amber-200 font-bold transition-all shadow-2xs"
+                      >
+                        تعديل
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs leading-relaxed font-sans text-slate-800 whitespace-pre-wrap select-text">
+                    {savedReflection}
+                  </p>
+                </div>
+              )}
+
+              {/* صندوق تدوين وتحرير التدبر */}
+              {isEditingReflection && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  className="mt-2 mb-4 p-4 bg-gradient-to-br from-slate-50 via-amber-50/40 to-slate-50 rounded-2xl border-2 border-amber-200/90 shadow-sm animate-in zoom-in-95 duration-200 space-y-3 cursor-default"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-black text-amber-950 header-font">
+                      <div className="p-1 bg-amber-100 text-amber-800 rounded-lg">
+                        <NotebookPen className="w-4 h-4" />
+                      </div>
+                      <span>وقفة تدبر مع هذا الذكر الكريم</span>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenReflectionId(null); setHistoryOpenId(null); }}
+                      className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition-all"
+                      title="إغلاق التحرير"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* معينات استحضار القلب والتدبر */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] text-slate-400 font-bold">معينات ملهمة:</span>
+                    {REFLECTION_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={(e) => handleInsertPrompt(item.id, prompt, e)}
+                        className="text-[9.5px] px-2 py-0.5 bg-white hover:bg-amber-100/80 text-amber-900 rounded-full border border-amber-200/70 transition-all font-bold active:scale-95 shadow-2xs"
+                      >
+                        + {prompt}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* حقل الكتابة */}
+                  <textarea
+                    rows={3}
+                    value={reflectionTextValue}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setReflectionInputs(prev => ({ ...prev, [item.id]: e.target.value }));
+                    }}
+                    placeholder="اكتب ما يفيض به فؤادك من معانٍ، استحضار للمقصد، عهد عملي، أو افتقار لله عند تلاوة هذا الذكر..."
+                    className="w-full text-xs font-sans p-3 rounded-xl border border-slate-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60 outline-hidden bg-white text-slate-800 leading-relaxed resize-none shadow-inner"
+                  />
+
+                  {/* أزرار الحفظ والإجراءات */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-amber-100/60">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => handleSaveReflection(item, e)}
+                        className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-black header-font flex items-center gap-1.5 transition-all shadow-xs active:scale-95 border border-amber-400/40"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>حفظ التدبر (+15 نقطة)</span>
+                      </button>
+
+                      {savedReflection && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteReflection(item, e)}
+                          className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                          title="حذف التدبر"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {pastReflections.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setHistoryOpenId(historyOpenId === item.id ? null : item.id);
+                        }}
+                        className="text-[10px] text-amber-800 hover:text-amber-950 flex items-center gap-1 font-bold underline"
+                      >
+                        <History className="w-3 h-3" />
+                        <span>تدبرات سابقة ({pastReflections.length})</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* قائمة التدبرات السابقة إن وُجدت وطُلبت */}
+                  {historyOpenId === item.id && pastReflections.length > 0 && (
+                    <div className="mt-2 p-3 bg-white rounded-xl border border-amber-200 space-y-2 max-h-40 overflow-y-auto">
+                      <div className="text-[10px] font-black text-amber-900 border-b pb-1">سجل تدبراتك السابقة لهذا الذكر:</div>
+                      {pastReflections.map((p) => (
+                        <div key={p.id} className="text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-100 flex flex-col gap-1">
+                          <div className="flex items-center justify-between text-[9px] text-slate-400 font-bold">
+                            <span>{p.date}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleApplyPastReflection(item.id, p.text, e)}
+                              className="text-amber-700 hover:underline font-bold"
+                            >
+                              استحضار هذا النص
+                            </button>
+                          </div>
+                          <p className="text-slate-700 font-sans leading-relaxed">{p.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -676,6 +1084,186 @@ const AthkarRead: React.FC<AthkarReadProps> = ({ log, onUpdateLog }) => {
       <div id="hisn-al-muslim-section" className="pt-4">
         <HisnAlMuslimSection log={log} onUpdateLog={onUpdateLog} />
       </div>
+
+      {/* نافذة مفكرة تدبرات الأذكار الشاملة */}
+      {showAllNotebookModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200"
+          onClick={() => setShowAllNotebookModal(false)}
+        >
+          <div 
+            className="bg-white rounded-[2rem] sm:rounded-[2.5rem] w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border border-slate-100 flex flex-col animate-in zoom-in-95 duration-200 text-right"
+            onClick={(e) => e.stopPropagation()}
+            dir="rtl"
+          >
+            {/* رأس المفكرة */}
+            <div className="p-5 sm:p-6 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white/15 rounded-2xl backdrop-blur-xs">
+                  <NotebookPen className="w-6 h-6 text-amber-100" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black header-font leading-tight">مفكرة تدبرات الأذكار</h3>
+                  <p className="text-[11px] text-amber-100/90 font-bold">خواطرك الإيمانية، فتوحات المعاني، واستحضار مقاصد الذكر</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowAllNotebookModal(false)}
+                className="p-2 hover:bg-white/20 rounded-xl transition-all text-white"
+                title="إغلاق"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* شريط الأدوات والفلترة */}
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(['all', 'morning', 'evening', 'sleep', 'travel'] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setNotebookFilter(cat)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                      notebookFilter === cat 
+                        ? 'bg-amber-600 text-white shadow-xs' 
+                        : 'bg-white text-slate-500 hover:text-slate-800 border border-slate-200'
+                    }`}
+                  >
+                    {cat === 'all' ? 'الكل' : cat === 'morning' ? 'الصباح 🌅' : cat === 'evening' ? 'المساء 🌃' : cat === 'sleep' ? 'النوم 🛌' : 'السفر 🚗'}
+                  </button>
+                ))}
+              </div>
+
+              {totalReflectionsCountToday > 0 && (
+                <button
+                  onClick={handleCopyAllTodayReflections}
+                  className="px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-xs font-black header-font flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                >
+                  <Copy className="w-3.5 h-3.5 text-amber-600" />
+                  <span>نسخ تدبرات اليوم</span>
+                </button>
+              )}
+            </div>
+
+            {/* شريط البحث */}
+            <div className="px-4 py-2.5 bg-white border-b border-slate-100 shrink-0">
+              <div className="relative flex items-center">
+                <Search className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
+                <input
+                  type="text"
+                  value={notebookSearch}
+                  onChange={(e) => setNotebookSearch(e.target.value)}
+                  placeholder="ابحث في نصوص تدبراتك أو الذكر المرتبط..."
+                  className="w-full text-xs pr-9 pl-8 py-2 bg-slate-50 rounded-xl border border-slate-200 focus:border-amber-400 focus:bg-white outline-hidden font-sans"
+                />
+                {notebookSearch && (
+                  <button 
+                    onClick={() => setNotebookSearch('')} 
+                    className="absolute left-3 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* محتوى التدبرات */}
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+              {(() => {
+                const entries = Object.entries(todayReflections)
+                  .filter(([_, text]) => !!text?.trim())
+                  .map(([id, text]) => {
+                    const found = ALL_ATHKAR_LIST.find(a => a.id === id);
+                    return {
+                      id,
+                      text,
+                      category: found?.category || 'morning',
+                      categoryLabel: found?.categoryLabel || 'أذكار',
+                      athkarText: found?.text || '',
+                      athkarItem: found || { id, text: '', count: 1, virtue: '' }
+                    };
+                  })
+                  .filter(entry => {
+                    if (notebookFilter !== 'all' && entry.category !== notebookFilter) return false;
+                    if (notebookSearch.trim()) {
+                      const q = notebookSearch.trim().toLowerCase();
+                      return entry.text.toLowerCase().includes(q) || entry.athkarText.toLowerCase().includes(q);
+                    }
+                    return true;
+                  });
+
+                if (entries.length === 0) {
+                  return (
+                    <div className="text-center py-12 px-4 space-y-3">
+                      <div className="w-14 h-14 mx-auto rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+                        <NotebookPen className="w-7 h-7" />
+                      </div>
+                      <h4 className="text-sm font-black text-slate-700 header-font">لا توجد تدبرات مطابقة مسجلة اليوم</h4>
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed font-sans">
+                        اضغط على زر <span className="font-bold text-amber-800">"تدبر الذكر"</span> في بطاقة أي ذكر لتدوين فتوحات المعاني ونيل درجات التدبر المباركة (+15 نقطة لكل تدبر).
+                      </p>
+                    </div>
+                  );
+                }
+
+                return entries.map((entry) => (
+                  <div 
+                    key={entry.id}
+                    className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/80 space-y-2.5 transition-all hover:bg-amber-50/70"
+                  >
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold">
+                        {entry.categoryLabel}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleShareReflection(entry.athkarItem, entry.text, e)}
+                          className="text-amber-800 hover:text-amber-950 flex items-center gap-1 font-bold"
+                          title="مشاركة"
+                        >
+                          <Share2 className="w-3 h-3" />
+                          <span>مشاركة</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAllNotebookModal(false);
+                            setActiveTab(entry.category as any);
+                            setOpenReflectionId(entry.id);
+                            setReflectionInputs(prev => ({ ...prev, [entry.id]: entry.text }));
+                          }}
+                          className="text-amber-900 bg-white px-2 py-0.5 rounded-lg border border-amber-200 hover:bg-amber-100 font-bold transition-all shadow-2xs"
+                        >
+                          تعديل بالبطاقة
+                        </button>
+                      </div>
+                    </div>
+                    {entry.athkarText && (
+                      <p className="text-xs font-bold text-slate-700 leading-relaxed font-sans bg-white/80 p-2.5 rounded-xl border border-amber-100/70">
+                        «{entry.athkarText}»
+                      </p>
+                    )}
+                    <div className="p-3 bg-white rounded-xl border border-amber-200/70 text-slate-800 text-xs leading-relaxed font-sans whitespace-pre-wrap select-text">
+                      <div className="flex items-center gap-1 text-[11px] font-black text-amber-900 mb-1 header-font">
+                        <Quote className="w-3 h-3 text-amber-600 rotate-180" />
+                        <span>التدبر الموثق:</span>
+                      </div>
+                      {entry.text}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* إشعار عائم بالحفظ والتأكيد */}
+      {notice && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white px-5 py-3 rounded-2xl shadow-2xl border border-white/10 text-xs font-bold flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-4 duration-200 backdrop-blur-md">
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{notice}</span>
+        </div>
+      )}
     </div>
   );
 };

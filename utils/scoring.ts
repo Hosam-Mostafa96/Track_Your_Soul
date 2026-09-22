@@ -60,6 +60,10 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
     const sleepDoneCount = SLEEP_ATHKAR.filter(item => (detailedData[item.id] || 0) >= item.count).length;
     detailedAthkarPoints += Math.round((sleepDoneCount / SLEEP_ATHKAR.length) * 100);
   }
+
+  // نقاط تدبرات الأذكار (15 نقطة لكل تدبر موثق بحد أقصى 75 نقطة)
+  const athkarReflectionsCount = Object.keys(log.athkar?.reflections || {}).filter(k => !!log.athkar?.reflections?.[k]?.trim()).length;
+  const athkarReflectionsPoints = Math.min(75, athkarReflectionsCount * 15);
   
   const nawafilPrayers = (log.nawafil.duhaDuration + log.nawafil.witrDuration + log.nawafil.qiyamDuration) * weights.nawafilPerMin;
   const fasting = log.nawafil.fasting ? weights.fastingDay : 0;
@@ -89,7 +93,7 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
   
   const deductionMultiplier = 1 - (weights.burdenDeduction / 100);
   
-  const total = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + quranReadPagesPoints + knowledge + athkarCheck + athkarCount + detailedAthkarPoints + nawafilPrayers + fasting + customSunnahPoints + heartPoints + duasPoints + tadabburPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
+  const total = (prayers + quranHifzPoints + repsPoints + manualRevisionPoints + revisionRubPoints + quranTasksPoints + quranReadPagesPoints + knowledge + athkarCheck + athkarCount + detailedAthkarPoints + athkarReflectionsPoints + nawafilPrayers + fasting + customSunnahPoints + heartPoints + duasPoints + tadabburPoints) * (log.hasBurden ? deductionMultiplier : log.jihadFactor);
 
   return Math.round(total);
 };

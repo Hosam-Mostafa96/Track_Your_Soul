@@ -59,6 +59,16 @@ export interface ReflectionNote {
   timestamp: number;
 }
 
+export interface AthkarReflectionEntry {
+  id: string;
+  athkarId: string;
+  athkarTextSnippet: string;
+  category: 'morning' | 'evening' | 'sleep' | 'travel';
+  text: string;
+  date: string;
+  timestamp: number;
+}
+
 export interface TadabburNote {
   id: string;
   date: string; // YYYY-MM-DD
@@ -120,6 +130,7 @@ export interface DailyLog {
     checklists: { morning: boolean; evening: boolean; sleep: boolean; travel?: boolean };
     counters: Record<string, number>;
     completedDetailedAthkar?: Record<string, number>;
+    reflections?: Record<string, string>;
   };
   nawafil: { duhaDuration: number; witrDuration: number; qiyamDuration: number; fasting: boolean; custom: Array<{ id: string; value: number }> };
   sleep: { sessions: SleepSession[] };
