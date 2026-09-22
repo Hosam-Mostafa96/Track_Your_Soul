@@ -24,10 +24,13 @@ import {
   ZoomIn,
   ZoomOut,
   Trash2,
-  Bookmark
+  Bookmark,
+  Award
 } from 'lucide-react';
 import { DailyLog, ReflectionNote } from '../types';
 import { QuranTadabbur } from './QuranTadabbur';
+import { QuranWardPlanner } from './QuranWardPlanner';
+import { QuranKhatmatHistory } from './QuranKhatmatHistory';
 
 const QURAN_PORTIONS_NAMES = [
   "1- الفاتحة: (الحمد لله رب العالمين)",
@@ -462,8 +465,23 @@ const getRepsTitle = (unit: HifzUnitType): string => {
 };
 
 const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, onUpdateLog }) => {
-  const [subTab, setSubTab] = useState<'hifz' | 'tadabbur'>('hifz');
+  const [subTab, setSubTab] = useState<'ward' | 'hifz' | 'tadabbur' | 'khatmat'>(() => {
+    try {
+      const saved = localStorage.getItem('worship_quran_subtab') as 'ward' | 'hifz' | 'tadabbur' | 'khatmat';
+      if (saved && ['ward', 'hifz', 'tadabbur', 'khatmat'].includes(saved)) {
+        return saved;
+      }
+    } catch (e) {}
+    return 'ward';
+  });
   const [hifzUnit, setHifzUnit] = useState<HifzUnitType>('rub');
+
+  const handleSubTabChange = (newTab: 'ward' | 'hifz' | 'tadabbur' | 'khatmat') => {
+    setSubTab(newTab);
+    try {
+      localStorage.setItem('worship_quran_subtab', newTab);
+    } catch (e) {}
+  };
 
   useEffect(() => {
     const savedUnit = localStorage.getItem('worship_quran_unit') as HifzUnitType;
@@ -620,23 +638,43 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-500 text-right" dir="rtl">
-      {/* التبويبات الثنائية الفاخرة */}
-      <div className="bg-white p-1 rounded-2xl shadow-sm border border-slate-100 flex gap-1">
+      {/* التبويبات الرباعية الفاخرة للقرآن الكريم */}
+      <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
         <button 
-          onClick={() => setSubTab('hifz')} 
-          className={`flex-1 py-3 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'hifz' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={() => handleSubTabChange('ward')} 
+          className={`py-3 px-2 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'ward' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
         >
-          <Repeat className="w-4 h-4" /> برنامج الحفظ والإتقان
+          <BookOpen className="w-4 h-4 shrink-0" />
+          <span>مخطط الورد</span>
         </button>
         <button 
-          onClick={() => setSubTab('tadabbur')} 
-          className={`flex-1 py-3 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'tadabbur' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={() => handleSubTabChange('hifz')} 
+          className={`py-3 px-2 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'hifz' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
         >
-          <Sparkles className="w-4 h-4" /> محراب التدبر والتدوين
+          <Repeat className="w-4 h-4 shrink-0" />
+          <span>الحفظ والإتقان</span>
+        </button>
+        <button 
+          onClick={() => handleSubTabChange('tadabbur')} 
+          className={`py-3 px-2 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'tadabbur' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Sparkles className="w-4 h-4 shrink-0" />
+          <span>التدبر والتدوين</span>
+        </button>
+        <button 
+          onClick={() => handleSubTabChange('khatmat')} 
+          className={`py-3 px-2 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'khatmat' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Award className="w-4 h-4 shrink-0 text-amber-300" />
+          <span>سجل الختمات والأجزاء</span>
         </button>
       </div>
 
-      {subTab === 'hifz' ? (
+      {subTab === 'ward' && (
+        <QuranWardPlanner log={log} onUpdateLog={onUpdateLog} />
+      )}
+
+      {subTab === 'hifz' && (
         <div className="space-y-6">
           <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
              <div className="flex items-center gap-2 mb-4">
@@ -819,12 +857,23 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {subTab === 'tadabbur' && (
         /* محراب التدبر القرآني المتكامل */
         <QuranTadabbur 
           log={log} 
           onUpdateLog={onUpdateLog} 
           currentDate={log.date}
+        />
+      )}
+
+      {subTab === 'khatmat' && (
+        /* سجل الختمات السابقة وإحصائية الأجزاء الإجمالية */
+        <QuranKhatmatHistory
+          log={log}
+          logs={logs}
+          onUpdateLog={onUpdateLog}
         />
       )}
     </div>

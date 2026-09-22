@@ -311,3 +311,63 @@ export const DAILY_TADABBUR_SEEDS: DailyTadabburSeed[] = [
     suggestedAction: "أبدأ فوراً في عمل صالح كنت أؤجله منذ فترة (بر والدين، صلة رحم، صدقة، أو ختمة ورد)."
   }
 ];
+
+export interface QuranJuzMeta {
+  id: number;
+  name: string;
+  popularName: string;
+  startPage: number;
+  endPage: number;
+  totalPages: number;
+  surahsDesc: string;
+}
+
+export const QURAN_30_JUZ: QuranJuzMeta[] = [
+  { id: 1, name: "الجزء الأول", popularName: "الم (الفاتحة والبقرة)", startPage: 1, endPage: 21, totalPages: 21, surahsDesc: "الفاتحة - البقرة (1-141)" },
+  { id: 2, name: "الجزء الثاني", popularName: "سيقول السفهاء", startPage: 22, endPage: 41, totalPages: 20, surahsDesc: "البقرة (142-252)" },
+  { id: 3, name: "الجزء الثالث", popularName: "تلك الرسل", startPage: 42, endPage: 61, totalPages: 20, surahsDesc: "البقرة (253-286) - آل عمران (1-92)" },
+  { id: 4, name: "الجزء الرابع", popularName: "لن تنالوا البر", startPage: 62, endPage: 81, totalPages: 20, surahsDesc: "آل عمران (93-200) - النساء (1-23)" },
+  { id: 5, name: "الجزء الخامس", popularName: "والمحصنات", startPage: 82, endPage: 101, totalPages: 20, surahsDesc: "النساء (24-147)" },
+  { id: 6, name: "الجزء السادس", popularName: "لا يحب الله", startPage: 102, endPage: 121, totalPages: 20, surahsDesc: "النساء (148-176) - المائدة (1-81)" },
+  { id: 7, name: "الجزء السابع", popularName: "وإذا سمعوا", startPage: 122, endPage: 141, totalPages: 20, surahsDesc: "المائدة (82-120) - الأنعام (1-110)" },
+  { id: 8, name: "الجزء الثامن", popularName: "ولو أننا", startPage: 142, endPage: 161, totalPages: 20, surahsDesc: "الأنعام (111-165) - الأعراف (1-87)" },
+  { id: 9, name: "الجزء التاسع", popularName: "قال الملأ", startPage: 162, endPage: 181, totalPages: 20, surahsDesc: "الأعراف (88-206) - الأنفال (1-40)" },
+  { id: 10, name: "الجزء العاشر", popularName: "واعلموا", startPage: 182, endPage: 201, totalPages: 20, surahsDesc: "الأنفال (41-75) - التوبة (1-92)" },
+  { id: 11, name: "الجزء الحادي عشر", popularName: "يعتذرون", startPage: 202, endPage: 221, totalPages: 20, surahsDesc: "التوبة (93-129) - يونس - هود (1-5)" },
+  { id: 12, name: "الجزء الثاني عشر", popularName: "وما من دابة", startPage: 222, endPage: 241, totalPages: 20, surahsDesc: "هود (6-123) - يوسف (1-52)" },
+  { id: 13, name: "الجزء الثالث عشر", popularName: "وما أبرئ نفسي", startPage: 242, endPage: 261, totalPages: 20, surahsDesc: "يوسف (53-111) - الرعد - إبراهيم" },
+  { id: 14, name: "الجزء الرابع عشر", popularName: "ربما يود", startPage: 262, endPage: 281, totalPages: 20, surahsDesc: "الحجر - النحل" },
+  { id: 15, name: "الجزء الخامس عشر", popularName: "سبحان الذي أسرى", startPage: 282, endPage: 301, totalPages: 20, surahsDesc: "الإسراء - الكهف (1-74)" },
+  { id: 16, name: "الجزء السادس عشر", popularName: "قال ألم أقل لك", startPage: 302, endPage: 321, totalPages: 20, surahsDesc: "الكهف (75-110) - مريم - طه" },
+  { id: 17, name: "الجزء السابع عشر", popularName: "اقترب للناس", startPage: 322, endPage: 341, totalPages: 20, surahsDesc: "الأنبياء - الحج" },
+  { id: 18, name: "الجزء الثامن عشر", popularName: "قد أفلح المؤمنون", startPage: 342, endPage: 361, totalPages: 20, surahsDesc: "المؤمنون - النور - الفرقان (1-20)" },
+  { id: 19, name: "الجزء التاسع عشر", popularName: "وقال الذين لا يرجون", startPage: 362, endPage: 381, totalPages: 20, surahsDesc: "الفرقان (21-77) - الشعراء - النمل (1-55)" },
+  { id: 20, name: "الجزء العشرون", popularName: "فما كان جواب قومه", startPage: 382, endPage: 401, totalPages: 20, surahsDesc: "النمل (56-93) - القصص - العنكبوت (1-45)" },
+  { id: 21, name: "الجزء الحادي والعشرون", popularName: "ولا تجادلوا", startPage: 402, endPage: 421, totalPages: 20, surahsDesc: "العنكبوت (46-69) - الروم - لقمان - السجدة - الأحزاب (1-30)" },
+  { id: 22, name: "الجزء الثاني والعشرون", popularName: "ومن يقنت", startPage: 422, endPage: 441, totalPages: 20, surahsDesc: "الأحزاب (31-73) - سبأ - فاطر - يس (1-27)" },
+  { id: 23, name: "الجزء الثالث والعشرون", popularName: "وما أنزلنا", startPage: 442, endPage: 461, totalPages: 20, surahsDesc: "يس (28-83) - الصافات - ص - الزمر (1-31)" },
+  { id: 24, name: "الجزء الرابع والعشرون", popularName: "فمن أظلم", startPage: 462, endPage: 481, totalPages: 20, surahsDesc: "الزمر (32-75) - غافر - فصلت (1-46)" },
+  { id: 25, name: "الجزء الخامس والعشرون", popularName: "إليه يرد علم الساعة", startPage: 482, endPage: 501, totalPages: 20, surahsDesc: "فصلت (47-54) - الشورى - الزخرف - الدخان - الجاثية" },
+  { id: 26, name: "الجزء السادس والعشرون", popularName: "حم الأحقاف", startPage: 502, endPage: 521, totalPages: 20, surahsDesc: "الأحقاف - محمد - الفتح - الحجرات - ق - الذاريات (1-30)" },
+  { id: 27, name: "الجزء السابع والعشرون", popularName: "قال فما خطبكم", startPage: 522, endPage: 541, totalPages: 20, surahsDesc: "الذاريات (31-60) - الطور - النجم - القمر - الرحمن - الواقعة - الحديد" },
+  { id: 28, name: "الجزء الثامن والعشرون", popularName: "قد سمع الله", startPage: 542, endPage: 561, totalPages: 20, surahsDesc: "المجادلة - الحشر - الممتحنة - الصف - الجمعة - المنافقون - التغابن - الطلاق - التحريم" },
+  { id: 29, name: "الجزء التاسع والعشرون", popularName: "تبارك الذي بيده الملك", startPage: 562, endPage: 581, totalPages: 20, surahsDesc: "الملك - القلم - الحاقة - المعارج - نوح - الجن - المزمل - المدثر - القيامة - الإنسان - المرسلات" },
+  { id: 30, name: "الجزء الثلاثون", popularName: "عمّ يتساءلون", startPage: 582, endPage: 604, totalPages: 23, surahsDesc: "من سورة النبأ إلى سورة الناس (قصار السور)" }
+];
+
+export const getSurahAtPage = (pageNumber: number): SurahMeta => {
+  let matched = QURAN_114_SURAHS[0];
+  for (const surah of QURAN_114_SURAHS) {
+    if (surah.page <= pageNumber) {
+      matched = surah;
+    } else {
+      break;
+    }
+  }
+  return matched;
+};
+
+export const getJuzAtPage = (pageNumber: number): QuranJuzMeta => {
+  const found = QURAN_30_JUZ.find(j => pageNumber >= j.startPage && pageNumber <= j.endPage);
+  return found || QURAN_30_JUZ[0];
+};

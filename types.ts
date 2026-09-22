@@ -112,6 +112,30 @@ export interface AppWeights {
   pointsPerDua: number;
 }
 
+export interface QuranWardPlan {
+  mode: 'pages' | 'juz';
+  targetPagesCount: number;
+  startPage: number;
+  endPage: number;
+  selectedJuz?: number;
+  completedPages?: number[];
+  isCompleted?: boolean;
+}
+
+export interface QuranKhatmaRecord {
+  id: string;
+  khatmaNumber: number;
+  title: string;
+  completionDate: string; // YYYY-MM-DD
+  startDate?: string;     // YYYY-MM-DD
+  durationDays?: number;  // بالأيام
+  type: 'tilawah' | 'hifz' | 'tadabbur' | 'murajaah';
+  totalAjza: number;      // 30
+  dedication?: string;    // إهداء الختمة
+  notes?: string;         // ملاحظات أو خواطر الختمة
+  createdAt: number;
+}
+
 export interface DailyLog {
   date: string;
   prayers: Record<string, PrayerEntry>;
@@ -124,6 +148,7 @@ export interface DailyLog {
     khatmaNumber?: number; // حقل جديد
     surahName?: string;    // حقل جديد
     readPages?: number[];   // الصفحات المقروءة اليوم من المصحف التفاعلي
+    wardPlan?: QuranWardPlan; // مخطط الورد اليومي
   };
   knowledge: { shariDuration: number; readingDuration: number; readingPages?: number };
   athkar: {

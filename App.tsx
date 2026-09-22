@@ -23,7 +23,8 @@ import {
   ChevronLeft,
   ScrollText,
   Target,
-  Shield
+  Shield,
+  TrendingUp
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
@@ -50,6 +51,8 @@ import HeartTazkiya from './components/HeartTazkiya';
 import AthkarRead from './components/AthkarRead';
 import FortyChallenge from './components/FortyChallenge';
 import { FortressOfFaith } from './components/FortressOfFaith';
+import { CurrentWeekEvaluationModal } from './components/CurrentWeekEvaluationModal';
+import { WeeklyCardModal } from './components/WeeklyCardModal';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -100,6 +103,8 @@ const App: React.FC = () => {
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [lastCloudSync, setLastCloudSync] = useState<string | null>(localStorage.getItem('last_cloud_sync_time'));
+  const [showWeekEvalModal, setShowWeekEvalModal] = useState(false);
+  const [showWeeklyShareModal, setShowWeeklyShareModal] = useState(false);
 
   // Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -240,6 +245,41 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // حساب إحصائية الأسبوع الحالي (يبدأ الأحد وينتهي السبت) ويتجدد تلقائياً كل أول أسبوع
+  const currentWeekStats = useMemo(() => {
+    const refDate = new Date(currentDate.replace(/-/g, '/'));
+    const dayOfWeek = refDate.getDay(); // 0: Sunday, 1: Monday, ..., 6: Saturday
+
+    // الأحد هو بداية الأسبوع
+    const sunday = new Date(refDate);
+    sunday.setDate(refDate.getDate() - dayOfWeek);
+    sunday.setHours(0, 0, 0, 0);
+
+    let cumulativeScore = 0;
+    const daysElapsed = dayOfWeek + 1; // الأيام المنقضية في الأسبوع حتى اليوم
+
+    for (let i = 0; i < daysElapsed; i++) {
+      const d = new Date(sunday);
+      d.setDate(sunday.getDate() + i);
+      const dStr = format(d, 'yyyy-MM-dd');
+      const dayLog = logs[dStr];
+      if (dayLog) {
+        cumulativeScore += calculateTotalScore(dayLog, weights);
+      }
+    }
+
+    const cumulativeTarget = daysElapsed * targetScore;
+    const cumulativePercentage = cumulativeTarget > 0
+      ? Math.round((cumulativeScore / cumulativeTarget) * 100)
+      : 0;
+
+    return {
+      cumulativeScore,
+      cumulativeTarget,
+      cumulativePercentage,
+      daysElapsed
+    };
+  }, [currentDate, logs, weights, targetScore]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -306,7 +346,58 @@ const App: React.FC = () => {
             <div className="flex items-center gap-1 shrink-0"><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
           </div>
           <div className="flex flex-col items-center gap-1.5"><div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div></div>
-          <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl"><div className="flex items-center gap-3"><div className="bg-yellow-400/20 p-2.5 rounded-2xl"><Sparkles className="w-6 h-6 text-yellow-400" /></div><div className="text-right"><p className="text-[10px] text-emerald-200 uppercase font-black header-font leading-none mb-1">الرصيد الروحي</p><span className="text-2xl font-black font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span></div></div><button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all"><p className="text-[10px] text-emerald-200 font-bold header-font leading-none mb-0.5">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p><p className="text-sm font-black header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p></button></div>
+          <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="bg-yellow-400/20 p-2.5 rounded-2xl"><Sparkles className="w-6 h-6 text-yellow-400" /></div>
+              <div className="text-right">
+                <p className="text-[10px] text-emerald-200 uppercase font-black header-font leading-none mb-1">الرصيد الروحي</p>
+                <span className="text-2xl font-black font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
+              </div>
+            </div>
+            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
+              <p className="text-[10px] text-emerald-200 font-bold header-font leading-none mb-0.5">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
+              <p className="text-sm font-black header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
+            </button>
+          </div>
+
+          {/* زر تقييم الأسبوع الحالي أسفل الرصيد الروحي */}
+          <button
+            onClick={() => setShowWeekEvalModal(true)}
+            className="w-full bg-emerald-950/40 hover:bg-emerald-950/60 backdrop-blur-xl rounded-2xl p-3 px-4 border border-white/20 hover:border-amber-400/60 transition-all duration-200 shadow-xl flex items-center justify-between group active:scale-[0.99] text-white"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 text-emerald-950 flex items-center justify-center font-black shadow-md shrink-0 group-hover:scale-105 transition-transform">
+                <TrendingUp className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div className="text-right">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-black header-font text-white">تقييم الأسبوع الحالي</span>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/30">
+                    الأحد - السبت
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-emerald-200/90 font-bold mt-0.5">
+                  إنجاز الهدف التراكمي: <span className="font-mono font-black text-amber-300">{currentWeekStats.cumulativePercentage}%</span>
+                  <span className="text-[9px] opacity-75 mr-1.5 font-mono">({currentWeekStats.cumulativeScore.toLocaleString()} / {currentWeekStats.cumulativeTarget.toLocaleString()} ن)</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="flex flex-col items-end">
+                <span className={`text-base sm:text-lg font-black font-mono leading-none ${currentWeekStats.cumulativePercentage >= 100 ? 'text-emerald-300' : currentWeekStats.cumulativePercentage >= 75 ? 'text-amber-300' : 'text-yellow-200'}`}>
+                  {currentWeekStats.cumulativePercentage}%
+                </span>
+                <div className="w-14 sm:w-16 h-1.5 bg-black/30 rounded-full overflow-hidden mt-1 border border-white/10">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${currentWeekStats.cumulativePercentage >= 100 ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-amber-400 to-yellow-300'}`}
+                    style={{ width: `${Math.min(100, currentWeekStats.cumulativePercentage)}%` }}
+                  ></div>
+                </div>
+              </div>
+              <ChevronLeft className="w-4 h-4 text-emerald-300/70 group-hover:text-amber-300 group-hover:-translate-x-0.5 transition-all" />
+            </div>
+          </button>
         </div>
       </header>
       <main className="px-4 -mt-8 relative z-20 max-w-2xl mx-auto">{renderContent()}</main>
@@ -319,12 +410,12 @@ const App: React.FC = () => {
               {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
               {id: 'entry', icon: PenLine, label: 'تسجيل'},
               {id: 'athkar', icon: ScrollText, label: 'الأذكار'},
-              {id: 'forty', icon: Target, label: 'تحدي الأربعين'},
-              {id: 'fortress', icon: Shield, label: 'قلعة الإيمان'},
-              {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
-              {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
-              {id: 'subha', icon: Orbit, label: 'السبحة'},
               {id: 'quran', icon: BookOpen, label: 'القرآن'},
+              {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
+              {id: 'fortress', icon: Shield, label: 'قلعة الإيمان'},
+              {id: 'forty', icon: Target, label: 'تحدي الأربعين'},
+              {id: 'subha', icon: Orbit, label: 'السبحة'},
+              {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
               {id: 'heart', icon: Heart, label: 'التزكية'},
               {id: 'library', icon: Library, label: 'المكتبة'},
               {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
@@ -337,6 +428,31 @@ const App: React.FC = () => {
           <div className="absolute left-1 top-1/2 -translate-y-1/2 p-1 bg-emerald-500 rounded-full text-white shadow-lg animate-pulse z-20"><ChevronLeft className="w-3 h-3" /></div>
         </div>
       </div>
+
+      {/* نافذة تقييم الأسبوع الحالي التراكمي */}
+      <CurrentWeekEvaluationModal
+        isOpen={showWeekEvalModal}
+        onClose={() => setShowWeekEvalModal(false)}
+        logs={logs}
+        weights={weights}
+        targetScore={targetScore}
+        currentDate={currentDate}
+        onOpenShareCard={() => setShowWeeklyShareModal(true)}
+        onSelectDate={(dStr) => {
+          setCurrentDate(dStr);
+          setActiveTab('dashboard');
+        }}
+      />
+
+      {/* نافذة بطاقة الحصاد الأسبوعي للمشاركة */}
+      <WeeklyCardModal
+        isOpen={showWeeklyShareModal}
+        onClose={() => setShowWeeklyShareModal(false)}
+        logs={logs}
+        weights={weights}
+        user={user}
+        targetScore={targetScore}
+      />
     </div>
   );
 };
