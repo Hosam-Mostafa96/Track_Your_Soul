@@ -252,3 +252,69 @@ export interface ReminderHistoryItem {
   time: string;
 }
 
+export type WorshipGoalCategory = 
+  | 'prayer' 
+  | 'quran' 
+  | 'athkar' 
+  | 'nawafil' 
+  | 'knowledge' 
+  | 'heart'
+  | 'dua'
+  | 'custom';
+
+export interface WeeklyWorshipGoalItem {
+  id: string;
+  title: string;
+  category: WorshipGoalCategory;
+  unit: string;
+  target: number;
+  min: number;
+  max: number;
+  step: number;
+  enabled: boolean;
+  description: string;
+  iconName: string;
+  tabTarget?: string; // Tab to navigate to in the app
+  isCustom?: boolean; // هل هو هدف مضاف يدوياً من المستخدم
+  sourceType?: string; // نوع العبادة المرتبطة في صفحة تسجيل العبادات
+  sourceDetailId?: string; // معرف تفصيلي إضافي (لسنة مخصصة أو ذكر مخصص)
+}
+
+export interface WeeklyGoalsConfig {
+  version: number;
+  preset: 'balanced' | 'high' | 'pacesetter' | 'custom';
+  goals: WeeklyWorshipGoalItem[];
+}
+
+export interface WeeklyGoalDailyBreakdown {
+  dateStr: string;
+  dayName: string;
+  value: number;
+  isToday: boolean;
+  isPastOrToday: boolean;
+}
+
+export interface WeeklyGoalProgress {
+  goal: WeeklyWorshipGoalItem;
+  current: number;
+  target: number;
+  percentage: number;
+  remaining: number;
+  isCompleted: boolean;
+  dailyValues: WeeklyGoalDailyBreakdown[];
+  paceStatus: 'ahead' | 'on_track' | 'behind';
+}
+
+export interface WeeklyGoalsSummary {
+  weekRangeLabel: string;
+  sunday: Date;
+  saturday: Date;
+  daysElapsed: number;
+  totalGoalsCount: number;
+  completedGoalsCount: number;
+  overallCompletionPct: number;
+  goalsProgress: WeeklyGoalProgress[];
+  bestPerformingGoal?: WeeklyGoalProgress;
+  mostNeededGoal?: WeeklyGoalProgress;
+}
+

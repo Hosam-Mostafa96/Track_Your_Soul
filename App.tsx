@@ -106,6 +106,7 @@ const App: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [lastCloudSync, setLastCloudSync] = useState<string | null>(localStorage.getItem('last_cloud_sync_time'));
   const [showWeekEvalModal, setShowWeekEvalModal] = useState(false);
+  const [weekEvalInitialTab, setWeekEvalInitialTab] = useState<'general' | 'custom_goals'>('custom_goals');
   const [showWeeklyShareModal, setShowWeeklyShareModal] = useState(false);
 
   // Scheduled Daily Reminders System
@@ -314,7 +315,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} user={user} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBookProgress} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onUpdateLog={updateLog} />;
+      case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} user={user} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBookProgress} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onUpdateLog={updateLog} onOpenWeeklyEvaluation={(tab) => { setWeekEvalInitialTab(tab || 'custom_goals'); setShowWeekEvalModal(true); }} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} onSwitchTab={setActiveTab} />;
       case 'heart': return <HeartTazkiya log={currentLog} onUpdate={updateLog} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
@@ -410,7 +411,10 @@ const App: React.FC = () => {
 
           {/* زر تقييم الأسبوع الحالي أسفل الرصيد الروحي */}
           <button
-            onClick={() => setShowWeekEvalModal(true)}
+            onClick={() => {
+              setWeekEvalInitialTab('custom_goals');
+              setShowWeekEvalModal(true);
+            }}
             className="w-full bg-emerald-950/40 hover:bg-emerald-950/60 backdrop-blur-xl rounded-2xl p-3 px-4 border border-white/20 hover:border-amber-400/60 transition-all duration-200 shadow-xl flex items-center justify-between group active:scale-[0.99] text-white"
           >
             <div className="flex items-center gap-3">
@@ -477,7 +481,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* نافذة تقييم الأسبوع الحالي التراكمي */}
+      {/* نافذة تقييم الأسبوع الحالي التراكمي والأهداف المخصصة */}
       <CurrentWeekEvaluationModal
         isOpen={showWeekEvalModal}
         onClose={() => setShowWeekEvalModal(false)}
@@ -485,6 +489,8 @@ const App: React.FC = () => {
         weights={weights}
         targetScore={targetScore}
         currentDate={currentDate}
+        initialTab={weekEvalInitialTab}
+        onNavigateTab={(tab) => setActiveTab(tab as any)}
         onOpenShareCard={() => setShowWeeklyShareModal(true)}
         onSelectDate={(dStr) => {
           setCurrentDate(dStr);
