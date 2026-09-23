@@ -150,7 +150,20 @@ const App: React.FC = () => {
     setTargetScore(safeLoad('worship_target', 13500));
     setUser(safeLoad('worship_user', null));
     setIsGlobalSyncEnabled(safeLoad('worship_global_sync', true));
-    setWeights(safeLoad('worship_weights', DEFAULT_WEIGHTS));
+    const loadedWeights = safeLoad('worship_weights', {});
+    const mergedWeights: AppWeights = {
+      ...DEFAULT_WEIGHTS,
+      ...loadedWeights,
+      surroundingSunnahs: {
+        ...DEFAULT_WEIGHTS.surroundingSunnahs,
+        ...(loadedWeights?.surroundingSunnahs || {})
+      },
+      sinPenalties: {
+        ...(DEFAULT_WEIGHTS.sinPenalties || {}),
+        ...(loadedWeights?.sinPenalties || {})
+      }
+    };
+    setWeights(mergedWeights);
     setIsAppReady(true);
   }, []);
 

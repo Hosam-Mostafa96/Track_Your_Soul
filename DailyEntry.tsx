@@ -69,15 +69,34 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
   }, []);
 
   const updateSection = (section: keyof DailyLog, data: any, label?: string, type?: string) => {
-    onUpdate({ ...log, [section]: { ...(log[section] as any), ...data } }, label, type);
+    const existing = (log[section] as any) || {};
+    onUpdate({ ...log, [section]: { ...existing, ...data } }, label, type);
   };
 
   const updatePrayer = (name: PrayerName, data: any, label?: string) => {
-    onUpdate({ ...log, prayers: { ...log.prayers, [name]: { ...log.prayers[name], ...data } } }, label, 'prayer');
+    const existing = log.prayers?.[name] || {
+      performed: false,
+      inCongregation: false,
+      tranquility: TranquilityLevel.MINIMUM,
+      internalSunnahPackage: 'excellent',
+      surroundingSunnahIds: []
+    };
+    onUpdate({ 
+      ...log, 
+      prayers: { 
+        ...log.prayers, 
+        [name]: { 
+          ...existing, 
+          tranquility: existing.tranquility ?? TranquilityLevel.MINIMUM,
+          surroundingSunnahIds: existing.surroundingSunnahIds || [],
+          ...data 
+        } 
+      } 
+    }, label, 'prayer');
   };
 
   const toggleSunnahInPrayer = (prayerName: PrayerName, sunnahId: string, sunnahLabel: string) => {
-    const current = log.prayers[prayerName].surroundingSunnahIds || [];
+    const current = log.prayers?.[prayerName]?.surroundingSunnahIds || [];
     const isAdding = !current.includes(sunnahId);
     const newIds = isAdding ? [...current, sunnahId] : current.filter(id => id !== sunnahId);
     updatePrayer(prayerName, { surroundingSunnahIds: newIds }, isAdding ? `أتمَّ ${sunnahLabel}` : undefined);
@@ -189,7 +208,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
     </div>
   );
 
-  const isPerformed = log.prayers[activePrayer].performed;
+  const isPerformed = log.prayers?.[activePrayer]?.performed || false;
 
   return (
     <div className="space-y-6 pb-24 animate-in fade-in duration-500 text-right" dir="rtl">
@@ -214,17 +233,17 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
           {Object.values(PrayerName).map((p) => (
             <button key={p} onClick={() => setActivePrayer(p)} className={`flex-1 py-3 rounded-xl transition-all flex flex-col items-center gap-1 ${activePrayer === p ? 'bg-white shadow-md text-emerald-600' : 'text-slate-400'}`}>
               <span className="text-[10px] font-bold header-font">{p}</span>
-              {log.prayers[p].performed && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>}
+              {log.prayers?.[p]?.performed && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>}
             </button>
           ))}
         </div>
         <div className={`space-y-6 ${isPerformed ? '' : 'opacity-40 grayscale pointer-events-none'}`}>
           <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-            <div className="flex items-center gap-3"><Users className={`w-5 h-5 ${log.prayers[activePrayer].inCongregation ? 'text-emerald-600' : 'text-slate-300'}`} /><h4 className="font-bold text-slate-800 text-sm">صلاة الجماعة</h4></div>
-            <button onClick={() => updatePrayer(activePrayer, { inCongregation: !log.prayers[activePrayer].inCongregation }, !log.prayers[activePrayer].inCongregation ? `صلى ${activePrayer} جماعة` : undefined)} className={`w-12 h-6 rounded-full relative transition-all ${log.prayers[activePrayer].inCongregation ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${log.prayers[activePrayer].inCongregation ? 'left-1' : 'left-7'}`}></div></button>
+            <div className="flex items-center gap-3"><Users className={`w-5 h-5 ${log.prayers?.[activePrayer]?.inCongregation ? 'text-emerald-600' : 'text-slate-300'}`} /><h4 className="font-bold text-slate-800 text-sm">صلاة الجماعة</h4></div>
+            <button onClick={() => updatePrayer(activePrayer, { inCongregation: !log.prayers?.[activePrayer]?.inCongregation }, !log.prayers?.[activePrayer]?.inCongregation ? `صلى ${activePrayer} جماعة` : undefined)} className={`w-12 h-6 rounded-full relative transition-all ${log.prayers?.[activePrayer]?.inCongregation ? 'bg-emerald-500' : 'bg-slate-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${log.prayers?.[activePrayer]?.inCongregation ? 'left-1' : 'left-7'}`}></div></button>
           </div>
-          <div className="grid grid-cols-1 gap-2">{(PRAYER_SUNNAHS[activePrayer] || []).map((s) => (<button key={s.id} onClick={() => toggleSunnahInPrayer(activePrayer, s.id, s.label)} className={`p-3 rounded-xl border text-xs font-bold transition-all ${log.prayers[activePrayer].surroundingSunnahIds?.includes(s.id) ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white text-slate-500 border-slate-100'}`}>{s.label}</button>))}</div>
-          <div className="pt-4 border-t border-slate-100"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">السنن المحيطة بالصلاة</h4><div className="flex flex-wrap gap-2">{SURROUNDING_SUNNAH_LIST.map((s) => (<button key={s.id} onClick={() => toggleSunnahInPrayer(activePrayer, s.id, s.label)} className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-bold transition-all ${log.prayers[activePrayer].surroundingSunnahIds?.includes(s.id) ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-white border-slate-50 text-slate-400'}`}><Sparkle className="w-3 h-3" /> {s.label}</button>))}</div></div>
+          <div className="grid grid-cols-1 gap-2">{(PRAYER_SUNNAHS[activePrayer] || []).map((s) => (<button key={s.id} onClick={() => toggleSunnahInPrayer(activePrayer, s.id, s.label)} className={`p-3 rounded-xl border text-xs font-bold transition-all ${log.prayers?.[activePrayer]?.surroundingSunnahIds?.includes(s.id) ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white text-slate-500 border-slate-100'}`}>{s.label}</button>))}</div>
+          <div className="pt-4 border-t border-slate-100"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">السنن المحيطة بالصلاة</h4><div className="flex flex-wrap gap-2">{SURROUNDING_SUNNAH_LIST.map((s) => (<button key={s.id} onClick={() => toggleSunnahInPrayer(activePrayer, s.id, s.label)} className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-bold transition-all ${log.prayers?.[activePrayer]?.surroundingSunnahIds?.includes(s.id) ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-white border-slate-50 text-slate-400'}`}><Sparkle className="w-3 h-3" /> {s.label}</button>))}</div></div>
         </div>
       </div>
 
@@ -236,13 +255,13 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
             <div key={field.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
               <span className="text-xs font-bold text-slate-700 header-font">{field.label}</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => updateSection('nawafil', { [field.field]: Math.max(0, log.nawafil[field.field] - 5) })} className="p-1.5 bg-white border border-slate-200 rounded-xl"><Minus className="w-4 h-4 text-slate-400" /></button>
-                <div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center"><span className="text-base font-black text-slate-800 tabular-nums">{log.nawafil[field.field]}</span></div>
-                <button onClick={() => updateSection('nawafil', { [field.field]: log.nawafil[field.field] + 5 }, `أطال في ${field.label.split(' ')[0]}`, 'prayer')} className="p-1.5 bg-white border border-slate-200 rounded-xl"><Plus className="w-4 h-4 text-slate-400" /></button>
+                <button onClick={() => updateSection('nawafil', { [field.field]: Math.max(0, (log.nawafil?.[field.field] || 0) - 5) })} className="p-1.5 bg-white border border-slate-200 rounded-xl"><Minus className="w-4 h-4 text-slate-400" /></button>
+                <div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center"><span className="text-base font-black text-slate-800 tabular-nums">{log.nawafil?.[field.field] || 0}</span></div>
+                <button onClick={() => updateSection('nawafil', { [field.field]: (log.nawafil?.[field.field] || 0) + 5 }, `أطال في ${field.label.split(' ')[0]}`, 'prayer')} className="p-1.5 bg-white border border-slate-200 rounded-xl"><Plus className="w-4 h-4 text-slate-400" /></button>
               </div>
             </div>
           ))}
-          <button onClick={() => updateSection('nawafil', { fasting: !log.nawafil.fasting }, !log.nawafil.fasting ? 'صائم محتسب' : undefined, 'sunnah')} className={`w-full p-4 rounded-3xl border flex items-center justify-between transition-all ${log.nawafil.fasting ? 'bg-orange-500 border-orange-500 text-white shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-500'}`}><span className="font-bold text-sm">صيام يوم كامل</span>{log.nawafil.fasting ? <span className="text-xs font-black">+1500 نقطة</span> : <div className="w-5 h-5 border-2 border-slate-300 rounded-full" />}</button>
+          <button onClick={() => updateSection('nawafil', { fasting: !log.nawafil?.fasting }, !log.nawafil?.fasting ? 'صائم محتسب' : undefined, 'sunnah')} className={`w-full p-4 rounded-3xl border flex items-center justify-between transition-all ${log.nawafil?.fasting ? 'bg-orange-500 border-orange-500 text-white shadow-lg' : 'bg-slate-50 border-slate-100 text-slate-500'}`}><span className="font-bold text-sm">صيام يوم كامل</span>{log.nawafil?.fasting ? <span className="text-xs font-black">+1500 نقطة</span> : <div className="w-5 h-5 border-2 border-slate-300 rounded-full" />}</button>
         </div>
       </div>
 
