@@ -30,7 +30,7 @@ import { format } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
 
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User, Book } from './types';
-import { calculateTotalScore } from './utils/scoring';
+import { calculateTotalScore, isSinOrAccountabilityActivity } from './utils/scoring';
 import { DEFAULT_WEIGHTS, GOOGLE_STATS_API } from './constants';
 import Dashboard from './components/Dashboard';
 import DailyEntry from './DailyEntry';
@@ -158,14 +158,18 @@ const App: React.FC = () => {
     if (!user?.email || !navigator.onLine || !isGlobalSyncEnabled) return;
     try {
       const email = user.email.toLowerCase().trim();
+      // حظر وتصفية أي نشاط متعلق بالذنوب أو محاسبة النفس صراحةً قبل الإرسال صوناً للستر والخصوصية
+      const safeActivityLabel = isSinOrAccountabilityActivity(activityLabel, activityType) ? undefined : activityLabel;
+      const safeActivityType = isSinOrAccountabilityActivity(activityLabel, activityType) ? undefined : activityType;
+
       const payload = { 
         action: 'syncLogs', 
         email, 
         name: user.name,
         logs: JSON.stringify(currentLogs),
         books: JSON.stringify(currentBooks),
-        activityLabel,
-        activityType,
+        activityLabel: safeActivityLabel,
+        activityType: safeActivityType,
         timestamp: new Date().toLocaleString('ar-EG'),
         forceUpdate: force
       };
@@ -187,7 +191,10 @@ const App: React.FC = () => {
     setLogs(newLogs);
     localStorage.setItem('worship_logs', JSON.stringify(newLogs));
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    syncTimeoutRef.current = window.setTimeout(() => syncToCloud(newLogs, books, false, activityLabel, activityType), 2000);
+    // حجب أي نشاط متعلق بالذنوب أو محاسبة النفس عن النشر في السحابة
+    const safeActivityLabel = isSinOrAccountabilityActivity(activityLabel, activityType) ? undefined : activityLabel;
+    const safeActivityType = isSinOrAccountabilityActivity(activityLabel, activityType) ? undefined : activityType;
+    syncTimeoutRef.current = window.setTimeout(() => syncToCloud(newLogs, books, false, safeActivityLabel, safeActivityType), 2000);
   };
 
   const handleAddBook = (title: string, totalPages: number) => {

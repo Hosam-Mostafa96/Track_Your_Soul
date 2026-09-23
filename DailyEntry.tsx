@@ -514,7 +514,7 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
             <button
               key={item.factor}
               type="button"
-              onClick={() => onUpdate({ ...log, jihadFactor: item.factor }, `تعديل معامل المجاهدة: ${item.label}`, 'status')}
+              onClick={() => onUpdate({ ...log, jihadFactor: item.factor })}
               className={`flex-1 sm:flex-initial px-3 py-2 rounded-xl text-xs font-black transition-all header-font ${
                 log.jihadFactor === item.factor
                   ? 'bg-rose-500 text-white shadow-sm scale-105'

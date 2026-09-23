@@ -118,3 +118,50 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
 
   return Math.round(finalScore);
 };
+
+/**
+ * التحقق مما إذا كان النشاط مرتبطاً بالذنوب أو محاسبة النفس أو التوبة أو المعاملات الشخصية،
+ * لحجبها تماماً عن العرض في نشاط العابدين العام التزاماً بأدب الستر والخصوصية.
+ */
+export const isSinOrAccountabilityActivity = (label?: string, type?: string): boolean => {
+  if (!label && !type) return false;
+  const lowerType = (type || '').toLowerCase();
+  const lowerLabel = (label || '').toLowerCase();
+
+  // أنواع الإجراءات الممنوعة من العرض العام
+  const forbiddenTypes = [
+    'accountability',
+    'sin',
+    'sins',
+    'repentance',
+    'burden',
+    'hasburden',
+    'status'
+  ];
+  if (forbiddenTypes.some(t => lowerType === t || lowerType.includes(t))) {
+    return true;
+  }
+
+  // الكلمات المفتاحية المتعلقة بالذنوب ومحاسبة النفس والتوبة والمجاهدة
+  const forbiddenWords = [
+    'ذنب',
+    'ذنوب',
+    'سيئة',
+    'سيئات',
+    'معصية',
+    'معاصي',
+    'محاسبة',
+    'المحاسبة',
+    'الزلات',
+    'زلة',
+    'توبة',
+    'التوبة',
+    'العبء الروحي',
+    'العبء',
+    'المجاهدة',
+    'معامل المجاهدة'
+  ];
+
+  return forbiddenWords.some(word => lowerLabel.includes(word));
+};
+

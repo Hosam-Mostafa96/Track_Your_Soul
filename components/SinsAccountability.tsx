@@ -94,6 +94,7 @@ export const SinsAccountability: React.FC<SinsAccountabilityProps> = ({
     const sinDef = getSinById(sinId, weights.customSins || []);
     const sinName = sinDef?.name || 'ذنب';
 
+    // خصوصية تامة وستر للذنوب والعيوب: لا يتم تمرير أي وسم نشاط (activityLabel) حتى لا يظهر في نشاط العابدين العام
     onUpdate({
       ...log,
       hasBurden: newEntries.length > 0, // توافق مع النظام السابق
@@ -102,7 +103,7 @@ export const SinsAccountability: React.FC<SinsAccountabilityProps> = ({
         entries: newEntries,
         repented: false
       }
-    }, delta > 0 ? `تسجيل ذنب في المحاسبة: ${sinName}` : `تراجع عن تسجيل: ${sinName}`, 'accountability');
+    });
   };
 
   // تعديل وزن ذنب مخصص
@@ -150,6 +151,7 @@ export const SinsAccountability: React.FC<SinsAccountabilityProps> = ({
 
   // تجديد التوبة والاستغفار
   const handleRepent = () => {
+    // خصوصية تامة وستر: محاسبة النفس شأن بين العبد وربه ولا تنشر في نشاط العابدين العام
     onUpdate({
       ...log,
       isRepented: true,
@@ -157,11 +159,12 @@ export const SinsAccountability: React.FC<SinsAccountabilityProps> = ({
         ...(log.sins || { entries: [] }),
         repented: true
       }
-    }, 'جدد التوبة والاستغفار 🤲', 'repentance');
+    });
   };
 
   // تفريغ الذنوب المسجلة لليوم بعد التوبة الصادقة
   const handleClearTodaySins = () => {
+    // خصوصية تامة وستر: محاسبة النفس شأن بين العبد وربه ولا تنشر في نشاط العابدين العام
     onUpdate({
       ...log,
       hasBurden: false,
@@ -170,7 +173,7 @@ export const SinsAccountability: React.FC<SinsAccountabilityProps> = ({
         entries: [],
         repented: true
       }
-    }, 'تفريغ سجل الزلات وتجديد التوبة النصوح 🌿', 'repentance');
+    });
   };
 
   return (

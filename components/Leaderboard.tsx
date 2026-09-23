@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
+import { isSinOrAccountabilityActivity } from '../utils/scoring';
 
 interface LeaderboardProps {
   user: User | null;
@@ -48,6 +49,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
   const currentQuote = useMemo(() => {
     return motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
   }, [motivationalQuotes]);
+
+  // تصفية إضافية مؤكدة لاستبعاد أي تحديث متعلق بالذنوب أو محاسبة النفس أو التوبة
+  const publicActivityFeed = useMemo(() => {
+    return activityFeed.filter((act: any) => 
+      act && !isSinOrAccountabilityActivity(act.actionLabel, act.actionType)
+    );
+  }, [activityFeed]);
 
   // معالجة البيانات القادمة من شيت جوجل بناءً على الأعمدة (A: الاسم، C: السكور)
   const processLeaderboard = (data: any[]) => {
@@ -113,8 +121,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             const myIdx = sortedAll.findIndex(p => p.email === myEmail);
             setUserRank(myIdx !== -1 ? myIdx + 1 : null);
           }
-          if (data.activities) {
-            setActivityFeed(data.activities);
+          if (data.activities && Array.isArray(data.activities)) {
+            // استبعاد أي نشاط متعلق بالذنوب أو محاسبة النفس أو التوبة أو المجاهدة صوناً للستر
+            const publicActivitiesOnly = data.activities.filter((act: any) => 
+              act && !isSinOrAccountabilityActivity(act.actionLabel, act.actionType)
+            );
+            setActivityFeed(publicActivitiesOnly);
           }
         }
       }
@@ -226,10 +238,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
       ) : (
         <div className="space-y-3">
           <div className="px-2 mb-2 flex items-center justify-between">
-             <h3 className="text-sm font-bold text-slate-800 header-font">نبض المحراب</h3>
-             <div className="text-[9px] font-bold text-emerald-500 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> مباشر</div>
+             <div>
+               <h3 className="text-sm font-bold text-slate-800 header-font">نبض المحراب</h3>
+               <p className="text-[9px] text-slate-400 font-bold mt-0.5">يقتصر على الطاعات المشتركة صوناً لخصوصية محاسبة النفس وستراً للذنوب 🌿</p>
+             </div>
+             <div className="text-[9px] font-bold text-emerald-500 flex items-center gap-1 shrink-0"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> مباشر</div>
           </div>
-          {activityFeed.length > 0 ? activityFeed.map((act, i) => (
+          {publicActivityFeed.length > 0 ? publicActivityFeed.map((act, i) => (
             <div key={i} className="bg-white p-4 rounded-2xl border border-slate-50 shadow-sm flex items-center justify-between group hover:border-emerald-100 transition-all animate-in slide-in-from-right-2">
               <div className="flex items-center gap-4">
                 <div className="p-2.5 bg-emerald-50 rounded-xl group-hover:scale-110 transition-transform">{getActionIcon(act.actionType)}</div>
