@@ -9,8 +9,8 @@ import { getSinPenalty } from '../data/sinsData';
 
 export const calculateSinsDeduction = (log: DailyLog, weights: AppWeights = DEFAULT_WEIGHTS): number => {
   if (!log) return 0;
-  // التوبة تمحو أثر الذنب في خصم الرصيد امتثالاً لحديث النبي ﷺ: «التائب من الذنب كمن لا ذنب له»
-  if (log.isRepented || log.sins?.repented) {
+  // التوبة الصريحة لذنوب اليوم تمحو أثر الذنب في خصم الرصيد امتثالاً لحديث النبي ﷺ: «التائب من الذنب كمن لا ذنب له»
+  if (log.sins?.repented === true) {
     return 0;
   }
 
@@ -152,17 +152,15 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
 
   let finalScore = grossPoints;
   if (sinsDeduction > 0) {
-    // لمنع تجميد الرصيد عند الصفر عند ارتكاب ذنب؛ نضع حداً أقصى للخصم بحيث لا يتجاوز 60% من إجمالي النقاط المكتسبة،
-    // ليبقى كل تسجيل لعبادة جديدة يرفع الرصيد الروحي فعلياً ويحث العبد على مزيد من الطاعات وتجديد التوبة
-    const maxAllowedDeduction = Math.round(grossPoints * 0.6);
-    const effectiveDeduction = Math.min(sinsDeduction, maxAllowedDeduction);
-    finalScore = Math.max(0, grossPoints - effectiveDeduction);
-  } else if (log.hasBurden && !log.isRepented && !log.sins?.repented) {
+    // يخصم كامل قدر الذنوب غير المستغفر منها من مجموع الطاعات
+    // وفي حال كان مجموع الخصم أكبر من مجموع الطاعات ينزل الرصيد بالسالب
+    finalScore = grossPoints - sinsDeduction;
+  } else if (log.hasBurden && log.sins?.repented !== true) {
     const deductionMultiplier = 1 - (((safeWeights.burdenDeduction ?? 30)) / 100);
     finalScore = grossPoints * Math.max(0, Math.min(1, deductionMultiplier));
   }
 
-  return Math.max(0, Math.round(finalScore));
+  return Math.round(finalScore);
 };
 
 /**

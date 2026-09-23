@@ -145,6 +145,13 @@ export const CurrentWeekEvaluationModal: React.FC<CurrentWeekEvaluationModalProp
 
   // تقييم وصفي مشجع حسب نسبة الإنجاز التراكمي
   const getFeedbackBadge = (pct: number) => {
+    if (pct < 0) {
+      return {
+        text: 'عجز في الرصيد بسبب المعاصي ⚠️ بادر بالتوبة النصوح والعمل الصالح',
+        color: 'bg-rose-600 text-white',
+        border: 'border-rose-500'
+      };
+    }
     if (pct >= 110) {
       return {
         text: 'أداء استثنائي متألق 🌟 ما شاء الله',
@@ -253,9 +260,11 @@ export const CurrentWeekEvaluationModal: React.FC<CurrentWeekEvaluationModalProp
                   className={`h-full rounded-full transition-all duration-700 ${
                     weekData.cumulativePercentage >= 100
                       ? 'bg-gradient-to-r from-emerald-400 to-teal-300'
+                      : weekData.cumulativePercentage < 0
+                      ? 'bg-rose-500'
                       : 'bg-gradient-to-r from-amber-400 to-yellow-300'
                   }`}
-                  style={{ width: `${Math.min(100, weekData.cumulativePercentage)}%` }}
+                  style={{ width: `${Math.max(0, Math.min(100, weekData.cumulativePercentage))}%` }}
                 ></div>
               </div>
             </div>
@@ -363,9 +372,11 @@ export const CurrentWeekEvaluationModal: React.FC<CurrentWeekEvaluationModalProp
                           ? 'bg-emerald-500'
                           : day.score > 0
                           ? 'bg-amber-400'
+                          : day.score < 0
+                          ? 'bg-rose-400'
                           : 'bg-slate-200'
                       }`}
-                      style={{ width: `${Math.min(100, day.pct)}%` }}
+                      style={{ width: `${Math.max(0, Math.min(100, day.pct))}%` }}
                     ></div>
                   </div>
                 </div>

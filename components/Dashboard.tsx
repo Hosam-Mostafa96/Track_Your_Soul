@@ -721,16 +721,22 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             ) : (
               <button onClick={() => { setIsEditingTarget(true); setTempTarget(targetScore.toString()); }} className="flex items-center gap-1.5 hover:bg-slate-50 p-1 px-2 rounded-lg transition-colors">
-                <span className="text-xs font-black text-emerald-600 font-mono">{currentTotalScore.toLocaleString()} / {targetScore.toLocaleString()}</span>
+                <span className={`text-xs font-black font-mono ${currentTotalScore < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {currentTotalScore.toLocaleString()} / {targetScore.toLocaleString()}
+                </span>
                 <Edit2 className="w-3 h-3 text-slate-300" />
               </button>
             )}
           </div>
         </div>
         <div className="w-full bg-slate-50 h-3 rounded-full overflow-hidden mb-2">
-          <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${Math.min(progressPercent, 100)}%` }} />
+          <div className={`${currentTotalScore < 0 ? 'bg-rose-400' : 'bg-emerald-500'} h-full transition-all duration-1000`} style={{ width: `${Math.max(0, Math.min(progressPercent, 100))}%` }} />
         </div>
-        <p className="text-[10px] text-slate-400 font-bold text-center">لقد أنجزت {Math.round(progressPercent)}% من هدفك الروحي</p>
+        <p className="text-[10px] text-slate-400 font-bold text-center">
+          {currentTotalScore < 0 
+            ? `عجز في الرصيد (${currentTotalScore.toLocaleString()} نقطة) - بادر بالتوبة والعمل الصالح لتعويضه`
+            : `لقد أنجزت ${Math.round(progressPercent)}% من هدفك الروحي`}
+        </p>
       </div>
 
       {/* 3. متابعة القراءة اليومية (تم تصغير المربع) */}

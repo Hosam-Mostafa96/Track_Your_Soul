@@ -84,7 +84,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
   duaIdsCompleted: [],
   jihadFactor: JihadFactor.NORMAL,
   hasBurden: false,
-  isRepented: true,
+  isRepented: false,
   isSupplicatingAloud: false,
   notes: '',
   reflections: [],
@@ -385,10 +385,21 @@ const App: React.FC = () => {
           <div className="flex flex-col items-center gap-1.5"><div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div></div>
           <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="bg-yellow-400/20 p-2.5 rounded-2xl"><Sparkles className="w-6 h-6 text-yellow-400" /></div>
+              <div className={`p-2.5 rounded-2xl ${todayScore < 0 ? 'bg-rose-500/20 text-rose-300' : 'bg-yellow-400/20 text-yellow-400'}`}>
+                <Sparkles className="w-6 h-6" />
+              </div>
               <div className="text-right">
-                <p className="text-[10px] text-emerald-200 uppercase font-black header-font leading-none mb-1">الرصيد الروحي</p>
-                <span className="text-2xl font-black font-mono tabular-nums leading-none">{todayScore.toLocaleString()}</span>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <p className="text-[10px] text-emerald-200 uppercase font-black header-font leading-none">الرصيد الروحي</p>
+                  {todayScore < 0 && (
+                    <span className="text-[9px] bg-rose-500/30 text-rose-200 border border-rose-400/30 px-1.5 py-0.5 rounded-full font-bold">
+                      عجز بالرصيد
+                    </span>
+                  )}
+                </div>
+                <span className={`text-2xl font-black font-mono tabular-nums leading-none ${todayScore < 0 ? 'text-rose-300' : 'text-white'}`}>
+                  {todayScore.toLocaleString()}
+                </span>
               </div>
             </div>
             <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
@@ -428,7 +439,7 @@ const App: React.FC = () => {
                 <div className="w-14 sm:w-16 h-1.5 bg-black/30 rounded-full overflow-hidden mt-1 border border-white/10">
                   <div 
                     className={`h-full rounded-full transition-all duration-500 ${currentWeekStats.cumulativePercentage >= 100 ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-amber-400 to-yellow-300'}`}
-                    style={{ width: `${Math.min(100, currentWeekStats.cumulativePercentage)}%` }}
+                    style={{ width: `${Math.max(0, Math.min(100, currentWeekStats.cumulativePercentage))}%` }}
                   ></div>
                 </div>
               </div>

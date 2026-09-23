@@ -98,6 +98,7 @@ export const SinsAccountability: React.FC<SinsAccountabilityProps> = ({
     onUpdate({
       ...log,
       hasBurden: newEntries.length > 0, // توافق مع النظام السابق
+      isRepented: newEntries.length === 0,
       sins: {
         ...(log.sins || {}),
         entries: newEntries,
@@ -234,26 +235,46 @@ export const SinsAccountability: React.FC<SinsAccountabilityProps> = ({
       <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${
         totalDeduction > 0 
           ? 'bg-gradient-to-br from-rose-950 via-slate-900 to-rose-950 text-white border-rose-800/50 shadow-md' 
+          : log.sins?.repented && loggedEntries.length > 0
+          ? 'bg-gradient-to-br from-emerald-900 via-teal-950 to-emerald-900 text-white border-emerald-700/60 shadow-md'
           : 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
       }`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <span className="text-[10px] font-black uppercase tracking-wider block opacity-80">
-              {totalDeduction > 0 ? 'مجموع خصم الذنوب والتقصير لليوم' : 'حالة النفس والمحاسبة'}
+              {totalDeduction > 0 ? 'مجموع خصم الذنوب والتقصير لليوم' : log.sins?.repented && loggedEntries.length > 0 ? 'حالة التوبة والاستغفار' : 'حالة النفس والمحاسبة'}
             </span>
             <div className="flex items-baseline gap-2">
-              <span className={`text-2xl sm:text-3xl font-black font-mono ${totalDeduction > 0 ? 'text-rose-400' : 'text-emerald-700'}`}>
-                {totalDeduction > 0 ? `-${totalDeduction.toLocaleString()}` : 'طاهر ومحفوظ'}
+              <span className={`text-2xl sm:text-3xl font-black font-mono ${
+                totalDeduction > 0 
+                  ? 'text-rose-400' 
+                  : log.sins?.repented && loggedEntries.length > 0
+                  ? 'text-emerald-300'
+                  : 'text-emerald-700'
+              }`}>
+                {totalDeduction > 0 
+                  ? `-${totalDeduction.toLocaleString()}` 
+                  : log.sins?.repented && loggedEntries.length > 0
+                  ? 'مغفور وممحو'
+                  : 'طاهر ومحفوظ'}
               </span>
               <span className="text-xs font-bold opacity-80">
-                {totalDeduction > 0 ? 'نقطة مخصومة من رصيدك الروحي' : 'لا ذنوب مسجلة اليوم بحمد الله 🌿'}
+                {totalDeduction > 0 
+                  ? 'نقطة مخصومة من رصيدك الروحي' 
+                  : log.sins?.repented && loggedEntries.length > 0
+                  ? 'مُحي أثر الخصم كاملاً ببركة التوبة 🌿'
+                  : 'لا ذنوب مسجلة اليوم بحمد الله 🌿'}
               </span>
             </div>
-            {totalDeduction > 0 && (
+            {totalDeduction > 0 ? (
               <p className="text-[11px] text-rose-200/90 font-bold leading-tight">
-                قال تعالى: ﴿إِنَّ الْحَسَنَاتِ يُذْهِبْنَ السَّيِّئَاتِ﴾.. استغفر وتب فوراً.
+                قال تعالى: ﴿إِنَّ الْحَسَنَاتِ يُذْهِبْنَ السَّيِّئَاتِ﴾.. استغفر وتب فوراً لمحو الخصم.
               </p>
-            )}
+            ) : log.sins?.repented && loggedEntries.length > 0 ? (
+              <p className="text-[11px] text-emerald-200/90 font-bold leading-tight">
+                قال النبي ﷺ: «التائب من الذنب كمن لا ذنب له».. ثبتك الله وغفر لك.
+              </p>
+            ) : null}
           </div>
 
           {/* أزرار الاستغفار والتوبة */}
@@ -274,6 +295,16 @@ export const SinsAccountability: React.FC<SinsAccountabilityProps> = ({
                 title="تفريغ الزلات بعد التوبة"
               >
                 مسح السجل بعد التوبة
+              </button>
+            </div>
+          ) : log.sins?.repented && loggedEntries.length > 0 ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleClearTodaySins}
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+              >
+                تفريغ سجل اليوم
               </button>
             </div>
           ) : (
