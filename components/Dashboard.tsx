@@ -344,7 +344,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // دالة حساب منحنى نبض الإيمان والسكينة على مدار اليوم بنظام Line Chart
   // المحور الرأسي يمثل عدد النقاط، والأفقي يمثل الوقت
-  // احتساب معامل الغفلة: إذا مضت ساعة من غير تسجيل لأي عبادة ينزل المؤشر تلقائياً 20%
+  // احتساب معامل الغفلة: إذا مضت ساعة من غير تسجيل لأي عبادة ينزل المؤشر تلقائياً 30%
   const intradayFaithData = useMemo(() => {
     const prayers = log.prayers || {};
     const athkar = log.athkar || { checklists: { morning: false, evening: false, sleep: false, travel: false }, counters: {} };
@@ -526,9 +526,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         pointsAdded = events.reduce((sum, e) => sum + e.points, 0);
         runningPoints += pointsAdded;
       } else {
-        // ساعة دون عبادة: تطبيق معامل الغفلة (-20%)
+        // ساعة دون عبادة: تطبيق معامل الغفلة (-30%)
         if (runningPoints > 0) {
-          decayLost = Math.round(runningPoints * 0.20 * 10) / 10;
+          decayLost = Math.round(runningPoints * 0.30 * 10) / 10;
           runningPoints = Math.max(0, Math.round((runningPoints - decayLost) * 10) / 10);
           isNeglected = true;
         } else {
@@ -550,7 +550,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       } else if (netPoints >= 25) {
         description = 'بداية إشراق بوارق السلام؛ بادر بذكر أو ركعات لرفع رصيدك 💪';
       } else if (netPoints > 0) {
-        description = 'رصيد إيماني قليل؛ تذكّر أن الغفلة تنقص 20% كل ساعة فانعش قلبك 🚀';
+        description = 'رصيد إيماني قليل؛ تذكّر أن الغفلة تنقص 30% كل ساعة فانعش قلبك 🚀';
       } else {
         description = 'المؤشر في نقطة البداية، سجّل طاعتك ليبدأ رصيد السكينة بالصعود 🌱';
       }
@@ -690,12 +690,12 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="flex items-center justify-between text-rose-300 text-[11px] font-black">
                 <span className="flex items-center gap-1">
                   <TrendingDown className="w-3.5 h-3.5" />
-                  <span>معامل الغفلة (-20%)</span>
+                  <span>معامل الغفلة (-30%)</span>
                 </span>
                 <span className="font-mono text-rose-200">-{data.decayLost} نقطة</span>
               </div>
               <p className="text-[10px] text-rose-100/90 font-bold leading-relaxed">
-                مضت ساعة دون تسجيل عبادة فهبط المؤشر بنسبة 20% من الرصيد السابق.
+                مضت ساعة دون تسجيل عبادة فهبط المؤشر بنسبة 30% من الرصيد السابق.
               </p>
             </div>
           ) : (
@@ -1059,7 +1059,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-bold header-font mt-0.5">
-                المحور الرأسي يمثل <span className="text-emerald-700 font-black">عدد النقاط</span> والأفقي يمثل <span className="text-emerald-700 font-black">الوقت</span> (ينخفض المؤشر 20% تلقائياً كل ساعة دون عبادة)
+                المحور الرأسي يمثل <span className="text-emerald-700 font-black">عدد النقاط</span> والأفقي يمثل <span className="text-emerald-700 font-black">الوقت</span> (ينخفض المؤشر 30% تلقائياً كل ساعة دون عبادة)
               </p>
             </div>
           </div>
@@ -1131,7 +1131,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="p-3 bg-gradient-to-br from-rose-50/70 to-white rounded-2xl border border-rose-100/70 text-right">
             <span className="text-[10px] font-black text-rose-800 header-font flex items-center gap-1">
               <TrendingDown className="w-3.5 h-3.5 text-rose-600" />
-              ساعات الغفلة (-20%)
+              ساعات الغفلة (-30%)
             </span>
             <div className="mt-1 flex items-baseline gap-1">
               <span className="text-xl font-black font-mono text-rose-700">{faithStats.neglectedHours}</span>
@@ -1142,7 +1142,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         <p className="text-[10px] text-emerald-700 bg-emerald-50/60 p-2.5 rounded-xl border border-dashed border-emerald-200/70 mb-3 font-bold leading-normal flex items-center justify-between gap-2 flex-wrap">
           <span>👈 مرّر المخطط أفقياً لمتابعة خط التطور والتذبذب ساعة بساعة على مدار اليوم!</span>
-          <span className="text-slate-500 font-medium">النقاط الخضراء 🟢 تمثل عبادات مسجلة، والنقاط الحمراء 🔴 تمثل ساعات الغفلة (-20%)</span>
+          <span className="text-slate-500 font-medium">النقاط الخضراء 🟢 تمثل عبادات مسجلة، والنقاط الحمراء 🔴 تمثل ساعات الغفلة (-30%)</span>
         </p>
 
         <div className="overflow-x-auto w-full pb-2 select-none" dir="rtl">
@@ -1191,7 +1191,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex gap-2.5 items-start p-3 bg-amber-50/40 rounded-2xl border border-amber-100/60">
             <span className="text-amber-600 font-bold text-base shrink-0">⏳</span>
             <p className="text-[11px] text-slate-600 leading-normal font-bold">
-              <span className="text-rose-700 font-black">معامل الغفلة (-20% كل ساعة):</span> إذا مرّت ساعة دون تسجيل طاعة، يهبط المؤشر تلقائياً بنسبة 20% لتذكيرك بتجديد صلتك بالله ودوام الذكر.
+              <span className="text-rose-700 font-black">معامل الغفلة (-30% كل ساعة):</span> إذا مرّت ساعة دون تسجيل طاعة، يهبط المؤشر تلقائياً بنسبة 30% لتذكيرك بتجديد صلتك بالله ودوام الذكر.
             </p>
           </div>
         </div>
