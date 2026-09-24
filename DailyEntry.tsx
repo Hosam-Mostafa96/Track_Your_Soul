@@ -13,6 +13,15 @@ import { format, addDays } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
 import { SleepHoursEntry } from './components/SleepHoursEntry';
 import { SinsAccountability } from './components/SinsAccountability';
+import { getIslamicDateString, getIslamicDayInfo } from './utils/prayerTimes';
+
+export const ISLAMIC_PRAYERS_ORDER: PrayerName[] = [
+  PrayerName.MAGHRIB,
+  PrayerName.ISHA,
+  PrayerName.FAJR,
+  PrayerName.DHUHR,
+  PrayerName.ASR
+];
 
 interface DailyEntryProps {
   log: DailyLog;
@@ -25,14 +34,14 @@ interface DailyEntryProps {
 }
 
 const PRAYER_SUNNAHS: Record<string, {id: string, label: string}[]> = {
+  [PrayerName.MAGHRIB]: [{id: 'maghrib_post', label: 'سنة المغرب (ركعتان بعدية)'}],
+  [PrayerName.ISHA]: [{id: 'isha_post', label: 'سنة العشاء (ركعتان بعدية)'}],
   [PrayerName.FAJR]: [{id: 'fajr_pre', label: 'سنة الفجر (ركعتان قبلية)'}],
   [PrayerName.DHUHR]: [
     {id: 'dhuhr_pre', label: 'سنة الظهر (4 ركعات قبلية)'},
     {id: 'dhuhr_post', label: 'سنة الظهر (ركعتان بعدية)'}
   ],
-  [PrayerName.ASR]: [{id: 'asr_pre', label: 'سنة العصر (4 ركعات قبلية)'}],
-  [PrayerName.MAGHRIB]: [{id: 'maghrib_post', label: 'سنة المغرب (ركعتان بعدية)'}],
-  [PrayerName.ISHA]: [{id: 'isha_post', label: 'سنة العشاء (ركعتان بعدية)'}]
+  [PrayerName.ASR]: [{id: 'asr_pre', label: 'سنة العصر (4 ركعات قبلية)'}]
 };
 
 const DEFAULT_DHIKR_LIST = [
@@ -44,7 +53,7 @@ const DEFAULT_DHIKR_LIST = [
 ];
 
 const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdateWeights, currentDate, onDateChange, onSwitchTab }) => {
-  const [activePrayer, setActivePrayer] = useState<PrayerName>(PrayerName.FAJR);
+  const [activePrayer, setActivePrayer] = useState<PrayerName>(PrayerName.MAGHRIB);
   
   // States for adding custom items
   const [isAddingSunnah, setIsAddingSunnah] = useState(false);
@@ -216,21 +225,37 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
       <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-4">
         <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), -1), 'yyyy-MM-dd'))} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400"><ChevronRight className="w-5 h-5" /></button>
         <div className="text-center">
-          <span className="text-sm font-bold text-emerald-700 header-font bg-emerald-50 px-4 py-1.5 rounded-xl border border-emerald-100 block">
+          <span className="text-sm font-bold text-emerald-700 header-font bg-emerald-50 px-4 py-1.5 rounded-xl border border-emerald-100 inline-flex items-center gap-2">
+            {currentDate === getIslamicDateString() && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            )}
             {format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM yyyy', { locale: ar })}
+            {currentDate === getIslamicDateString() && (
+              <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-lg font-bold">اليوم الشرعي</span>
+            )}
           </span>
         </div>
-        <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))} disabled={currentDate === format(new Date(), 'yyyy-MM-dd')} className="p-2 rounded-xl text-slate-400 disabled:opacity-20"><ChevronLeft className="w-5 h-5" /></button>
+        <button onClick={() => onDateChange(format(addDays(new Date(currentDate.replace(/-/g, '/')), 1), 'yyyy-MM-dd'))} disabled={currentDate === getIslamicDateString()} className="p-2 rounded-xl text-slate-400 disabled:opacity-20" title="لا يمكن تسجيل عبادات ليوم قادم لم يحن موعده الشرعي"><ChevronLeft className="w-5 h-5" /></button>
       </div>
 
       {/* 1. الصلوات والفرائض */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2"><Star className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">الصلوات</h3></div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2"><Star className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">الصلوات الخمس</h3></div>
           <button onClick={() => updatePrayer(activePrayer, { performed: !isPerformed }, !isPerformed ? `أدى صلاة ${activePrayer}` : undefined)} className={`flex items-center gap-2 px-4 py-2 rounded-2xl transition-all font-bold text-xs ${isPerformed ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400'}`}>{isPerformed ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}{isPerformed ? 'تمت الصلاة' : 'تفعيل'}</button>
         </div>
+
+        {/* توضيح الترتيب الشرعي للصلوات */}
+        <div className="flex items-center justify-between px-1 mb-4 text-[11px] font-bold text-slate-500">
+          <span className="inline-flex items-center gap-1.5 text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100">
+            <span>🌙</span>
+            <span>بداية اليوم مع أذان المغرب</span>
+          </span>
+          <span className="text-[10px] text-slate-400 font-bold">المغرب ← العشاء ← الفجر ← الظهر ← العصر</span>
+        </div>
+
         <div className="flex justify-between gap-1 mb-8 bg-slate-50 p-1.5 rounded-2xl">
-          {Object.values(PrayerName).map((p) => (
+          {ISLAMIC_PRAYERS_ORDER.map((p) => (
             <button key={p} onClick={() => setActivePrayer(p)} className={`flex-1 py-3 rounded-xl transition-all flex flex-col items-center gap-1 ${activePrayer === p ? 'bg-white shadow-md text-emerald-600' : 'text-slate-400'}`}>
               <span className="text-[10px] font-bold header-font">{p}</span>
               {log.prayers?.[p]?.performed && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>}

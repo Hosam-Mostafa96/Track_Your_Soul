@@ -92,11 +92,11 @@ export const FortressOfFaith: React.FC<FortressOfFaithProps> = ({ log, onSwitchT
       };
     };
     return {
+      maghrib: getPrayer(PrayerName.MAGHRIB, 'maghrib'),
+      isha: getPrayer(PrayerName.ISHA, 'isha'),
       fajr: getPrayer(PrayerName.FAJR, 'fajr'),
       dhuhr: getPrayer(PrayerName.DHUHR, 'dhuhr'),
       asr: getPrayer(PrayerName.ASR, 'asr'),
-      maghrib: getPrayer(PrayerName.MAGHRIB, 'maghrib'),
-      isha: getPrayer(PrayerName.ISHA, 'isha'),
     };
   }, [isSimulation, prayers]);
 
@@ -1475,11 +1475,11 @@ export const FortressOfFaith: React.FC<FortressOfFaithProps> = ({ log, onSwitchT
   };
 
   const prayerKeyMap: Record<string, { key: PrayerName; label: string }> = {
+    maghrib: { key: PrayerName.MAGHRIB, label: 'صلاة المغرب' },
+    isha: { key: PrayerName.ISHA, label: 'صلاة العشاء' },
     fajr: { key: PrayerName.FAJR, label: 'صلاة الفجر' },
     dhuhr: { key: PrayerName.DHUHR, label: 'صلاة الظهر' },
     asr: { key: PrayerName.ASR, label: 'صلاة العصر' },
-    maghrib: { key: PrayerName.MAGHRIB, label: 'صلاة المغرب' },
-    isha: { key: PrayerName.ISHA, label: 'صلاة العشاء' },
   };
 
   const handleQuickTogglePrayer = (prayerKey: PrayerName, inCongregation: boolean) => {

@@ -1,10 +1,10 @@
 
 export enum PrayerName {
+  MAGHRIB = 'المغرب',
+  ISHA = 'العشاء',
   FAJR = 'الفجر',
   DHUHR = 'الظهر',
-  ASR = 'العصر',
-  MAGHRIB = 'المغرب',
-  ISHA = 'العشاء'
+  ASR = 'العصر'
 }
 
 export enum TranquilityLevel {

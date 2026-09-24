@@ -48,6 +48,7 @@ import { WeeklyCardModal } from './WeeklyCardModal';
 import { DAILY_TADABBUR_SEEDS } from '../utils/quranData';
 import { WeeklyGoalsDashboardCard } from './WeeklyGoalsDashboardCard';
 import { WeeklyGoalsSettingsModal } from './WeeklyGoalsSettingsModal';
+import { getIslamicDateString } from '../utils/prayerTimes';
 import { loadWeeklyGoalsConfig, calculateWeeklyGoalsProgress } from '../utils/weeklyGoals';
 import { WeeklyGoalsConfig } from '../types';
 
@@ -158,7 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (!log) return;
     const dateStr = log.date;
     const now = new Date();
-    const isToday = dateStr === format(now, 'yyyy-MM-dd');
+    const isToday = dateStr === getIslamicDateString(now);
     const currentHour = now.getHours();
 
     let updated = false;
@@ -354,10 +355,11 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     // جلب أوقات التسجيل الفعلية لكل عبادة عبر سجل الساعات المسجلة محلياً
     const dayTimes = worshipHours[log.date] || {};
-    const quranHour = dayTimes['quran'] !== undefined ? dayTimes['quran'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 14);
-    const athkarHour = dayTimes['absolute_athkar'] !== undefined ? dayTimes['absolute_athkar'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 11);
-    const knowledgeHour = dayTimes['knowledge'] !== undefined ? dayTimes['knowledge'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 16);
-    const customHour = dayTimes['custom'] !== undefined ? dayTimes['custom'] : (log.date === format(new Date(), 'yyyy-MM-dd') ? new Date().getHours() : 10);
+    const islamicToday = getIslamicDateString();
+    const quranHour = dayTimes['quran'] !== undefined ? dayTimes['quran'] : (log.date === islamicToday ? new Date().getHours() : 14);
+    const athkarHour = dayTimes['absolute_athkar'] !== undefined ? dayTimes['absolute_athkar'] : (log.date === islamicToday ? new Date().getHours() : 11);
+    const knowledgeHour = dayTimes['knowledge'] !== undefined ? dayTimes['knowledge'] : (log.date === islamicToday ? new Date().getHours() : 16);
+    const customHour = dayTimes['custom'] !== undefined ? dayTimes['custom'] : (log.date === islamicToday ? new Date().getHours() : 10);
 
     // تجهيز جدول العبادات المنجزة موزعة على ساعات اليوم (0-23)
     interface HourlyWorshipItem {
@@ -570,10 +572,11 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [log, worshipHours]);
 
   const nowTime = new Date();
-  const isViewingToday = log.date === format(nowTime, 'yyyy-MM-dd');
+  const isViewingToday = log.date === getIslamicDateString(nowTime);
   const currentRawHour = nowTime.getHours();
 
-  const getHourOrder = (h: number) => (h - 5 + 24) % 24;
+  // ترتيب ساعات اليوم الشرعي بدءاً من أذان المغرب (الساعة 18) وحتى عصر اليوم التالي
+  const getHourOrder = (h: number) => (h - 18 + 24) % 24;
 
   // تصفية البيانات بحسب نطاق العرض المختار
   const displayFaithData = useMemo(() => {

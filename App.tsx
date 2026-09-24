@@ -55,15 +55,16 @@ import { CurrentWeekEvaluationModal } from './components/CurrentWeekEvaluationMo
 import { WeeklyCardModal } from './components/WeeklyCardModal';
 import { useScheduledReminders } from './hooks/useScheduledReminders';
 import { InAppReminderBanner } from './components/InAppReminderBanner';
+import { getIslamicDateString, isCurrentIslamicNight } from './utils/prayerTimes';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
   prayers: {
+    [PrayerName.MAGHRIB]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
+    [PrayerName.ISHA]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
     [PrayerName.FAJR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
     [PrayerName.DHUHR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
     [PrayerName.ASR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
-    [PrayerName.MAGHRIB]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
-    [PrayerName.ISHA]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
   },
   quran: { hifzRub: 0, revisionRub: 0, todayPortion: '', tasksCompleted: [], khatmaNumber: 1, surahName: '' },
   knowledge: { shariDuration: 0, readingDuration: 0, readingPages: 0 },
@@ -96,7 +97,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
-  const [currentDate, setCurrentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [currentDate, setCurrentDate] = useState(getIslamicDateString());
   const [targetScore, setTargetScore] = useState(13500);
   const [user, setUser] = useState<User | null>(null);
   const [weights, setWeights] = useState<AppWeights>(DEFAULT_WEIGHTS);
@@ -117,6 +118,23 @@ const App: React.FC = () => {
       setHasNewNotifications(true);
     }
   }, [scheduledReminders.lastTriggeredItem, activeTab]);
+
+  // مراقبة بداية اليوم الشرعي الجديد مع أذان المغرب وتحديث التاريخ تلقائياً
+  useEffect(() => {
+    const checkIslamicDayShift = () => {
+      const activeIslamicToday = getIslamicDateString();
+      setCurrentDate(prevDate => {
+        const prevCalculatedToday = getIslamicDateString(new Date(Date.now() - 60000));
+        if (prevDate === prevCalculatedToday && prevDate !== activeIslamicToday) {
+          return activeIslamicToday;
+        }
+        return prevDate;
+      });
+    };
+
+    const interval = setInterval(checkIslamicDayShift, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -250,7 +268,7 @@ const App: React.FC = () => {
     setBooks(newBooks);
     localStorage.setItem('worship_books', JSON.stringify(newBooks));
 
-    const logDate = format(new Date(), 'yyyy-MM-dd');
+    const logDate = getIslamicDateString();
     const currentLog = logs[logDate] || INITIAL_LOG(logDate);
     const updatedLog = {
       ...currentLog,
@@ -268,14 +286,19 @@ const App: React.FC = () => {
   const hijriDate = useMemo(() => {
     try {
       const formatter = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' });
-      const parts = formatter.formatToParts(new Date());
-      let d = '', m = '';
-      parts.forEach(p => { if(p.type === 'day') d = p.value; if(p.type === 'month') m = p.value; });
-      return `${d} ${m} 1448هـ`;
+      const targetDate = new Date(currentDate.replace(/-/g, '/'));
+      const parts = formatter.formatToParts(targetDate);
+      let d = '', m = '', y = '';
+      parts.forEach(p => { 
+        if (p.type === 'day') d = p.value; 
+        if (p.type === 'month') m = p.value; 
+        if (p.type === 'year') y = p.value;
+      });
+      return `${d} ${m} ${y || '1448'}هـ`;
     } catch (e) {
       return '1448هـ';
     }
-  }, []);
+  }, [currentDate]);
 
   // حساب إحصائية الأسبوع الحالي (يبدأ الأحد وينتهي السبت) ويتجدد تلقائياً كل أول أسبوع
   const currentWeekStats = useMemo(() => {
@@ -403,8 +426,13 @@ const App: React.FC = () => {
                 </span>
               </div>
             </div>
-            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all">
-              <p className="text-[10px] text-emerald-200 font-bold header-font leading-none mb-0.5">{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</p>
+            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all" title="سجل الأيام والأوراد">
+              <p className="text-[10px] text-emerald-200 font-bold header-font leading-none mb-0.5 flex items-center gap-1">
+                {currentDate === getIslamicDateString() && isCurrentIslamicNight() && (
+                  <span className="text-[9px] bg-amber-400 text-emerald-950 px-1.5 py-0.2 rounded-md font-black">ليلة</span>
+                )}
+                <span>{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</span>
+              </p>
               <p className="text-sm font-black header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
             </button>
           </div>

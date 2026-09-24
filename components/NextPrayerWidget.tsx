@@ -71,31 +71,36 @@ export const NextPrayerWidget: React.FC = () => {
   // Determine Next Prayer and remaining seconds
   const currentHourDecimal = currentTime.getHours() + currentTime.getMinutes() / 60 + currentTime.getSeconds() / 3600;
   
+  // ترتیب الصلوات حسب بداية اليوم الشرعي من أذان المغرب
   const prayerSeq = [
+    { id: 'maghrib', label: 'المغرب', hour: rawTimes.maghrib, timeStr: times.maghrib, icon: '🌤️' },
+    { id: 'isha', label: 'العشاء', hour: rawTimes.isha, timeStr: times.isha, icon: '🌙' },
     { id: 'fajr', label: 'الفجر', hour: rawTimes.fajr, timeStr: times.fajr, icon: '🌅' },
     { id: 'sunrise', label: 'الشروق', hour: rawTimes.sunrise, timeStr: times.sunrise, icon: '☀️' },
     { id: 'dhuhr', label: 'الظهر', hour: rawTimes.dhuhr, timeStr: times.dhuhr, icon: '☀️' },
-    { id: 'asr', label: 'العصر', hour: rawTimes.asr, timeStr: times.asr, icon: '⛅' },
-    { id: 'maghrib', label: 'المغرب', hour: rawTimes.maghrib, timeStr: times.maghrib, icon: '🌤️' },
-    { id: 'isha', label: 'العشاء', hour: rawTimes.isha, timeStr: times.isha, icon: '🌙' }
+    { id: 'asr', label: 'العصر', hour: rawTimes.asr, timeStr: times.asr, icon: '⛅' }
   ];
 
   // Excluding sunrise for next prayer countdown, but keeping it in times list
   const corePrayers = prayerSeq.filter(p => p.id !== 'sunrise');
+  // Sort by astronomical solar hour to find the next chronological prayer on the 24h clock
+  const clockSortedPrayers = [...corePrayers].sort((a, b) => a.hour - b.hour);
   
   // Find first prayer that is ahead
-  let nextPrayerInfo = corePrayers.find(p => p.hour > currentHourDecimal);
+  let nextPrayerInfo = clockSortedPrayers.find(p => p.hour > currentHourDecimal);
   let isNextDay = false;
   let remainingHours = 0;
 
   if (!nextPrayerInfo) {
     // If past Isha, next prayer is Fajr tomorrow
-    nextPrayerInfo = corePrayers[0]; // Fajr
+    nextPrayerInfo = clockSortedPrayers[0]; // Fajr
     isNextDay = true;
     remainingHours = (24 - currentHourDecimal) + nextPrayerInfo.hour;
   } else {
     remainingHours = nextPrayerInfo.hour - currentHourDecimal;
   }
+
+  const isNightTime = currentHourDecimal >= rawTimes.maghrib || currentHourDecimal < rawTimes.fajr;
 
   const remainingSecondsTotal = Math.max(0, Math.floor(remainingHours * 3600));
   
@@ -186,6 +191,23 @@ export const NextPrayerWidget: React.FC = () => {
         
         <div className="absolute -top-24 -right-24 w-60 h-60 bg-emerald-500/20 rounded-full blur-[80px] animate-pulse"></div>
         <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-teal-400/10 rounded-full blur-[80px]"></div>
+
+        {/* شريط توضيح بداية اليوم الشرعي */}
+        <div className="relative z-10 mb-4 pb-3 border-b border-white/10 flex items-center justify-between text-[11px] font-bold">
+          <span className="flex items-center gap-1.5 text-amber-300">
+            <span>🌙</span>
+            <span>اليوم الشرعي يبدأ مع أذان المغرب ({times.maghrib})</span>
+          </span>
+          {isNightTime ? (
+            <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full text-[10px] font-bold">
+              الليلة الحالية
+            </span>
+          ) : (
+            <span className="bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full text-[10px] font-bold">
+              نهار اليوم
+            </span>
+          )}
+        </div>
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Left section: Next prayer details */}

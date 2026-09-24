@@ -121,6 +121,28 @@ const WorshipGuide: React.FC = () => {
             </div>
           </div>
 
+          {/* بداية اليوم الشرعي وترتيب الصلوات */}
+          <div className="p-4 bg-gradient-to-r from-emerald-900 to-teal-900 text-white rounded-2xl border border-emerald-700/50 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🌙</span>
+                <span className="text-xs sm:text-sm font-black text-amber-300">بداية اليوم الجديد مع أذان المغرب (الرؤية الشرعية للوقت)</span>
+              </div>
+              <span className="text-[9px] bg-amber-400 text-emerald-950 px-2 py-0.5 rounded-full font-black">توقيت شرعي</span>
+            </div>
+            <p className="text-[11px] text-emerald-100 font-bold leading-relaxed">
+              تطبيق «أوراد» يتبع الرؤية الإسلامية للوقت؛ حيث <span className="text-amber-300 underline font-black">يبدأ اليوم الجديد مع أذان صلاة المغرب</span> (غروب الشمس) بدلاً من الثانية عشرة منتصف الليل المدني، عملاً بالسنة النبوية بأن الليلة تسبق نهارها.
+            </p>
+            <div className="pt-2 border-t border-white/10 flex flex-wrap items-center gap-2 text-[10px] font-bold text-emerald-200">
+              <span className="text-amber-300">ترتيب الصلوات في التطبيق:</span>
+              <span className="bg-white/10 px-2.5 py-1 rounded-lg">١. المغرب 🌤️</span>
+              <span className="bg-white/10 px-2.5 py-1 rounded-lg">٢. العشاء 🌙</span>
+              <span className="bg-white/10 px-2.5 py-1 rounded-lg">٣. الفجر 🌅</span>
+              <span className="bg-white/10 px-2.5 py-1 rounded-lg">٤. الظهر ☀️</span>
+              <span className="bg-white/10 px-2.5 py-1 rounded-lg">٥. العصر ⛅</span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100">
               <div className="flex justify-between items-center mb-1">

@@ -1,6 +1,7 @@
 /**
  * Helper utility to calculate precise Islamic prayer times using astronomical formulas.
  */
+import { format, addDays } from 'date-fns';
 
 export interface PrayerTimes {
   fajr: string;
@@ -148,3 +149,128 @@ export function getPrayerTimesForDate(
 
   return { times, rawTimes };
 }
+
+export interface ActivePrayerSettings {
+  lat: number;
+  lng: number;
+  tzOffset: number;
+  isEgyptianMethod: boolean;
+  locationName: string;
+}
+
+/**
+ * Gets user location and prayer computation settings from storage or defaults.
+ */
+export function getUserLocationAndMethod(): ActivePrayerSettings {
+  let lat = 30.0178;
+  let lng = 31.0006;
+  let locationName = 'الشيخ زايد';
+  let isEgyptianMethod = true;
+
+  if (typeof window !== 'undefined') {
+    try {
+      const savedGps = localStorage.getItem('local_prayer_gps');
+      if (savedGps) {
+        const parsed = JSON.parse(savedGps);
+        if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+          lat = parsed.lat;
+          lng = parsed.lng;
+          locationName = parsed.name || 'الموقع الجغرافي';
+        }
+      } else {
+        const savedCity = localStorage.getItem('selected_prayer_city');
+        const userStr = localStorage.getItem('worship_user');
+        let userCity = '';
+        if (userStr) {
+          try {
+            const u = JSON.parse(userStr);
+            if (u?.city) userCity = u.city;
+          } catch (_) {}
+        }
+        const targetCityName = savedCity || userCity || 'الشيخ زايد';
+        const matchedCity = CITIES_DATABASE[targetCityName] || Object.values(CITIES_DATABASE).find(c => c.nameAr.includes(targetCityName) || targetCityName.includes(c.nameAr)) || CITIES_DATABASE['الشيخ زايد'];
+        if (matchedCity) {
+          lat = matchedCity.lat;
+          lng = matchedCity.lng;
+          locationName = matchedCity.nameAr;
+        }
+      }
+    } catch (_) {}
+
+    try {
+      const savedMethod = localStorage.getItem('local_prayer_method');
+      if (savedMethod) {
+        isEgyptianMethod = savedMethod === 'egypt';
+      }
+    } catch (_) {}
+  }
+
+  const tzOffset = -new Date().getTimezoneOffset() / 60;
+
+  return { lat, lng, tzOffset, isEgyptianMethod, locationName };
+}
+
+/**
+ * Calculates the current Islamic day date string (yyyy-MM-dd).
+ * In Islamic tradition, the day starts at sunset (Maghrib adhan) rather than 12:00 midnight.
+ * Therefore, when current time on any calendar day is at or past Maghrib adhan,
+ * the new Islamic day (and night) has begun, rolling over to the next calendar date.
+ */
+export function getIslamicDayDate(now: Date = new Date()): string {
+  const { lat, lng, tzOffset, isEgyptianMethod } = getUserLocationAndMethod();
+  const { rawTimes } = getPrayerTimesForDate(now, lat, lng, tzOffset, isEgyptianMethod);
+  const currentHourDecimal = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+
+  // If current time on the calendar date has reached or passed Maghrib, the new Islamic day has begun!
+  if (currentHourDecimal >= rawTimes.maghrib) {
+    const nextDay = addDays(now, 1);
+    return format(nextDay, 'yyyy-MM-dd');
+  }
+
+  // Otherwise, we are still in the Islamic day that began yesterday at Maghrib and corresponds to today's calendar date
+  return format(now, 'yyyy-MM-dd');
+}
+
+export const getIslamicDateString = getIslamicDayDate;
+
+/**
+ * Returns detailed information about the current Islamic day state.
+ */
+export function getIslamicDayInfo(now: Date = new Date()): {
+  dateStr: string;
+  isNight: boolean;
+  maghribTimeStr: string;
+  maghribDecimal: number;
+  currentHourDecimal: number;
+  startedAtMaghrib: boolean;
+} {
+  const { lat, lng, tzOffset, isEgyptianMethod } = getUserLocationAndMethod();
+  const { rawTimes, times } = getPrayerTimesForDate(now, lat, lng, tzOffset, isEgyptianMethod);
+  const currentHourDecimal = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+
+  const isAfterMaghrib = currentHourDecimal >= rawTimes.maghrib;
+  const isBeforeFajr = currentHourDecimal < rawTimes.fajr;
+  const isNight = isAfterMaghrib || isBeforeFajr;
+
+  const dateStr = isAfterMaghrib ? format(addDays(now, 1), 'yyyy-MM-dd') : format(now, 'yyyy-MM-dd');
+
+  return {
+    dateStr,
+    isNight,
+    maghribTimeStr: times.maghrib,
+    maghribDecimal: rawTimes.maghrib,
+    currentHourDecimal,
+    startedAtMaghrib: isAfterMaghrib
+  };
+}
+
+/**
+ * Checks if the current moment is part of the Islamic Night (from Maghrib to Fajr).
+ */
+export function isCurrentIslamicNight(now: Date = new Date()): boolean {
+  const { lat, lng, tzOffset, isEgyptianMethod } = getUserLocationAndMethod();
+  const { rawTimes } = getPrayerTimesForDate(now, lat, lng, tzOffset, isEgyptianMethod);
+  const currentHourDecimal = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+  return currentHourDecimal >= rawTimes.maghrib || currentHourDecimal < rawTimes.fajr;
+}
+
