@@ -87,10 +87,12 @@ export const calculateTotalScore = (log: DailyLog, weights: AppWeights = DEFAULT
     .filter(id => id && !id.startsWith('rabt_') && !id.startsWith('mur_')).length * 50; 
   const quranReadPagesPoints = (quran.readPages || []).length * 15; // 15 نقطة لكل صفحة مقروءة من المصحف التفاعلي
   
-  const knowledgeData = log.knowledge || { shariDuration: 0, readingDuration: 0, readingPages: 0 };
+  const knowledgeData = log.knowledge || { shariDuration: 0, readingDuration: 0, readingPages: 0, audioDuration: 0 };
+  const pagePointsRate = Number(safeWeights.pointsPerPage) || 2;
   const knowledge = ((Number(knowledgeData.shariDuration) || 0) * (Number(safeWeights.knowledgeShari) || 10)) + 
                     ((Number(knowledgeData.readingDuration) || 0) * (Number(safeWeights.knowledgeGeneral) || 5)) +
-                    ((Number(knowledgeData.readingPages) || 0) * (Number(safeWeights.pointsPerPage) || 20));
+                    ((Number(knowledgeData.readingPages) || 0) * pagePointsRate) +
+                    ((Number(knowledgeData.audioDuration) || 0) * pagePointsRate);
   
   const athkarData = log.athkar || { checklists: {}, counters: {} };
   const athkarCheck = Object.values(athkarData.checklists || {}).filter(Boolean).length * (Number(safeWeights.athkarChecklist) || 50);

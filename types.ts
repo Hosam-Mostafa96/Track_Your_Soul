@@ -173,7 +173,7 @@ export interface DailyLog {
     readPages?: number[];   // الصفحات المقروءة اليوم من المصحف التفاعلي
     wardPlan?: QuranWardPlan; // مخطط الورد اليومي
   };
-  knowledge: { shariDuration: number; readingDuration: number; readingPages?: number };
+  knowledge: { shariDuration: number; readingDuration: number; readingPages?: number; audioDuration?: number };
   athkar: {
     checklists: { morning: boolean; evening: boolean; sleep: boolean; travel?: boolean };
     counters: Record<string, number>;

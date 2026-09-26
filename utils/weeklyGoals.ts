@@ -730,6 +730,20 @@ export const LINKED_WORSHIP_TEMPLATES: LinkedWorshipTemplate[] = [
     tabTarget: 'entry',
     sourceSectionName: 'طلب العلم والقراءة'
   },
+  {
+    sourceType: 'knowledge_audio_mins',
+    title: 'سماع ومطالعة البودكاست النافع',
+    category: 'knowledge',
+    unit: 'دقيقة',
+    defaultTarget: 60,
+    min: 15,
+    max: 600,
+    step: 15,
+    description: 'الاستماع للدروس والمحاضرات والبودكاست العلمي النافع',
+    iconName: 'Headphones',
+    tabTarget: 'entry',
+    sourceSectionName: 'طلب العلم والقراءة'
+  },
 
   // 7. ورد الدعاء والابتهال
   {
@@ -1132,7 +1146,8 @@ export const extractGoalValueFromDailyLog = (
     case 'knowledge_total_mins': {
       const shari = log.knowledge?.shariDuration || 0;
       const reading = log.knowledge?.readingDuration || 0;
-      return shari + reading;
+      const audio = log.knowledge?.audioDuration || 0;
+      return shari + reading + audio;
     }
 
     case 'knowledge_shari_mins': {
@@ -1141,6 +1156,10 @@ export const extractGoalValueFromDailyLog = (
 
     case 'knowledge_reading_mins': {
       return log.knowledge?.readingDuration || 0;
+    }
+
+    case 'knowledge_audio_mins': {
+      return log.knowledge?.audioDuration || 0;
     }
 
     case 'knowledge_pages': {

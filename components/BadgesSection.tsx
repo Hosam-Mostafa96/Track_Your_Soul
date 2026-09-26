@@ -110,7 +110,7 @@ export const BadgesSection: React.FC<BadgesSectionProps> = ({ logs, weights, use
       if (quranDone) return true;
       const athkarDone = Object.values(log.athkar?.checklists || {}).some(Boolean);
       if (athkarDone) return true;
-      const knowledgeDone = (log.knowledge?.shariDuration || 0) + (log.knowledge?.readingDuration || 0) > 0;
+      const knowledgeDone = (log.knowledge?.shariDuration || 0) + (log.knowledge?.readingDuration || 0) + (log.knowledge?.audioDuration || 0) + (log.knowledge?.readingPages || 0) > 0;
       return knowledgeDone;
     };
 

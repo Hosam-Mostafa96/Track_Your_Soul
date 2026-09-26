@@ -67,7 +67,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
     [PrayerName.ASR]: { performed: false, inCongregation: false, tranquility: TranquilityLevel.MINIMUM, internalSunnahPackage: 'excellent', surroundingSunnahIds: [] },
   },
   quran: { hifzRub: 0, revisionRub: 0, todayPortion: '', tasksCompleted: [], khatmaNumber: 1, surahName: '' },
-  knowledge: { shariDuration: 0, readingDuration: 0, readingPages: 0 },
+  knowledge: { shariDuration: 0, readingDuration: 0, readingPages: 0, audioDuration: 0 },
   athkar: {
     checklists: { morning: false, evening: false, sleep: false, travel: false },
     counters: { salawat: 0, hawqalah: 0, tahlil: 0, baqiyat: 0, istighfar: 0 }
@@ -359,7 +359,7 @@ const App: React.FC = () => {
                 [field]: ((currentLog.knowledge as any)[field] || 0) + mins 
               } 
             }; 
-            updateLog(updated, `أتمَّ ${mins} دقيقة في ${field === 'shariDuration' ? 'طلب العلم الشرعي' : field === 'readingDuration' ? 'القراءة العامة' : 'العبادة'}`, 'knowledge'); 
+            updateLog(updated, `أتمَّ ${mins} دقيقة في ${field === 'shariDuration' ? 'طلب العلم الشرعي' : field === 'readingDuration' ? 'القراءة العامة' : field === 'audioDuration' ? 'سماع أو بودكاست' : 'العبادة'}`, 'knowledge'); 
           }} 
           userEmail={user?.email} 
           userName={user?.name} 

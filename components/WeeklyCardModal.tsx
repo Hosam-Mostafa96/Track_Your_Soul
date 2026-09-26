@@ -115,7 +115,7 @@ export const WeeklyCardModal: React.FC<WeeklyCardModalProps> = ({
         if (log.athkar?.checklists?.evening) eveningAthkarCount++;
 
         // العلم
-        knowledgeMins += (log.knowledge?.shariDuration || 0) + (log.knowledge?.readingDuration || 0);
+        knowledgeMins += (log.knowledge?.shariDuration || 0) + (log.knowledge?.readingDuration || 0) + (log.knowledge?.audioDuration || 0);
       }
     });
 

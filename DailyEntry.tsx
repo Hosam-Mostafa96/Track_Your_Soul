@@ -5,7 +5,7 @@ import {
   Moon, Sun, Zap, Coffee, ScrollText, Sparkle, MessageSquare, 
   MapPin, CheckCircle2, Droplets, Flame, Tags, ToggleRight, ToggleLeft,
   ChevronRight, ChevronLeft, FileText, Check, BookOpen, Trash2, X, PlusCircle,
-  MessageCircle, Hash, BookMarked
+  MessageCircle, Hash, BookMarked, Headphones
 } from 'lucide-react';
 import { DailyLog, PrayerName, TranquilityLevel, CustomSunnah, AppWeights } from './types';
 import { SURROUNDING_SUNNAH_LIST } from './constants';
@@ -396,22 +396,46 @@ const DailyEntry: React.FC<DailyEntryProps> = ({ log, onUpdate, weights, onUpdat
 
       {/* 5. طلب العلم والقراءة */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-6"><GraduationCap className="w-5 h-5 text-emerald-500" /><h3 className="font-bold text-slate-800 header-font text-lg">طلب العلم والقراءة</h3></div>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="w-5 h-5 text-emerald-500" />
+            <h3 className="font-bold text-slate-800 header-font text-lg">طلب العلم والقراءة</h3>
+          </div>
+          <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-xl font-bold header-font">
+            نفس النقاط: {weights.pointsPerPage || 2} ن/صفحة أو دقيقة سماع
+          </span>
+        </div>
         <div className="space-y-4">
           {[
-            { label: 'علم شرعي (دقيقة)', field: 'shariDuration' as const },
-            { label: 'قراءة عامة (دقيقة)', field: 'readingDuration' as const },
-            { label: 'عدد الصفحات المقروءة', field: 'readingPages' as const }
-          ].map(k => (
-            <div key={k.field} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
-              <span className="text-xs font-bold text-slate-700 header-font">{k.label}</span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => updateSection('knowledge', { [k.field]: Math.max(0, (log.knowledge[k.field] || 0) - (k.field === 'readingPages' ? 1 : 5)) })} className="p-1.5 bg-white border border-slate-200 rounded-xl"><Minus className="w-4 h-4 text-slate-400" /></button>
-                <div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center"><span className="text-base font-black text-slate-800 tabular-nums">{log.knowledge[k.field] || 0}</span></div>
-                <button onClick={() => updateSection('knowledge', { [k.field]: (log.knowledge[k.field] || 0) + (k.field === 'readingPages' ? 1 : 5) }, `اجتهد في ${k.label}`, 'knowledge')} className="p-1.5 bg-white border border-slate-200 rounded-xl"><Plus className="w-4 h-4 text-slate-400" /></button>
+            { label: 'علم شرعي (دقيقة)', field: 'shariDuration' as const, step: 5, icon: <GraduationCap className="w-4 h-4 text-emerald-600" /> },
+            { label: 'قراءة عامة (دقيقة)', field: 'readingDuration' as const, step: 5, icon: <BookOpen className="w-4 h-4 text-blue-600" /> },
+            { label: 'عدد الصفحات المقروءة', field: 'readingPages' as const, step: 1, icon: <Book className="w-4 h-4 text-amber-600" /> },
+            { label: 'سماع أو بودكاست (دقيقة)', field: 'audioDuration' as const, step: 5, badge: `نفس نقاط الصفحة: +${weights.pointsPerPage || 2} ن/د`, icon: <Headphones className="w-4 h-4 text-purple-600" /> }
+          ].map(k => {
+            const currentVal = ((log.knowledge as any)?.[k.field] || 0);
+            return (
+              <div key={k.field} className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100/70 transition-colors rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-xl shadow-xs border border-slate-100 shrink-0">
+                    {k.icon}
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-700 header-font block">{k.label}</span>
+                    {k.badge && (
+                      <span className="text-[9px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/60 inline-block mt-0.5">
+                        {k.badge}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => updateSection('knowledge', { [k.field]: Math.max(0, currentVal - k.step) })} className="p-1.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all"><Minus className="w-4 h-4 text-slate-400" /></button>
+                  <div className="bg-white border border-slate-200 rounded-xl px-3 py-1 min-w-[3.2rem] flex items-center justify-center"><span className="text-base font-black text-slate-800 tabular-nums">{currentVal}</span></div>
+                  <button onClick={() => updateSection('knowledge', { [k.field]: currentVal + k.step }, `اجتهد في ${k.label}`, 'knowledge')} className="p-1.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all"><Plus className="w-4 h-4 text-slate-400" /></button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

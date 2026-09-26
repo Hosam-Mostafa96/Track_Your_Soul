@@ -17,7 +17,8 @@ import {
   Timer as PomodoroIcon,
   Globe,
   AlertTriangle,
-  Activity
+  Activity,
+  Headphones
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 // Fix: Use arSA instead of ar to avoid export errors in some date-fns environments
@@ -112,6 +113,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     let activityPoints = 0;
     if (selectedActivity === 'shariDuration') activityPoints = elapsedMins * DEFAULT_WEIGHTS.knowledgeShari;
     else if (selectedActivity === 'readingDuration') activityPoints = elapsedMins * DEFAULT_WEIGHTS.knowledgeGeneral;
+    else if (selectedActivity === 'audioDuration') activityPoints = elapsedMins * DEFAULT_WEIGHTS.pointsPerPage;
     else activityPoints = elapsedMins * DEFAULT_WEIGHTS.nawafilPerMin;
 
     const liveTotalScore = Math.round(currentScore + activityPoints);
@@ -179,6 +181,7 @@ const WorshipTimer: React.FC<WorshipTimerProps> = ({
     { id: 'duhaDuration', label: 'صلاة الضحى', icon: <Sun className="w-4 h-4" /> },
     { id: 'shariDuration', label: 'طلب علم شرعي', icon: <GraduationCap className="w-4 h-4" /> },
     { id: 'readingDuration', label: 'قراءة عامة', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'audioDuration', label: 'سماع أو بودكاست', icon: <Headphones className="w-4 h-4" /> },
   ];
 
   return (

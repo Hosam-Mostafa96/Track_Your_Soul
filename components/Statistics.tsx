@@ -133,7 +133,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
     periodLogs.forEach(log => {
       counts.prayers += (Object.values(log.prayers) as PrayerEntry[]).filter(p => p.performed).length;
       counts.quran += ((log.quran.hifzRub || 0) + log.quran.revisionRub);
-      counts.knowledge += (log.knowledge.shariDuration + (log.knowledge.readingDuration || 0)) / 30;
+      counts.knowledge += ((log.knowledge?.shariDuration || 0) + (log.knowledge?.readingDuration || 0) + (log.knowledge?.audioDuration || 0)) / 30;
       counts.fasting += log.nawafil.fasting ? 10 : 0;
       counts.dhikr += (Object.values(log.athkar.counters) as number[]).reduce((a, b) => a + b, 0) / 100;
     });
@@ -257,7 +257,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
             break;
           case 'quran_hifz': isConnected = (log.quran.hifzRub || 0) > 0 || (log.quran.todayPortion || '').length > 0; break;
           case 'quran_rev': isConnected = (log.quran.revisionRub || 0) > 0 || (log.quran.tasksCompleted || []).some(t => t.startsWith('mur_') || t.startsWith('rabt_')); break;
-          case 'knowledge': isConnected = (log.knowledge.shariDuration + (log.knowledge.readingDuration || 0)) > 0; break;
+          case 'knowledge': isConnected = ((log.knowledge?.shariDuration || 0) + (log.knowledge?.readingDuration || 0) + (log.knowledge?.audioDuration || 0) + (log.knowledge?.readingPages || 0)) > 0; break;
           case 'qiyam': isConnected = log.nawafil.qiyamDuration > 0 || log.nawafil.witrDuration > 0; break;
           case 'duha': isConnected = log.nawafil.duhaDuration > 0; break;
           case 'fasting': isConnected = log.nawafil.fasting; break;

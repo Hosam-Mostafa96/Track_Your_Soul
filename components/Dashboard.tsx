@@ -191,7 +191,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 3. أوراد طلب العلم والقراءة
-    const hasKnowledgeVal = (log.knowledge.shariDuration || 0) > 0 || (log.knowledge.readingDuration || 0) > 0;
+    const hasKnowledgeVal = (log.knowledge.shariDuration || 0) > 0 || (log.knowledge.readingDuration || 0) > 0 || (log.knowledge.readingPages || 0) > 0 || (log.knowledge.audioDuration || 0) > 0;
     if (hasKnowledgeVal && dayTimes['knowledge'] === undefined) {
       dayTimes['knowledge'] = isToday ? currentHour : 16;
       updated = true;
@@ -448,10 +448,10 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 10. طلب العلم والقراءة (الساعة 4 م أو وقت تسجيلها)
-    const hasKnowledge = (log.knowledge?.shariDuration || 0) > 0 || (log.knowledge?.readingDuration || 0) > 0 || (log.knowledge?.readingPages || 0) > 0;
+    const hasKnowledge = (log.knowledge?.shariDuration || 0) > 0 || (log.knowledge?.readingDuration || 0) > 0 || (log.knowledge?.readingPages || 0) > 0 || (log.knowledge?.audioDuration || 0) > 0;
     if (hasKnowledge) {
-      const duration = (log.knowledge?.shariDuration || 0) + (log.knowledge?.readingDuration || 0);
-      addWorship(knowledgeHour, 'طلب العلم ومدارسة الكتب', 20 + Math.min(30, Math.floor(duration / 3)));
+      const duration = (log.knowledge?.shariDuration || 0) + (log.knowledge?.readingDuration || 0) + (log.knowledge?.audioDuration || 0);
+      addWorship(knowledgeHour, 'طلب العلم ومدارسة الكتب والبودكاست', 20 + Math.min(30, Math.floor(duration / 3)));
     }
 
     // 11. أذكار المساء والتحصين (الساعة 5 م)
