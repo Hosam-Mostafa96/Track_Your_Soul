@@ -453,11 +453,11 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-xs sm:text-sm font-black header-font text-white">تقييم الأسبوع الحالي</span>
                   <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/30">
-                    الأحد - السبت
+                    أسبوع واحد (الأحد - السبت)
                   </span>
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-emerald-200/90 font-bold mt-0.5">
-                  إنجاز الهدف التراكمي: <span className="font-mono font-black text-amber-300">{currentWeekStats.cumulativePercentage}%</span>
+                  يتجدد كل ليلة أحد • الهدف التراكمي: <span className="font-mono font-black text-amber-300">{currentWeekStats.cumulativePercentage}%</span>
                   <span className="text-[9px] opacity-75 mr-1.5 font-mono">({currentWeekStats.cumulativeScore.toLocaleString()} / {currentWeekStats.cumulativeTarget.toLocaleString()} ن)</span>
                 </p>
               </div>

@@ -177,11 +177,16 @@ export const WeeklyGoalsCharts: React.FC<WeeklyGoalsChartsProps> = ({
                 <Target className="w-5 h-5 text-amber-300" />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-black header-font leading-tight">
-                  حصاد الأهداف الأسبوعية المخصصة
-                </h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-black header-font leading-tight">
+                    حصاد الأهداف الأسبوعية المخصصة
+                  </h3>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 border border-amber-300/30">
+                    أسبوع واحد فقط (الأحد - السبت)
+                  </span>
+                </div>
                 <span className="text-[10px] text-emerald-200/90 font-bold block mt-0.5">
-                  {summary.weekRangeLabel}
+                  {summary.weekRangeLabel} • يتجدد مع كل ليلة أحد
                 </span>
               </div>
             </div>
@@ -242,6 +247,26 @@ export const WeeklyGoalsCharts: React.FC<WeeklyGoalsChartsProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* تنبيه المدى الزمني للأهداف */}
+      <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-right">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-100/90 text-emerald-800 rounded-xl shrink-0">
+            <Clock className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-xs font-black text-emerald-950 header-font block">
+              المدى الزمني: أسبوع واحد فقط (الأحد - السبت)
+            </span>
+            <span className="text-[10px] text-emerald-800 font-bold block mt-0.5">
+              يبدأ الاحتساب من جديد تلقائياً مع كل ليلة أحد (مع مغرب السبت شرعاً)
+            </span>
+          </div>
+        </div>
+        <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-xl border border-emerald-200 shadow-2xs shrink-0">
+          دورة ٧ أيام
+        </span>
       </div>
 
       {/* 2. أزرار التبديل ونوافذ الرسوم البيانية */}

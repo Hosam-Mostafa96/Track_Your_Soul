@@ -385,6 +385,26 @@ export const WeeklyGoalsSettingsModal: React.FC<WeeklyGoalsSettingsModalProps> =
 
         {/* Content body */}
         <div className="flex-1 overflow-y-auto py-4 space-y-6 pr-1 pl-1">
+          {/* تنبيه المدى الزمني للأهداف */}
+          <div className="p-3 bg-emerald-50/80 rounded-2xl border border-emerald-200/90 flex items-center justify-between gap-3 text-right">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 bg-emerald-100 text-emerald-800 rounded-xl shrink-0">
+                <Target className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-emerald-950 header-font block">
+                  المدى الزمني للأهداف: أسبوع واحد فقط (الأحد - السبت)
+                </span>
+                <span className="text-[10px] text-emerald-700 font-bold block mt-0.5">
+                  يتم البدء من جديد تلقائياً مع كل ليلة أحد (مع مغرب السبت شرعاً)
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-emerald-200 shadow-2xs shrink-0">
+              دورة أسبوعية
+            </span>
+          </div>
+
           {/* Presets Selector */}
           <div>
             <div className="flex items-center justify-between mb-2.5">

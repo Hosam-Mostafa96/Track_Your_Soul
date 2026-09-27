@@ -237,11 +237,11 @@ export const CurrentWeekEvaluationModal: React.FC<CurrentWeekEvaluationModalProp
                   متابعة الأسبوع والأهداف المخصصة
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200 header-font">
-                  الأحد - السبت
+                  أسبوع واحد فقط (الأحد - السبت)
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-bold mt-0.5">
-                {weekData.weekRangeLabel}
+                {weekData.weekRangeLabel} • يتجدد تلقائياً مع كل ليلة أحد
               </p>
             </div>
           </div>
@@ -405,7 +405,7 @@ export const CurrentWeekEvaluationModal: React.FC<CurrentWeekEvaluationModalProp
                     <span>متابعة أيام الأسبوع (الأحد - السبت)</span>
                   </h4>
                   <span className="text-[10px] text-slate-400 font-bold">
-                    يتجدد تلقائياً كل أول أسبوع
+                    يتجدد تلقائياً كل ليلة أحد (مع مغرب السبت)
                   </span>
                 </div>
 

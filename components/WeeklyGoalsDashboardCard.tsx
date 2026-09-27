@@ -39,12 +39,12 @@ export const WeeklyGoalsDashboardCard: React.FC<WeeklyGoalsDashboardCardProps> =
               <h3 className="font-bold text-slate-800 header-font text-sm sm:text-base leading-tight">
                 الأهداف الأسبوعية المخصصة
               </h3>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                {summary.completedGoalsCount} من {summary.totalGoalsCount} محقق
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
+                أسبوع واحد (الأحد - السبت)
               </span>
             </div>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5 truncate">
-              {summary.weekRangeLabel}
+              {summary.weekRangeLabel} • يتجدد مع كل ليلة أحد
             </p>
           </div>
         </div>
