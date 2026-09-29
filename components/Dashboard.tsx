@@ -399,8 +399,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     // 4. صيام التطوع
     if (nawafil.fasting) {
-      addWorship(5, 'نية صيام التطوع', 25);
-      addWorship(18, 'أجر الصيام وإفطار الصائم', 30);
+      addWorship(5, 'نية وإمساك صيام التطوع', 25);
+      addWorship(17, 'أجر الصيام وإفطار الصائم عند الغروب', 30);
     }
 
     // 5. ورد الدعاء والابتهال والأعمال المخصصة (الساعة 10 ص أو وقت تسجيلها)
@@ -503,13 +503,21 @@ const Dashboard: React.FC<DashboardProps> = ({
       addWorship(23, 'أذكار النوم وسورة الملك', 25);
     }
 
-    // ترتيب الساعات على مدار اليوم الإسلامي من الفجر (5:00 ص) حتى 4:00 ص
-    const hoursOrder = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4];
+    // ترتيب الساعات على مدار اليوم الشرعي بدءاً من أذان المغرب (6:00 م / الساعة 18) عبر الليل وحتى ختام النهار (5:00 م / الساعة 17)
+    const hoursOrder = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
 
     const formatHourLabel = (h: number) => {
-      if (h === 0) return '12:00 ص';
-      if (h === 12) return '12:00 م';
-      return h > 12 ? `${h - 12}:00 م` : `${h}:00 ص`;
+      let timeStr = '';
+      if (h === 0) timeStr = '12:00 ص';
+      else if (h === 12) timeStr = '12:00 م';
+      else timeStr = h > 12 ? `${h - 12}:00 م` : `${h}:00 ص`;
+
+      if (h === 18) return `${timeStr} (المغرب)`;
+      if (h === 20) return `${timeStr} (العشاء)`;
+      if (h === 5) return `${timeStr} (الفجر)`;
+      if (h === 12) return `${timeStr} (الظهر)`;
+      if (h === 15) return `${timeStr} (العصر)`;
+      return timeStr;
     };
 
     // احتساب معامل الغفلة وتراكم النقاط عبر الساعات:
@@ -661,9 +669,14 @@ const Dashboard: React.FC<DashboardProps> = ({
       return (
         <div className="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl border border-white/10 shadow-2xl space-y-2.5 font-sans text-right max-w-xs" dir="rtl">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <Clock className="w-3.5 h-3.5 text-emerald-400" />
               <span className="text-[11px] font-black text-emerald-400">الساعة {data.hour}</span>
+              {data.rawHour === 18 && (
+                <span className="text-[9px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1.5 py-0.5 rounded-md">
+                  بداية اليوم الشرعي 🌙
+                </span>
+              )}
             </div>
             <span className="text-xs font-black text-white font-mono bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-lg">
               {data.points} نقطة
@@ -1094,9 +1107,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   Line Chart تفاعلي
                 </span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                  <span>🌙</span>
+                  <span>يبدأ مع أذان المغرب (اليوم الشرعي)</span>
+                </span>
               </div>
               <p className="text-[11px] text-slate-400 font-bold header-font mt-0.5">
-                المحور الرأسي يمثل <span className="text-emerald-700 font-black">عدد النقاط</span> والأفقي يمثل <span className="text-emerald-700 font-black">الوقت</span> (ينخفض المؤشر 30% تلقائياً كل ساعة دون عبادة)
+                المحور الرأسي يمثل <span className="text-emerald-700 font-black">النقاط</span> والأفقي <span className="text-emerald-700 font-black">الوقت</span> بدءاً من <span className="text-amber-700 font-black">المغرب (مطلع اليوم الشرعي)</span> مروراً بالليل والنهار (ينخفض 30% تلقائياً كل ساعة دون عبادة)
               </p>
             </div>
           </div>
@@ -1113,7 +1130,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                اليوم كاملاً (24 ساعة)
+                اليوم الشرعي (24 ساعة)
               </button>
               <button
                 type="button"
@@ -1178,7 +1195,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <p className="text-[10px] text-emerald-700 bg-emerald-50/60 p-2.5 rounded-xl border border-dashed border-emerald-200/70 mb-3 font-bold leading-normal flex items-center justify-between gap-2 flex-wrap">
-          <span>👈 مرّر المخطط أفقياً لمتابعة خط التطور والتذبذب ساعة بساعة على مدار اليوم!</span>
+          <span>👈 يبدأ المنحنى من أذان المغرب (بداية اليوم الشرعي) ويمتد عبر الليل فالنهار حتى مغرب اليوم التالي. مرّر أفقياً لمتابعة الساعات!</span>
           <span className="text-slate-500 font-medium">النقاط الخضراء 🟢 تمثل عبادات مسجلة، والنقاط الحمراء 🔴 تمثل ساعات الغفلة (-30%)</span>
         </p>
 

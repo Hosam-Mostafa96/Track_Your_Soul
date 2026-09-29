@@ -192,7 +192,7 @@ const WorshipGuide: React.FC = () => {
                 <h3 className="font-bold text-slate-800 header-font text-base sm:text-lg">نبض طمأنينة الإيمان والسكينة (Line Chart)</h3>
                 <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">جديد</span>
               </div>
-              <p className="text-[11px] text-slate-400 font-bold">منحنى بياني تفاعلي يمثل صعود وهبوط نشاط قلبك الإيماني ساعة بساعة</p>
+              <p className="text-[11px] text-slate-400 font-bold">منحنى بياني تفاعلي يمثل صعود وهبوط نشاط قلبك الإيماني ساعة بساعة بدءاً من أذان المغرب (اليوم الشرعي)</p>
             </div>
           </div>
 
@@ -216,7 +216,7 @@ const WorshipGuide: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-bold">
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
               <span className="text-[10px] text-slate-400 block mb-0.5">البداية</span>
-              <span className="text-emerald-700 font-black">5:00 ص (الفجر)</span>
+              <span className="text-emerald-700 font-black">أذان المغرب (اليوم الشرعي)</span>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
               <span className="text-[10px] text-slate-400 block mb-0.5">الرصد</span>
