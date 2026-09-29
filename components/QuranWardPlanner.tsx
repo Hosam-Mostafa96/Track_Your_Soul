@@ -303,36 +303,36 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* بطاقة شريط التقدم والإنجاز الرئيسية */}
-      <div className="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-900 rounded-[2.5rem] p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-emerald-600/30">
+      <div className="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-900 rounded-[2rem] sm:rounded-[2.5rem] p-4.5 sm:p-7 text-white shadow-xl relative overflow-hidden border border-emerald-600/30">
         {/* خلفية زخرفية ناعمة */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl -translate-y-24 translate-x-24 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-52 h-52 bg-yellow-400/10 rounded-full blur-2xl translate-y-20 -translate-x-20 pointer-events-none"></div>
 
-        <div className="relative z-10 space-y-5">
+        <div className="relative z-10 space-y-4 sm:space-y-5">
           {/* ترويسة البطاقة العلوية */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 text-yellow-300 shadow-inner">
-                <BookOpen className="w-6 h-6" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="p-2.5 sm:p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 text-yellow-300 shadow-inner shrink-0">
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base sm:text-lg font-black header-font leading-tight">مخطط الورد اليومي</h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-emerald-950 header-font shadow-xs">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-emerald-950 header-font shadow-xs shrink-0">
                     {mode === 'juz' ? `جزء ${selectedJuzId}` : `${targetPagesCount} صفحات`}
                   </span>
                 </div>
-                <p className="text-[11px] text-emerald-200/90 font-bold mt-0.5">
+                <p className="text-[11px] text-emerald-200/90 font-bold mt-0.5 truncate sm:text-clip">
                   من صفحة {effectiveStart} إلى {effectiveEnd} • {startSurah.name === endSurah.name ? `سورة ${startSurah.name}` : `سورة ${startSurah.name} ⬅ ${endSurah.name}`}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
               {onOpenMushafAtPage && (
                 <button
                   onClick={() => onOpenMushafAtPage(effectiveStart)}
-                  className="py-2 px-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black header-font text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                  className="py-1.5 sm:py-2 px-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black header-font text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all shrink-0"
                   title="فتح المصحف الشريف عند صفحة بداية ورد اليوم"
                 >
                   <BookOpen className="w-4 h-4" />
@@ -340,10 +340,10 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
                 </button>
               )}
 
-              {/* زر فتح إعدادات الخطة */}
+              {/* زر فتح إعدادات الخطة وتخصيص الورد */}
               <button
                 onClick={() => setShowConfig(!showConfig)}
-                className={`p-2 rounded-2xl transition-all border flex items-center gap-1.5 text-xs font-black header-font ${
+                className={`py-1.5 sm:py-2 px-3 rounded-2xl transition-all border flex items-center gap-1.5 text-xs font-black header-font shrink-0 shadow-sm active:scale-95 ${
                   showConfig
                     ? 'bg-white text-emerald-900 border-white shadow-md'
                     : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
@@ -351,7 +351,7 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
                 title="تعديل وتخصيص الورد"
               >
                 <Settings2 className="w-4 h-4" />
-                <span className="hidden sm:inline">{showConfig ? 'إخفاء الإعدادات' : 'تخصيص الورد'}</span>
+                <span>{showConfig ? 'إخفاء الإعدادات' : 'تخصيص الورد'}</span>
               </button>
             </div>
           </div>
@@ -384,7 +384,7 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
             </div>
 
             {/* الإحصائيات السريعة ومكافأة البركة */}
-            <div className="flex items-center justify-between text-[11px] pt-1 text-emerald-100 font-bold">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-1 text-emerald-100 font-bold">
               <div className="flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
                 <span>الرصيد الإيماني: <b className="text-yellow-300">+{completedCount * 15}</b> نقطة بركة (+15/صفحة)</span>
