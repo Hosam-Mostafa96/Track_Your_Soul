@@ -143,6 +143,15 @@ const App: React.FC = () => {
   const [timerMode, setTimerMode] = useState<'stopwatch' | 'pomodoro'>('stopwatch');
   const [pomodoroGoal, setPomodoroGoal] = useState(1500);
 
+  // حالة ملء الشاشة للمصحف الشريف لإخفاء التاب والأشرطة السفلية والعلوية
+  const [isMushafFullScreen, setIsMushafFullScreen] = useState(false);
+
+  useEffect(() => {
+    if (activeTab !== 'quran') {
+      setIsMushafFullScreen(false);
+    }
+  }, [activeTab]);
+
   const syncTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -374,7 +383,16 @@ const App: React.FC = () => {
       case 'athkar': return <AthkarRead log={currentLog} onUpdateLog={updateLog} />;
       case 'forty': return <FortyChallenge />;
       case 'fortress': return <FortressOfFaith log={currentLog} onSwitchTab={setActiveTab} user={user} onUpdateLog={updateLog} />;
-      case 'quran': return <QuranPage log={currentLog} logs={logs} plan="new_1" onUpdatePlan={() => {}} onUpdateLog={updateLog} />;
+      case 'quran': return (
+        <QuranPage 
+          log={currentLog} 
+          logs={logs} 
+          plan="new_1" 
+          onUpdatePlan={() => {}} 
+          onUpdateLog={updateLog}
+          onFullScreenChange={setIsMushafFullScreen}
+        />
+      );
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const b = books.find(x => x.id === id); if(b) handleUpdateBookProgress(b, pages); }} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
@@ -393,121 +411,127 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
       {/* التنبيه التفاعلي المباشر للصلوات والأذكار */}
-      <InAppReminderBanner
-        alert={scheduledReminders.activeAlert}
-        onDismiss={scheduledReminders.dismissAlert}
-      />
+      {!isMushafFullScreen && (
+        <InAppReminderBanner
+          alert={scheduledReminders.activeAlert}
+          onDismiss={scheduledReminders.dismissAlert}
+        />
+      )}
 
-      <header className="bg-emerald-800 text-white p-4 pb-20 rounded-b-[3rem] shadow-xl relative overflow-hidden z-10">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-700 rounded-full -translate-y-16 translate-x-16 opacity-30 blur-2xl"></div>
-        <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-2 w-full">
-            <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0"><UserCircle className="w-8 h-8 text-white" /></button>
-            <div className="flex-1 flex flex-col items-center justify-center min-w-0"><h1 className="text-sm sm:text-base md:text-xl font-black header-font text-center leading-tight whitespace-normal">إدارة العبادات والأوراد</h1><span className="text-[10px] sm:text-xs text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">مرحباً، {user.name}</span></div>
-            <div className="flex items-center gap-1 shrink-0"><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
-          </div>
-          <div className="flex flex-col items-center gap-1.5"><div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div></div>
-          <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-2xl ${todayScore < 0 ? 'bg-rose-500/20 text-rose-300' : 'bg-yellow-400/20 text-yellow-400'}`}>
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <p className="text-[10px] text-emerald-200 uppercase font-black header-font leading-none">الرصيد الروحي</p>
-                  {todayScore < 0 && (
-                    <span className="text-[9px] bg-rose-500/30 text-rose-200 border border-rose-400/30 px-1.5 py-0.5 rounded-full font-bold">
-                      عجز بالرصيد
-                    </span>
-                  )}
-                </div>
-                <span className={`text-2xl font-black font-mono tabular-nums leading-none ${todayScore < 0 ? 'text-rose-300' : 'text-white'}`}>
-                  {todayScore.toLocaleString()}
-                </span>
-              </div>
+      {!isMushafFullScreen && (
+        <header className="bg-emerald-800 text-white p-4 pb-20 rounded-b-[3rem] shadow-xl relative overflow-hidden z-10">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-700 rounded-full -translate-y-16 translate-x-16 opacity-30 blur-2xl"></div>
+          <div className="relative z-10 flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-2 w-full">
+              <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0"><UserCircle className="w-8 h-8 text-white" /></button>
+              <div className="flex-1 flex flex-col items-center justify-center min-w-0"><h1 className="text-sm sm:text-base md:text-xl font-black header-font text-center leading-tight whitespace-normal">إدارة العبادات والأوراد</h1><span className="text-[10px] sm:text-xs text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">مرحباً، {user.name}</span></div>
+              <div className="flex items-center gap-1 shrink-0"><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
             </div>
-            <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all" title="سجل الأيام والأوراد">
-              <p className="text-[10px] text-emerald-200 font-bold header-font leading-none mb-0.5 flex items-center gap-1">
-                {currentDate === getIslamicDateString() && isCurrentIslamicNight() && (
-                  <span className="text-[9px] bg-amber-400 text-emerald-950 px-1.5 py-0.2 rounded-md font-black">ليلة</span>
-                )}
-                <span>{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</span>
-              </p>
-              <p className="text-sm font-black header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
-            </button>
-          </div>
-
-          {/* زر تقييم الأسبوع الحالي أسفل الرصيد الروحي */}
-          <button
-            onClick={() => {
-              setWeekEvalInitialTab('custom_goals');
-              setShowWeekEvalModal(true);
-            }}
-            className="w-full bg-emerald-950/40 hover:bg-emerald-950/60 backdrop-blur-xl rounded-2xl p-3 px-4 border border-white/20 hover:border-amber-400/60 transition-all duration-200 shadow-xl flex items-center justify-between group active:scale-[0.99] text-white"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 text-emerald-950 flex items-center justify-center font-black shadow-md shrink-0 group-hover:scale-105 transition-transform">
-                <TrendingUp className="w-5 h-5 stroke-[2.5]" />
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-black header-font text-white">تقييم الأسبوع الحالي</span>
-                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/30">
-                    أسبوع واحد (الأحد - السبت)
+            <div className="flex flex-col items-center gap-1.5"><div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div></div>
+            <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-2xl ${todayScore < 0 ? 'bg-rose-500/20 text-rose-300' : 'bg-yellow-400/20 text-yellow-400'}`}>
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <p className="text-[10px] text-emerald-200 uppercase font-black header-font leading-none">الرصيد الروحي</p>
+                    {todayScore < 0 && (
+                      <span className="text-[9px] bg-rose-500/30 text-rose-200 border border-rose-400/30 px-1.5 py-0.5 rounded-full font-bold">
+                        عجز بالرصيد
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-2xl font-black font-mono tabular-nums leading-none ${todayScore < 0 ? 'text-rose-300' : 'text-white'}`}>
+                    {todayScore.toLocaleString()}
                   </span>
                 </div>
-                <p className="text-[10px] sm:text-[11px] text-emerald-200/90 font-bold mt-0.5">
-                  يتجدد كل ليلة أحد • الهدف التراكمي: <span className="font-mono font-black text-amber-300">{currentWeekStats.cumulativePercentage}%</span>
-                  <span className="text-[9px] opacity-75 mr-1.5 font-mono">({currentWeekStats.cumulativeScore.toLocaleString()} / {currentWeekStats.cumulativeTarget.toLocaleString()} ن)</span>
-                </p>
               </div>
+              <button onClick={() => setActiveTab('history')} className="text-right flex flex-col items-end hover:bg-white/20 p-2 px-3 rounded-2xl transition-all" title="سجل الأيام والأوراد">
+                <p className="text-[10px] text-emerald-200 font-bold header-font leading-none mb-0.5 flex items-center gap-1">
+                  {currentDate === getIslamicDateString() && isCurrentIslamicNight() && (
+                    <span className="text-[9px] bg-amber-400 text-emerald-950 px-1.5 py-0.2 rounded-md font-black">ليلة</span>
+                  )}
+                  <span>{format(new Date(currentDate.replace(/-/g, '/')), 'eeee', { locale: ar })}</span>
+                </p>
+                <p className="text-sm font-black header-font">{format(new Date(currentDate.replace(/-/g, '/')), 'dd MMMM', { locale: ar })}</p>
+              </button>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0">
-              <div className="flex flex-col items-end">
-                <span className={`text-base sm:text-lg font-black font-mono leading-none ${currentWeekStats.cumulativePercentage >= 100 ? 'text-emerald-300' : currentWeekStats.cumulativePercentage >= 75 ? 'text-amber-300' : 'text-yellow-200'}`}>
-                  {currentWeekStats.cumulativePercentage}%
-                </span>
-                <div className="w-14 sm:w-16 h-1.5 bg-black/30 rounded-full overflow-hidden mt-1 border border-white/10">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 ${currentWeekStats.cumulativePercentage >= 100 ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-amber-400 to-yellow-300'}`}
-                    style={{ width: `${Math.max(0, Math.min(100, currentWeekStats.cumulativePercentage))}%` }}
-                  ></div>
+            {/* زر تقييم الأسبوع الحالي أسفل الرصيد الروحي */}
+            <button
+              onClick={() => {
+                setWeekEvalInitialTab('custom_goals');
+                setShowWeekEvalModal(true);
+              }}
+              className="w-full bg-emerald-950/40 hover:bg-emerald-950/60 backdrop-blur-xl rounded-2xl p-3 px-4 border border-white/20 hover:border-amber-400/60 transition-all duration-200 shadow-xl flex items-center justify-between group active:scale-[0.99] text-white"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 text-emerald-950 flex items-center justify-center font-black shadow-md shrink-0 group-hover:scale-105 transition-transform">
+                  <TrendingUp className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-black header-font text-white">تقييم الأسبوع الحالي</span>
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/30">
+                      أسبوع واحد (الأحد - السبت)
+                    </span>
+                  </div>
+                  <p className="text-[10px] sm:text-[11px] text-emerald-200/90 font-bold mt-0.5">
+                    يتجدد كل ليلة أحد • الهدف التراكمي: <span className="font-mono font-black text-amber-300">{currentWeekStats.cumulativePercentage}%</span>
+                    <span className="text-[9px] opacity-75 mr-1.5 font-mono">({currentWeekStats.cumulativeScore.toLocaleString()} / {currentWeekStats.cumulativeTarget.toLocaleString()} ن)</span>
+                  </p>
                 </div>
               </div>
-              <ChevronLeft className="w-4 h-4 text-emerald-300/70 group-hover:text-amber-300 group-hover:-translate-x-0.5 transition-all" />
-            </div>
-          </button>
-        </div>
-      </header>
-      <main className="px-4 -mt-8 relative z-20 max-w-2xl mx-auto">{renderContent()}</main>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <div className="flex flex-col items-end">
+                  <span className={`text-base sm:text-lg font-black font-mono leading-none ${currentWeekStats.cumulativePercentage >= 100 ? 'text-emerald-300' : currentWeekStats.cumulativePercentage >= 75 ? 'text-amber-300' : 'text-yellow-200'}`}>
+                    {currentWeekStats.cumulativePercentage}%
+                  </span>
+                  <div className="w-14 sm:w-16 h-1.5 bg-black/30 rounded-full overflow-hidden mt-1 border border-white/10">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${currentWeekStats.cumulativePercentage >= 100 ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-amber-400 to-yellow-300'}`}
+                      style={{ width: `${Math.max(0, Math.min(100, currentWeekStats.cumulativePercentage))}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <ChevronLeft className="w-4 h-4 text-emerald-300/70 group-hover:text-amber-300 group-hover:-translate-x-0.5 transition-all" />
+              </div>
+            </button>
+          </div>
+        </header>
+      )}
+      <main className={isMushafFullScreen ? 'p-0 m-0 w-full' : 'px-4 -mt-8 relative z-20 max-w-2xl mx-auto'}>{renderContent()}</main>
       
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-[98vw] pointer-events-none flex justify-center">
-        <div className="relative w-fit pointer-events-auto">
-          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white/80 to-transparent rounded-l-full pointer-events-none z-10"></div>
-          <nav className="bg-white/95 shadow-2xl rounded-full px-6 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg overflow-x-auto no-scrollbar max-w-[92vw]">
-            {[
-              {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
-              {id: 'entry', icon: PenLine, label: 'تسجيل'},
-              {id: 'athkar', icon: ScrollText, label: 'الأذكار'},
-              {id: 'quran', icon: BookOpen, label: 'القرآن'},
-              {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
-              {id: 'fortress', icon: Shield, label: 'قلعة الإيمان'},
-              {id: 'forty', icon: Target, label: 'تحدي الأربعين'},
-              {id: 'subha', icon: Orbit, label: 'السبحة'},
-              {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
-              {id: 'heart', icon: Heart, label: 'التزكية'},
-              {id: 'library', icon: Library, label: 'المكتبة'},
-              {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
-              {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
-              {id: 'contact', icon: Send, label: 'تواصل'},
-            ].map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.8rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}><tab.icon className="w-5 h-5" /><span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span></button>
-            ))}
-          </nav>
-          <div className="absolute left-1 top-1/2 -translate-y-1/2 p-1 bg-emerald-500 rounded-full text-white shadow-lg animate-pulse z-20"><ChevronLeft className="w-3 h-3" /></div>
+      {!isMushafFullScreen && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-[98vw] pointer-events-none flex justify-center app-bottom-nav-container">
+          <div className="relative w-fit pointer-events-auto">
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white/80 to-transparent rounded-l-full pointer-events-none z-10"></div>
+            <nav className="bg-white/95 shadow-2xl rounded-full px-6 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg overflow-x-auto no-scrollbar max-w-[92vw]">
+              {[
+                {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
+                {id: 'entry', icon: PenLine, label: 'تسجيل'},
+                {id: 'athkar', icon: ScrollText, label: 'الأذكار'},
+                {id: 'quran', icon: BookOpen, label: 'القرآن'},
+                {id: 'leaderboard', icon: Medal, label: 'المنافسة'},
+                {id: 'fortress', icon: Shield, label: 'قلعة الإيمان'},
+                {id: 'forty', icon: Target, label: 'تحدي الأربعين'},
+                {id: 'subha', icon: Orbit, label: 'السبحة'},
+                {id: 'timer', icon: TimerIcon, label: 'المؤقت'},
+                {id: 'heart', icon: Heart, label: 'التزكية'},
+                {id: 'library', icon: Library, label: 'المكتبة'},
+                {id: 'stats', icon: BarChart3, label: 'إحصائيات'},
+                {id: 'notes', icon: NotebookPen, label: 'اليوميات'},
+                {id: 'contact', icon: Send, label: 'تواصل'},
+              ].map((tab) => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center min-w-[3.8rem] px-1 transition-all duration-300 ${activeTab === tab.id ? 'text-emerald-600 scale-110' : 'text-slate-400 hover:text-slate-600'}`}><tab.icon className="w-5 h-5" /><span className="text-[8px] mt-1 font-bold header-font whitespace-nowrap">{tab.label}</span></button>
+              ))}
+            </nav>
+            <div className="absolute left-1 top-1/2 -translate-y-1/2 p-1 bg-emerald-500 rounded-full text-white shadow-lg animate-pulse z-20"><ChevronLeft className="w-3 h-3" /></div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* نافذة تقييم الأسبوع الحالي التراكمي والأهداف المخصصة */}
       <CurrentWeekEvaluationModal

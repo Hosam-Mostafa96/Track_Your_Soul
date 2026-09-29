@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   BookOpen, 
   ChevronRight, 
@@ -74,6 +75,7 @@ interface MushafReaderProps {
   initialTestMode?: boolean;
   onNavigateToTadabbur?: (surahNumber: number, surahName: string, ayahNumber: string, ayahText?: string) => void;
   onNavigateToWardPlanner?: () => void;
+  onFullScreenChange?: (isFullScreen: boolean) => void;
 }
 
 interface AyahData {
@@ -114,7 +116,8 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   initialPage,
   initialTestMode = false,
   onNavigateToTadabbur,
-  onNavigateToWardPlanner
+  onNavigateToWardPlanner,
+  onFullScreenChange
 }) => {
   // استرجاع آخر صفحة تمت قراءتها من الذاكرة المحلية
   const [currentPage, setCurrentPage] = useState<number>(() => {
@@ -428,14 +431,14 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     const diffX = touchEndX - touchStartXRef.current;
     const diffY = touchStartYRef.current !== null ? Math.abs(touchEndY - touchStartYRef.current) : 0;
 
-    // حركة سحب أفقية صريحة
-    if (Math.abs(diffX) > 35 && Math.abs(diffX) > diffY) {
+    // حركة سحب أفقية صريحة: اتجاه التقليب من اليسار إلى اليمين للتقدم للصفحة التالية
+    if (Math.abs(diffX) > 30 && Math.abs(diffX) > diffY) {
       if (diffX > 0) {
-        // سحب لليمين في مصحف عربي = الصفحة السابقة
-        goToPrevPage();
-      } else {
-        // سحب لليسار في مصحف عربي = الصفحة التالية
+        // سحب من اليسار إلى اليمين = الصفحة التالية (التقدم للأمام)
         goToNextPage();
+      } else {
+        // سحب من اليمين إلى اليسار = الصفحة السابقة (الرجوع للخلف)
+        goToPrevPage();
       }
     }
     touchStartXRef.current = null;
@@ -450,11 +453,13 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   const handleMouseUp = (e: React.MouseEvent) => {
     if (!isMouseDownRef.current || mouseStartXRef.current === null) return;
     const diffX = e.clientX - mouseStartXRef.current;
-    if (Math.abs(diffX) > 40) {
+    if (Math.abs(diffX) > 35) {
       if (diffX > 0) {
-        goToPrevPage();
-      } else {
+        // سحب من اليسار إلى اليمين = الصفحة التالية
         goToNextPage();
+      } else {
+        // سحب من اليمين إلى اليسار = الصفحة السابقة
+        goToPrevPage();
       }
     }
     mouseStartXRef.current = null;
@@ -509,24 +514,27 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     };
   }, [isFullScreen]);
 
-  // قفل تمرير الصفحة الخلفية أثناء ملء الشاشة
+  // قفل تمرير الصفحة الخلفية وتطبيق صنف الإخفاء وإشعار التطبيق بملء الشاشة
   useEffect(() => {
+    onFullScreenChange?.(isFullScreen);
     if (isFullScreen) {
+      document.body.classList.add('mushaf-fullscreen-active');
       const prevOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
+        document.body.classList.remove('mushaf-fullscreen-active');
         document.body.style.overflow = prevOverflow;
       };
     }
-  }, [isFullScreen]);
+  }, [isFullScreen, onFullScreenChange]);
 
-  // دعم التقليب بمفاتيح الأسهم
+  // دعم التقليب بمفاتيح الأسهم (السهم الأيمن للتقدم للأمام كما هو معتاد)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (showIndexModal || showBookmarkModal) return;
-      if (e.key === 'ArrowLeft') {
+      if (e.key === 'ArrowRight') {
         goToNextPage();
-      } else if (e.key === 'ArrowRight') {
+      } else if (e.key === 'ArrowLeft') {
         goToPrevPage();
       } else if (e.key === 'Escape' && isFullScreen) {
         toggleFullScreen();
@@ -772,7 +780,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
 
   // وضع ملء الشاشة الحصري: يظهر المصحف فقط في كامل شاشة الهاتف مع خلفية وثيم أصيل وإمكانية تسجيل القراءة مباشرة
   if (isFullScreen) {
-    return (
+    return createPortal(
       <div 
         className={`fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] flex flex-col justify-between items-center select-none overflow-hidden ${
           theme === 'sepia' 
@@ -1038,10 +1046,11 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
           </div>
 
           <span className="text-[11px] font-bold opacity-75 font-sans hidden sm:inline">
-            اسحب يميناً ويساراً للتقليب
+            اسحب من اليسار إلى اليمين للتقدم
           </span>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 

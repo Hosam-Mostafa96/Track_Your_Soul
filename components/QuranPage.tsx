@@ -426,6 +426,7 @@ interface QuranPageProps {
   plan: 'new_1' | 'new_2' | 'itqan_3' | 'itqan_4';
   onUpdatePlan: (plan: 'new_1' | 'new_2' | 'itqan_3' | 'itqan_4') => void;
   onUpdateLog: (log: DailyLog) => void;
+  onFullScreenChange?: (isFullScreen: boolean) => void;
 }
 
 const PLAN_UNIT_OPTIONS = [
@@ -468,7 +469,7 @@ const getRepsTitle = (unit: HifzUnitType): string => {
 
 export type QuranSubTabType = 'mushaf' | 'ward' | 'hifz' | 'tadabbur' | 'khatmat';
 
-const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, onUpdateLog }) => {
+const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, onUpdateLog, onFullScreenChange }) => {
   const [subTab, setSubTab] = useState<QuranSubTabType>(() => {
     try {
       const saved = localStorage.getItem('worship_quran_subtab') as QuranSubTabType;
@@ -484,6 +485,9 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
   const handleSubTabChange = (newTab: QuranSubTabType) => {
     setSubTab(newTab);
+    if (newTab !== 'mushaf') {
+      onFullScreenChange?.(false);
+    }
     try {
       localStorage.setItem('worship_quran_subtab', newTab);
     } catch (e) {}
@@ -691,6 +695,7 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
           initialTestMode={mushafTestMode}
           onNavigateToWardPlanner={() => handleSubTabChange('ward')}
           onNavigateToTadabbur={() => handleSubTabChange('tadabbur')}
+          onFullScreenChange={onFullScreenChange}
         />
       )}
 
