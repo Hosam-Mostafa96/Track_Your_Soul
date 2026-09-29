@@ -27,6 +27,7 @@ import { QURAN_30_JUZ, QURAN_114_SURAHS, getSurahAtPage, getJuzAtPage } from '..
 interface QuranWardPlannerProps {
   log: DailyLog;
   onUpdateLog: (log: DailyLog) => void;
+  onOpenMushafAtPage?: (page: number) => void;
 }
 
 const PAGE_PRESETS = [
@@ -38,7 +39,7 @@ const PAGE_PRESETS = [
 
 const LOCAL_STORAGE_KEY = 'worship_quran_ward_plan';
 
-export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdateLog }) => {
+export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdateLog, onOpenMushafAtPage }) => {
   const existingPlan = log.quran?.wardPlan;
   const currentReadPages = useMemo(() => new Set(log.quran?.readPages || []), [log.quran?.readPages]);
 
@@ -327,19 +328,32 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
               </div>
             </div>
 
-            {/* زر فتح إعدادات الخطة */}
-            <button
-              onClick={() => setShowConfig(!showConfig)}
-              className={`p-2.5 rounded-2xl transition-all border flex items-center gap-1.5 text-xs font-black header-font ${
-                showConfig
-                  ? 'bg-white text-emerald-900 border-white shadow-md'
-                  : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-              }`}
-              title="تعديل وتخصيص الورد"
-            >
-              <Settings2 className="w-4 h-4" />
-              <span className="hidden sm:inline">{showConfig ? 'إخفاء الإعدادات' : 'تخصيص الورد'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {onOpenMushafAtPage && (
+                <button
+                  onClick={() => onOpenMushafAtPage(effectiveStart)}
+                  className="py-2 px-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black header-font text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                  title="فتح المصحف الشريف عند صفحة بداية ورد اليوم"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>المصحف 📖</span>
+                </button>
+              )}
+
+              {/* زر فتح إعدادات الخطة */}
+              <button
+                onClick={() => setShowConfig(!showConfig)}
+                className={`p-2 rounded-2xl transition-all border flex items-center gap-1.5 text-xs font-black header-font ${
+                  showConfig
+                    ? 'bg-white text-emerald-900 border-white shadow-md'
+                    : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                }`}
+                title="تعديل وتخصيص الورد"
+              >
+                <Settings2 className="w-4 h-4" />
+                <span className="hidden sm:inline">{showConfig ? 'إخفاء الإعدادات' : 'تخصيص الورد'}</span>
+              </button>
+            </div>
           </div>
 
           {/* شريط التقدم الدائري / الخطي الفاخر */}

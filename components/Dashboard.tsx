@@ -836,6 +836,40 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
+      {/* بطاقة المصحف الشريف وورد اليوم التفاعلية */}
+      <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white rounded-[2rem] p-6 shadow-lg relative overflow-hidden border border-emerald-500/20">
+        <div className="absolute top-0 right-0 w-36 h-36 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 bg-amber-400/20 text-amber-300 rounded-2xl border border-amber-400/30 shrink-0">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase bg-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                  المصحف الشريف
+                </span>
+                <span className="text-[10px] text-amber-300 font-bold">
+                  {log.quran?.readPages?.length || 0} صفحة مقروءة اليوم (+{(log.quran?.readPages?.length || 0) * 15} ن)
+                </span>
+              </div>
+              <h3 className="text-sm font-black header-font leading-tight mt-1">
+                مصحف المدينة المنورة والقراءة اليومية
+              </h3>
+              <p className="text-[10px] text-emerald-200/90 mt-1 font-bold leading-relaxed">
+                تصفح صفحات المصحف الشريف، استمع لتلاوة الآيات والتفسير الميسر، وثبّت فواصل القراءة ووردك اليومي.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => onSwitchTab('quran')} 
+            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 rounded-xl font-black text-xs header-font shadow-md transition-all active:scale-95 whitespace-nowrap"
+          >
+            فتح المصحف 📖
+          </button>
+        </div>
+      </div>
+
       {/* تحدي الأربعين يوماً */}
       <div className="bg-gradient-to-r from-amber-700 via-amber-800 to-emerald-900 text-white rounded-[2rem] p-6 shadow-lg relative overflow-hidden">
         <div className="absolute top-0 left-0 w-32 h-32 bg-white/10 rounded-full opacity-30 -translate-x-12 -translate-y-12 blur-2xl pointer-events-none"></div>

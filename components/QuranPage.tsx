@@ -25,12 +25,14 @@ import {
   ZoomOut,
   Trash2,
   Bookmark,
-  Award
+  Award,
+  Brain
 } from 'lucide-react';
 import { DailyLog, ReflectionNote } from '../types';
 import { QuranTadabbur } from './QuranTadabbur';
 import { QuranWardPlanner } from './QuranWardPlanner';
 import { QuranKhatmatHistory } from './QuranKhatmatHistory';
+import { MushafReader } from './MushafReader';
 
 const QURAN_PORTIONS_NAMES = [
   "1- الفاتحة: (الحمد لله رب العالمين)",
@@ -464,19 +466,23 @@ const getRepsTitle = (unit: HifzUnitType): string => {
   }
 };
 
+export type QuranSubTabType = 'mushaf' | 'ward' | 'hifz' | 'tadabbur' | 'khatmat';
+
 const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, onUpdateLog }) => {
-  const [subTab, setSubTab] = useState<'ward' | 'hifz' | 'tadabbur' | 'khatmat'>(() => {
+  const [subTab, setSubTab] = useState<QuranSubTabType>(() => {
     try {
-      const saved = localStorage.getItem('worship_quran_subtab') as 'ward' | 'hifz' | 'tadabbur' | 'khatmat';
-      if (saved && ['ward', 'hifz', 'tadabbur', 'khatmat'].includes(saved)) {
+      const saved = localStorage.getItem('worship_quran_subtab') as QuranSubTabType;
+      if (saved && ['mushaf', 'ward', 'hifz', 'tadabbur', 'khatmat'].includes(saved)) {
         return saved;
       }
     } catch (e) {}
-    return 'ward';
+    return 'mushaf';
   });
+  const [mushafInitialPage, setMushafInitialPage] = useState<number | undefined>(undefined);
+  const [mushafTestMode, setMushafTestMode] = useState<boolean>(false);
   const [hifzUnit, setHifzUnit] = useState<HifzUnitType>('rub');
 
-  const handleSubTabChange = (newTab: 'ward' | 'hifz' | 'tadabbur' | 'khatmat') => {
+  const handleSubTabChange = (newTab: QuranSubTabType) => {
     setSubTab(newTab);
     try {
       localStorage.setItem('worship_quran_subtab', newTab);
@@ -638,8 +644,15 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in duration-500 text-right" dir="rtl">
-      {/* التبويبات الرباعية الفاخرة للقرآن الكريم */}
-      <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+      {/* التبويبات الخماسية الفاخرة للقرآن الكريم */}
+      <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+        <button 
+          onClick={() => handleSubTabChange('mushaf')} 
+          className={`py-3 px-2 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'mushaf' ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md ring-2 ring-emerald-500/20' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Book className="w-4 h-4 shrink-0" />
+          <span>المصحف الشريف</span>
+        </button>
         <button 
           onClick={() => handleSubTabChange('ward')} 
           className={`py-3 px-2 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'ward' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
@@ -663,15 +676,33 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
         </button>
         <button 
           onClick={() => handleSubTabChange('khatmat')} 
-          className={`py-3 px-2 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${subTab === 'khatmat' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`py-3 px-2 rounded-xl text-[10px] sm:text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1 ${subTab === 'khatmat' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <Award className="w-4 h-4 shrink-0 text-amber-300" />
-          <span>سجل الختمات والأجزاء</span>
+          <span>سجل الختمات</span>
         </button>
       </div>
 
+      {subTab === 'mushaf' && (
+        <MushafReader
+          log={log}
+          onUpdateLog={onUpdateLog}
+          initialPage={mushafInitialPage}
+          initialTestMode={mushafTestMode}
+          onNavigateToWardPlanner={() => handleSubTabChange('ward')}
+          onNavigateToTadabbur={() => handleSubTabChange('tadabbur')}
+        />
+      )}
+
       {subTab === 'ward' && (
-        <QuranWardPlanner log={log} onUpdateLog={onUpdateLog} />
+        <QuranWardPlanner 
+          log={log} 
+          onUpdateLog={onUpdateLog} 
+          onOpenMushafAtPage={(targetPage) => {
+            setMushafInitialPage(targetPage);
+            handleSubTabChange('mushaf');
+          }}
+        />
       )}
 
       {subTab === 'hifz' && (
@@ -766,6 +797,33 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
                      </div>
                    </div>
                  )}
+
+                 {/* زر اختبار الحفظ والتسميع الغيبي في المصحف */}
+                 <div className="pt-3 border-t border-emerald-200/60">
+                   <button
+                     onClick={() => {
+                       let targetPage = 1;
+                       if (hifzUnit === 'page') {
+                         const match = quranData.todayPortion?.match(/\d+/);
+                         if (match) targetPage = parseInt(match[0], 10);
+                       } else {
+                         for (const s of QURAN_SURAHS) {
+                           if (quranData.todayPortion?.includes(s.name)) {
+                             targetPage = s.page;
+                             break;
+                           }
+                         }
+                       }
+                       setMushafInitialPage(targetPage);
+                       setMushafTestMode(true);
+                       handleSubTabChange('mushaf');
+                     }}
+                     className="w-full py-2.5 px-4 bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 text-white rounded-xl text-xs font-black header-font shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                   >
+                     <Brain className="w-4 h-4 text-purple-200" />
+                     <span>اختبار وتسميع هذا المحفوظ غيباً في المصحف (إخفاء الآيات والتقييم) 🧠</span>
+                   </button>
+                 </div>
                </div>
              )}
           </div>
