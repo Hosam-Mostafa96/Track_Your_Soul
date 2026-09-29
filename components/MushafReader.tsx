@@ -471,31 +471,23 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     mouseStartXRef.current = null;
   };
 
-  // إدارة وضع ملء الشاشة الكامل لشاشة الهاتف
-  const toggleFullScreen = async () => {
-    if (!isFullScreen) {
-      setIsFullScreen(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
-        } else if ((document.documentElement as any).webkitRequestFullscreen) {
-          await (document.documentElement as any).webkitRequestFullscreen();
-        }
-      } catch (e) {
-        // Fallback works via fixed overlay
-      }
-    } else {
-      setIsFullScreen(false);
-      try {
-        if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-          if (document.exitFullscreen) {
-            await document.exitFullscreen();
-          } else if ((document as any).webkitExitFullscreen) {
-            await (document as any).webkitExitFullscreen();
+  // إدارة وضع ملء الشاشة للتطبيق بشاشة نقية بدون إشعار المتصفح السفلي المزعج
+  const toggleFullScreen = () => {
+    setIsFullScreen(prev => {
+      const next = !prev;
+      if (!next) {
+        try {
+          if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+            if (document.exitFullscreen) {
+              document.exitFullscreen();
+            } else if ((document as any).webkitExitFullscreen) {
+              (document as any).webkitExitFullscreen();
+            }
           }
-        }
-      } catch (e) {}
-    }
+        } catch (e) {}
+      }
+      return next;
+    });
   };
 
   // متابعة تغييرات ملء الشاشة المتصفحية (مثل زر الرجوع أو Escape)
