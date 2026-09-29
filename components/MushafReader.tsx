@@ -770,16 +770,16 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     );
   }, [indexSearchQuery]);
 
-  // وضع ملء الشاشة الحصري: يظهر المصحف فقط في كامل شاشة الهاتف بدون أي عناصر خارجية أو قوائم
+  // وضع ملء الشاشة الحصري: يظهر المصحف فقط في كامل شاشة الهاتف مع خلفية وثيم أصيل وإمكانية تسجيل القراءة مباشرة
   if (isFullScreen) {
     return (
       <div 
         className={`fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] flex flex-col justify-between items-center select-none overflow-hidden ${
           theme === 'sepia' 
-            ? 'bg-[#18140e]' 
+            ? 'bg-[#fcf7ec]' 
             : theme === 'dark' 
-              ? 'bg-[#09090b]' 
-              : 'bg-[#18181b]'
+              ? 'bg-[#121314]' 
+              : 'bg-white'
         }`}
         dir="rtl"
         onTouchStart={handleTouchStart}
@@ -789,7 +789,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
         onMouseLeave={handleMouseLeave}
         style={{ touchAction: 'pan-y' }}
       >
-        {/* رسالة التنبيه السريعة (Toast) */}
+        {/* رسالة التنبيه السريعة (Toast) في ملء الشاشة */}
         {toastMessage && (
           <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-emerald-950 text-white px-5 py-2.5 rounded-full shadow-2xl border border-emerald-500/40 text-xs font-bold header-font flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
             <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
@@ -797,60 +797,141 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
           </div>
         )}
 
-        {/* الشريط العلوي الخفيف في وضع ملء الشاشة */}
-        <div className="w-full z-40 p-2 sm:p-3 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto">
-          <div className="flex items-center gap-2">
+        {/* الشريط العلوي الخفيف والأنيق المتوافق مع ثيم المصحف تماماً */}
+        <div className={`w-full z-40 px-3 py-2 flex items-center justify-between flex-wrap gap-2 border-b shadow-xs pointer-events-auto backdrop-blur-md ${
+          theme === 'dark'
+            ? 'bg-slate-900/95 text-slate-100 border-slate-800'
+            : theme === 'sepia'
+              ? 'bg-[#f7eed8]/95 text-[#7d5e2d] border-[#eedfc5]'
+              : 'bg-white/95 text-slate-800 border-slate-200'
+        }`}>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* زر الخروج من ملء الشاشة */}
             <button
               onClick={toggleFullScreen}
-              className="py-1.5 px-3 rounded-full bg-black/60 hover:bg-black/90 text-white/90 hover:text-white backdrop-blur-md border border-white/20 transition-all shadow-xl active:scale-95 flex items-center gap-1.5 text-xs font-black header-font"
-              title="خروج من ملء الشاشة"
+              className={`py-1.5 px-3 rounded-full text-xs font-black header-font transition-all flex items-center gap-1.5 shadow-xs active:scale-95 border ${
+                theme === 'dark'
+                  ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'
+                  : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300'
+              }`}
+              title="إنهاء ملء الشاشة والعودة للواجهة الرئيسية"
             >
-              <Minimize2 className="w-4 h-4 text-amber-400" />
+              <Minimize2 className="w-4 h-4 text-emerald-600" />
               <span>خروج</span>
             </button>
 
-            {/* ثيم القراءة في ملء الشاشة */}
-            <div className="flex items-center bg-black/50 backdrop-blur-md p-0.5 rounded-full border border-white/10">
+            {/* زر تسجيل قراءة الصفحة مباشرة في وضع ملء الشاشة (دون الحاجة للخروج إطلاقاً) */}
+            <button
+              onClick={togglePageReadInDailyWard}
+              className={`py-1.5 px-3.5 rounded-full text-xs font-black header-font transition-all flex items-center gap-1.5 shadow-sm active:scale-95 border ${
+                isReadToday
+                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-200'
+                  : theme === 'dark'
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900'
+                    : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+              }`}
+              title="تسجيل قراءة هذه الصفحة في الورد اليومي واحتساب 15 نقطة بالرصيد"
+            >
+              {isReadToday ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>مقروءة اليوم ✓</span>
+                </>
+              ) : (
+                <>
+                  <Circle className="w-4 h-4 text-emerald-600" />
+                  <span>تحديد كـ مقروءة (+15 ن)</span>
+                </>
+              )}
+            </button>
+
+            {onNavigateToWardPlanner && (
+              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border hidden sm:inline-flex items-center ${
+                theme === 'dark' 
+                  ? 'bg-slate-800/80 text-slate-300 border-slate-700' 
+                  : 'bg-white/80 text-slate-600 border-slate-200'
+              }`}>
+                الورد: {todayReadCount}/{wardTotalPages}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* التكبير والتصغير أثناء ملء الشاشة */}
+            <div className={`flex items-center p-0.5 rounded-full border ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white/90 border-slate-200'
+            }`}>
+              <button
+                onClick={() => setZoomLevel(prev => Math.min(1.6, prev + 0.15))}
+                className="p-1.5 text-slate-600 hover:text-slate-900 rounded-full transition-all"
+                title="تكبير حجم الصفحة"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setZoomLevel(prev => Math.max(0.85, prev - 0.15))}
+                className="p-1.5 text-slate-600 hover:text-slate-900 rounded-full transition-all"
+                title="تصغير"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              {zoomLevel !== 1 && (
+                <button
+                  onClick={() => setZoomLevel(1)}
+                  className="p-1.5 text-emerald-600 hover:text-emerald-800 rounded-full transition-all"
+                  title="إعادة ضبط الحجم الأصلي"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* أزرار ثيم القراءة */}
+            <div className={`flex items-center p-0.5 rounded-full border ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white/90 border-slate-200'
+            }`}>
               <button
                 onClick={() => changeTheme('sepia')}
-                className={`p-1.5 rounded-full transition-all ${theme === 'sepia' ? 'bg-amber-500/40 text-amber-300' : 'text-white/60 hover:text-white'}`}
-                title="عاجي دافئ"
+                className={`p-1.5 rounded-full transition-all ${theme === 'sepia' ? 'bg-amber-100 text-amber-900 shadow-xs' : 'text-slate-400 hover:text-slate-700'}`}
+                title="ورق عاجي دافئ"
               >
                 <Coffee className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => changeTheme('dark')}
-                className={`p-1.5 rounded-full transition-all ${theme === 'dark' ? 'bg-slate-700 text-yellow-300' : 'text-white/60 hover:text-white'}`}
-                title="ليلي"
-              >
-                <Moon className="w-3.5 h-3.5" />
-              </button>
-              <button
                 onClick={() => changeTheme('white')}
-                className={`p-1.5 rounded-full transition-all ${theme === 'white' ? 'bg-white/30 text-white' : 'text-white/60 hover:text-white'}`}
-                title="أبيض"
+                className={`p-1.5 rounded-full transition-all ${theme === 'white' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-400 hover:text-slate-700'}`}
+                title="أبيض ناصع"
               >
                 <Sun className="w-3.5 h-3.5" />
               </button>
+              <button
+                onClick={() => changeTheme('dark')}
+                className={`p-1.5 rounded-full transition-all ${theme === 'dark' ? 'bg-slate-700 text-yellow-300 shadow-xs' : 'text-slate-400 hover:text-slate-700'}`}
+                title="الوضع الليلي"
+              >
+                <Moon className="w-3.5 h-3.5" />
+              </button>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-black text-amber-300 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-amber-400/30 header-font">
-              سورة {currentSurah.name} • ص {currentPage}
+            <span className={`text-xs font-black px-3 py-1 rounded-full border header-font ${
+              theme === 'dark' 
+                ? 'bg-slate-800 text-amber-300 border-slate-700' 
+                : 'bg-white/90 text-emerald-900 border-slate-200'
+            }`}>
+              سورة {currentSurah.name}
             </span>
           </div>
         </div>
 
         {/* فواصل الصفحة المرجعية إن وجدت */}
         {currentPageBookmarks.length > 0 && (
-          <div className="absolute top-12 right-6 z-30 flex items-start gap-1 pointer-events-none">
+          <div className="absolute top-14 right-6 z-30 flex items-start gap-1 pointer-events-none">
             {currentPageBookmarks.map(bm => {
               const colorInfo = COLOR_CLASSES[bm.color || 'amber'];
               return (
                 <div 
                   key={bm.id} 
-                  className={`w-7 h-12 shadow-2xl rounded-b-md flex items-end justify-center pb-1 font-black ${colorInfo.bg} ${colorInfo.text} border-b border-x ${colorInfo.border}`}
+                  className={`w-7 h-12 shadow-md rounded-b-md flex items-end justify-center pb-1 font-black ${colorInfo.bg} ${colorInfo.text} border-b border-x ${colorInfo.border}`}
                   title={bm.title}
                 >
                   <Bookmark className={`w-3.5 h-3.5 ${colorInfo.fill}`} />
@@ -860,11 +941,11 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
           </div>
         )}
 
-        {/* جسم المصحف في كامل شاشة الهاتف - شاشة نقية مخصصة للمصحف فقط */}
-        <div className="flex-1 w-full h-full flex items-center justify-center p-0 overflow-hidden relative">
+        {/* جسم المصحف في كامل شاشة الهاتف - شاشة نقية مضيئة بدون سواد باهت */}
+        <div className="flex-1 w-full h-full flex items-center justify-center p-1 sm:p-2 overflow-auto relative">
           {/* كشف الحفظ الغيبي في وضع الاختبار إن كان مفعلاً */}
           {testModeActive && isContentHidden && (
-            <div className="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
+            <div className="absolute inset-0 z-30 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
               <div className="w-16 h-16 rounded-3xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shadow-xl">
                 <Brain className="w-8 h-8 animate-bounce" />
               </div>
@@ -884,13 +965,16 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
             </div>
           )}
 
-          {/* صورة مصحف المدينة بدقة فائقة تملأ كامل شاشة الهاتف */}
+          {/* صورة مصحف المدينة بدقة فائقة تملأ الشاشة بنقاء ووضوح */}
           {viewMode === 'page' ? (
-            <div className="w-full h-full flex items-center justify-center relative">
+            <div 
+              className="w-full h-full flex items-center justify-center relative transition-transform duration-150 ease-out"
+              style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }}
+            >
               {!imageLoaded && !imageError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10 text-white">
-                  <div className="w-8 h-8 border-3 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-xs font-bold header-font">جاري تحميل صفحة {currentPage}...</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10">
+                  <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs font-bold text-slate-500 header-font">جاري استحضار الصفحة المباركة {currentPage}...</span>
                 </div>
               )}
               <img
@@ -901,29 +985,33 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
                 onError={() => {
                   if (!imageError) setImageError(true);
                 }}
-                className={`max-w-full max-h-[100dvh] w-auto h-full object-contain transition-all duration-200 select-none drop-shadow-2xl ${
-                  !imageLoaded ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                } ${
+                className={`max-w-full max-h-[calc(100dvh-88px)] w-auto h-auto object-contain select-none drop-shadow-md transition-all duration-150 ${
                   theme === 'dark'
                     ? 'invert-[0.90] hue-rotate-180 brightness-95 contrast-125'
                     : theme === 'sepia'
-                      ? 'contrast-[1.03] sepia-[0.10]'
+                      ? 'contrast-[1.02] sepia-[0.08]'
                       : ''
                 }`}
               />
             </div>
           ) : (
             /* وضع الآيات في ملء الشاشة */
-            <div className="w-full max-w-2xl max-h-[85dvh] overflow-y-auto p-4 sm:p-6 bg-slate-900/90 text-white rounded-3xl border border-white/10 space-y-4">
-              <div className="text-center py-2 border-b border-white/10">
-                <h3 className="text-lg font-black header-font text-amber-300">سورة {currentSurah.arabicName}</h3>
-                <p className="text-xs text-slate-400 font-mono">الجزء {currentJuz.id} • صفحة {currentPage}</p>
+            <div className={`w-full max-w-2xl max-h-[85dvh] overflow-y-auto p-4 sm:p-6 rounded-3xl border space-y-4 shadow-sm ${
+              theme === 'dark' 
+                ? 'bg-slate-900 text-white border-slate-800' 
+                : theme === 'sepia' 
+                  ? 'bg-[#f7eed8] text-[#3c2f1b] border-[#eedfc5]' 
+                  : 'bg-white text-slate-900 border-slate-200'
+            }`}>
+              <div className="text-center py-2 border-b border-black/10">
+                <h3 className="text-lg font-black header-font text-emerald-800">سورة {currentSurah.arabicName}</h3>
+                <p className="text-xs text-slate-500 font-mono">الجزء {currentJuz.id} • صفحة {currentPage}</p>
               </div>
               <div className="text-justify leading-[2.6] text-xl sm:text-2xl quran-font">
                 {pageAyahs.map((ayah) => (
-                  <span key={ayah.number} className="inline text-white/95">
+                  <span key={ayah.number} className="inline">
                     <span>{ayah.text}</span>
-                    <span className="inline-flex items-center justify-center mx-1.5 text-amber-400 font-bold font-sans text-xs">
+                    <span className="inline-flex items-center justify-center mx-1.5 text-emerald-700 font-bold font-sans text-xs">
                       ﴿{ayah.numberInSurah}﴾
                     </span>
                   </span>
@@ -933,15 +1021,25 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
           )}
         </div>
 
-        {/* شريط الإطار السفلي البسيط والأنيق بدون أزرار تنقل */}
-        <div className="w-full z-40 p-2 flex items-center justify-center bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-auto">
-          <div className="flex items-center gap-3 text-white/80 font-mono text-xs font-bold bg-black/50 px-4 py-1 rounded-full border border-white/10 backdrop-blur-md">
+        {/* شريط الإطار السفلي البسيط والأنيق المتوافق مع ثيم المصحف */}
+        <div className={`w-full z-40 px-4 py-2 flex items-center justify-between text-xs font-bold border-t pointer-events-auto backdrop-blur-md ${
+          theme === 'dark' 
+            ? 'bg-slate-900/95 text-slate-300 border-slate-800' 
+            : theme === 'sepia' 
+              ? 'bg-[#f7eed8]/95 text-[#7d5e2d] border-[#eedfc5]' 
+              : 'bg-white/95 text-slate-700 border-slate-200'
+        }`}>
+          <span className="font-mono text-xs opacity-75">الحزب {currentHizb}</span>
+          
+          <div className="flex items-center gap-2 font-mono">
             <span>الجزء {currentJuz.id}</span>
             <span>•</span>
-            <span className="text-amber-300 font-black text-sm">صفحة {currentPage}</span>
-            <span>•</span>
-            <span>الحزب {currentHizb}</span>
+            <span className="font-black text-sm px-2.5 py-0.5 rounded-md bg-black/5">صفحة {currentPage}</span>
           </div>
+
+          <span className="text-[11px] font-bold opacity-75 font-sans hidden sm:inline">
+            اسحب يميناً ويساراً للتقليب
+          </span>
         </div>
       </div>
     );
@@ -1460,13 +1558,11 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
                     setImageError(true);
                   }
                 }}
-                className={`max-w-full max-h-[78vh] w-auto h-auto object-contain transition-all duration-300 drop-shadow-sm ${
-                  !imageLoaded ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                } ${
+                className={`max-w-full max-h-[78vh] w-auto h-auto object-contain transition-all duration-200 drop-shadow-sm opacity-100 scale-100 ${
                   theme === 'dark' 
                     ? 'invert-[0.90] hue-rotate-180 brightness-95 contrast-125' 
                     : theme === 'sepia' 
-                      ? 'contrast-[1.03] sepia-[0.15]' 
+                      ? 'contrast-[1.03] sepia-[0.10]' 
                       : ''
                 }`}
               />
