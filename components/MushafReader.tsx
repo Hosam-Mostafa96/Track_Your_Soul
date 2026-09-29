@@ -410,24 +410,115 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     setShowIndexModal(false);
   };
 
-  // دعم التقليب بالسحب بالأصابع
+  // دعم التقليب والتحريك يميناً ويساراً بالسحب (Touch & Mouse Swipe Drag)
   const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const mouseStartXRef = useRef<number | null>(null);
+  const isMouseDownRef = useRef<boolean>(false);
+
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
   };
+
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartXRef.current === null) return;
     const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchEndX - touchStartXRef.current;
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) {
+    const touchEndY = e.changedTouches[0].clientY;
+    const diffX = touchEndX - touchStartXRef.current;
+    const diffY = touchStartYRef.current !== null ? Math.abs(touchEndY - touchStartYRef.current) : 0;
+
+    // حركة سحب أفقية صريحة
+    if (Math.abs(diffX) > 35 && Math.abs(diffX) > diffY) {
+      if (diffX > 0) {
+        // سحب لليمين في مصحف عربي = الصفحة السابقة
+        goToPrevPage();
+      } else {
+        // سحب لليسار في مصحف عربي = الصفحة التالية
+        goToNextPage();
+      }
+    }
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    mouseStartXRef.current = e.clientX;
+    isMouseDownRef.current = true;
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isMouseDownRef.current || mouseStartXRef.current === null) return;
+    const diffX = e.clientX - mouseStartXRef.current;
+    if (Math.abs(diffX) > 40) {
+      if (diffX > 0) {
         goToPrevPage();
       } else {
         goToNextPage();
       }
     }
-    touchStartXRef.current = null;
+    mouseStartXRef.current = null;
+    isMouseDownRef.current = false;
   };
+
+  const handleMouseLeave = () => {
+    isMouseDownRef.current = false;
+    mouseStartXRef.current = null;
+  };
+
+  // إدارة وضع ملء الشاشة الكامل لشاشة الهاتف
+  const toggleFullScreen = async () => {
+    if (!isFullScreen) {
+      setIsFullScreen(true);
+      try {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        } else if ((document.documentElement as any).webkitRequestFullscreen) {
+          await (document.documentElement as any).webkitRequestFullscreen();
+        }
+      } catch (e) {
+        // Fallback works via fixed overlay
+      }
+    } else {
+      setIsFullScreen(false);
+      try {
+        if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if ((document as any).webkitExitFullscreen) {
+            await (document as any).webkitExitFullscreen();
+          }
+        }
+      } catch (e) {}
+    }
+  };
+
+  // متابعة تغييرات ملء الشاشة المتصفحية (مثل زر الرجوع أو Escape)
+  useEffect(() => {
+    const handleFsChange = () => {
+      const isNativeFs = Boolean(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      if (!isNativeFs && isFullScreen) {
+        setIsFullScreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+    };
+  }, [isFullScreen]);
+
+  // قفل تمرير الصفحة الخلفية أثناء ملء الشاشة
+  useEffect(() => {
+    if (isFullScreen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [isFullScreen]);
 
   // دعم التقليب بمفاتيح الأسهم
   useEffect(() => {
@@ -437,11 +528,13 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
         goToNextPage();
       } else if (e.key === 'ArrowRight') {
         goToPrevPage();
+      } else if (e.key === 'Escape' && isFullScreen) {
+        toggleFullScreen();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage, showIndexModal, showBookmarkModal]);
+  }, [currentPage, showIndexModal, showBookmarkModal, isFullScreen]);
 
   // إدارة الفواصل المتعددة والمخصصة
   const handleOpenAddBookmark = () => {
@@ -677,8 +770,185 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     );
   }, [indexSearchQuery]);
 
+  // وضع ملء الشاشة الحصري: يظهر المصحف فقط في كامل شاشة الهاتف بدون أي عناصر خارجية أو قوائم
+  if (isFullScreen) {
+    return (
+      <div 
+        className={`fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] flex flex-col justify-between items-center select-none overflow-hidden ${
+          theme === 'sepia' 
+            ? 'bg-[#18140e]' 
+            : theme === 'dark' 
+              ? 'bg-[#09090b]' 
+              : 'bg-[#18181b]'
+        }`}
+        dir="rtl"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        style={{ touchAction: 'pan-y' }}
+      >
+        {/* رسالة التنبيه السريعة (Toast) */}
+        {toastMessage && (
+          <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-emerald-950 text-white px-5 py-2.5 rounded-full shadow-2xl border border-emerald-500/40 text-xs font-bold header-font flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+
+        {/* الشريط العلوي الخفيف في وضع ملء الشاشة */}
+        <div className="w-full z-40 p-2 sm:p-3 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleFullScreen}
+              className="py-1.5 px-3 rounded-full bg-black/60 hover:bg-black/90 text-white/90 hover:text-white backdrop-blur-md border border-white/20 transition-all shadow-xl active:scale-95 flex items-center gap-1.5 text-xs font-black header-font"
+              title="خروج من ملء الشاشة"
+            >
+              <Minimize2 className="w-4 h-4 text-amber-400" />
+              <span>خروج</span>
+            </button>
+
+            {/* ثيم القراءة في ملء الشاشة */}
+            <div className="flex items-center bg-black/50 backdrop-blur-md p-0.5 rounded-full border border-white/10">
+              <button
+                onClick={() => changeTheme('sepia')}
+                className={`p-1.5 rounded-full transition-all ${theme === 'sepia' ? 'bg-amber-500/40 text-amber-300' : 'text-white/60 hover:text-white'}`}
+                title="عاجي دافئ"
+              >
+                <Coffee className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => changeTheme('dark')}
+                className={`p-1.5 rounded-full transition-all ${theme === 'dark' ? 'bg-slate-700 text-yellow-300' : 'text-white/60 hover:text-white'}`}
+                title="ليلي"
+              >
+                <Moon className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => changeTheme('white')}
+                className={`p-1.5 rounded-full transition-all ${theme === 'white' ? 'bg-white/30 text-white' : 'text-white/60 hover:text-white'}`}
+                title="أبيض"
+              >
+                <Sun className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-amber-300 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-amber-400/30 header-font">
+              سورة {currentSurah.name} • ص {currentPage}
+            </span>
+          </div>
+        </div>
+
+        {/* فواصل الصفحة المرجعية إن وجدت */}
+        {currentPageBookmarks.length > 0 && (
+          <div className="absolute top-12 right-6 z-30 flex items-start gap-1 pointer-events-none">
+            {currentPageBookmarks.map(bm => {
+              const colorInfo = COLOR_CLASSES[bm.color || 'amber'];
+              return (
+                <div 
+                  key={bm.id} 
+                  className={`w-7 h-12 shadow-2xl rounded-b-md flex items-end justify-center pb-1 font-black ${colorInfo.bg} ${colorInfo.text} border-b border-x ${colorInfo.border}`}
+                  title={bm.title}
+                >
+                  <Bookmark className={`w-3.5 h-3.5 ${colorInfo.fill}`} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* جسم المصحف في كامل شاشة الهاتف - شاشة نقية مخصصة للمصحف فقط */}
+        <div className="flex-1 w-full h-full flex items-center justify-center p-0 overflow-hidden relative">
+          {/* كشف الحفظ الغيبي في وضع الاختبار إن كان مفعلاً */}
+          {testModeActive && isContentHidden && (
+            <div className="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shadow-xl">
+                <Brain className="w-8 h-8 animate-bounce" />
+              </div>
+              <h3 className="text-lg font-black header-font text-white">
+                صفحة {currentPage} (سورة {currentSurah.name})
+              </h3>
+              <p className="text-xs text-purple-200/90 max-w-sm font-bold">
+                اقرأ من حفظك وذاكرتك، ثم انقر الزر لكشف صفحة المصحف للمقارنة والتصحيح.
+              </p>
+              <button
+                onClick={toggleRevealAll}
+                className="py-3 px-6 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-emerald-950 font-black header-font text-xs flex items-center gap-2 shadow-xl active:scale-95 transition-all"
+              >
+                <Eye className="w-4 h-4 text-emerald-950" />
+                <span>كشف صفحة المصحف لمقارنة الحفظ 👁️</span>
+              </button>
+            </div>
+          )}
+
+          {/* صورة مصحف المدينة بدقة فائقة تملأ كامل شاشة الهاتف */}
+          {viewMode === 'page' ? (
+            <div className="w-full h-full flex items-center justify-center relative">
+              {!imageLoaded && !imageError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10 text-white">
+                  <div className="w-8 h-8 border-3 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs font-bold header-font">جاري تحميل صفحة {currentPage}...</span>
+                </div>
+              )}
+              <img
+                src={imageError ? fallbackPageImageSrc : pageImageSrc}
+                alt={`مصحف المدينة - صفحة ${currentPage}`}
+                loading="eager"
+                onLoad={() => setImageLoaded(true)}
+                onError={() => {
+                  if (!imageError) setImageError(true);
+                }}
+                className={`max-w-full max-h-[100dvh] w-auto h-full object-contain transition-all duration-200 select-none drop-shadow-2xl ${
+                  !imageLoaded ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                } ${
+                  theme === 'dark'
+                    ? 'invert-[0.90] hue-rotate-180 brightness-95 contrast-125'
+                    : theme === 'sepia'
+                      ? 'contrast-[1.03] sepia-[0.10]'
+                      : ''
+                }`}
+              />
+            </div>
+          ) : (
+            /* وضع الآيات في ملء الشاشة */
+            <div className="w-full max-w-2xl max-h-[85dvh] overflow-y-auto p-4 sm:p-6 bg-slate-900/90 text-white rounded-3xl border border-white/10 space-y-4">
+              <div className="text-center py-2 border-b border-white/10">
+                <h3 className="text-lg font-black header-font text-amber-300">سورة {currentSurah.arabicName}</h3>
+                <p className="text-xs text-slate-400 font-mono">الجزء {currentJuz.id} • صفحة {currentPage}</p>
+              </div>
+              <div className="text-justify leading-[2.6] text-xl sm:text-2xl quran-font">
+                {pageAyahs.map((ayah) => (
+                  <span key={ayah.number} className="inline text-white/95">
+                    <span>{ayah.text}</span>
+                    <span className="inline-flex items-center justify-center mx-1.5 text-amber-400 font-bold font-sans text-xs">
+                      ﴿{ayah.numberInSurah}﴾
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* شريط الإطار السفلي البسيط والأنيق بدون أزرار تنقل */}
+        <div className="w-full z-40 p-2 flex items-center justify-center bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-auto">
+          <div className="flex items-center gap-3 text-white/80 font-mono text-xs font-bold bg-black/50 px-4 py-1 rounded-full border border-white/10 backdrop-blur-md">
+            <span>الجزء {currentJuz.id}</span>
+            <span>•</span>
+            <span className="text-amber-300 font-black text-sm">صفحة {currentPage}</span>
+            <span>•</span>
+            <span>الحزب {currentHizb}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`space-y-4 ${isFullScreen ? 'fixed inset-0 z-50 bg-black/95 p-2 overflow-y-auto' : ''}`} dir="rtl">
+    <div className="space-y-4" dir="rtl">
       
       {/* رسالة التنبيه السريعة (Toast) */}
       {toastMessage && (
@@ -845,11 +1115,12 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
 
             {/* ملء الشاشة */}
             <button
-              onClick={() => setIsFullScreen(prev => !prev)}
-              className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200 transition-all"
-              title={isFullScreen ? 'إلغاء ملء الشاشة' : 'ملء الشاشة'}
+              onClick={toggleFullScreen}
+              className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-200 transition-all flex items-center gap-1.5 active:scale-95"
+              title="ملء الشاشة على كامل الهاتف"
             >
-              {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              <Maximize2 className="w-4 h-4 text-emerald-600" />
+              <span className="text-[10px] font-black header-font hidden sm:inline">ملء الشاشة</span>
             </button>
           </div>
         </div>
@@ -1072,7 +1343,11 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
       <div 
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className={`relative rounded-3xl overflow-hidden transition-all shadow-md border ${
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        style={{ touchAction: 'pan-y' }}
+        className={`relative rounded-3xl overflow-hidden transition-all shadow-md border cursor-grab active:cursor-grabbing select-none ${
           theme === 'sepia' 
             ? 'bg-[#fcf7ec] border-[#e8ddc7]' 
             : theme === 'dark' 
@@ -1095,10 +1370,19 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 font-mono">
-            <span>الجزء {currentJuz.id}</span>
-            <span>•</span>
-            <span>صفحة {currentPage}</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 font-mono">
+              <span>الجزء {currentJuz.id}</span>
+              <span>•</span>
+              <span>صفحة {currentPage}</span>
+            </div>
+            <button
+              onClick={toggleFullScreen}
+              className="p-1 rounded-lg hover:bg-black/10 transition-all text-current"
+              title="ملء الشاشة على كامل الهاتف"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
@@ -1187,25 +1471,6 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
                 }`}
               />
             </div>
-
-            {/* أزرار التقليب الجانبية */}
-            <button
-              onClick={goToPrevPage}
-              disabled={currentPage <= 1}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/20 hover:bg-black/40 text-white backdrop-blur-xs transition-all disabled:opacity-0 active:scale-95 z-20"
-              title="الصفحة السابقة"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={goToNextPage}
-              disabled={currentPage >= 604}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/20 hover:bg-black/40 text-white backdrop-blur-xs transition-all disabled:opacity-0 active:scale-95 z-20"
-              title="الصفحة التالية"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
           </div>
         ) : (
           /* وضع الآيات والتفسير التفاعلي واختبار الآيات تدريجياً */
@@ -1295,31 +1560,15 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
           </div>
         )}
 
-        {/* شريط الإطار السفلي للمصحف الشريف */}
-        <div className={`px-4 py-2.5 flex items-center justify-between text-xs font-bold border-t ${
+        {/* شريط الإطار السفلي للمصحف الشريف (نظيف ومجرد تماماً من أزرار ومؤشرات التنقل - التقليب عبر السحب يميناً ويساراً) */}
+        <div className={`px-4 py-2 flex items-center justify-between text-xs font-bold border-t ${
           theme === 'dark' ? 'border-slate-800 text-slate-400 bg-slate-900/60' : 'border-[#eedfc5] text-[#7d5e2d] bg-[#f7eed8]'
         }`}>
-          <button
-            onClick={goToPrevPage}
-            disabled={currentPage <= 1}
-            className="flex items-center gap-1 text-xs font-black header-font hover:text-emerald-700 disabled:opacity-30 transition-all"
-          >
-            <ChevronRight className="w-4 h-4" />
-            <span>السابقة</span>
-          </button>
-
-          <span className="font-mono font-black text-sm">
-            {currentPage}
+          <span className="text-[10px] opacity-75 font-mono">الحزب {currentHizb}</span>
+          <span className="font-mono font-black text-sm tracking-wide">
+            صفحة {currentPage}
           </span>
-
-          <button
-            onClick={goToNextPage}
-            disabled={currentPage >= 604}
-            className="flex items-center gap-1 text-xs font-black header-font hover:text-emerald-700 disabled:opacity-30 transition-all"
-          >
-            <span>التالية</span>
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+          <span className="text-[10px] opacity-75 font-mono">الجزء {currentJuz.id}</span>
         </div>
       </div>
 
