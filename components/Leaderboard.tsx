@@ -19,20 +19,23 @@ import {
   Zap,
   BookOpen,
   Flame,
-  Heart
+  Heart,
+  Users
 } from 'lucide-react';
 import { User } from '../types';
 import { GOOGLE_STATS_API } from '../constants';
 import { isSinOrAccountabilityActivity } from '../utils/scoring';
+import { SpiritualGroupChallenges } from './SpiritualGroupChallenges';
 
 interface LeaderboardProps {
   user: User | null;
   currentScore: number;
   isSync: boolean;
+  onNavigateTab?: (tab: string) => void;
 }
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync }) => {
-  const [activeView, setActiveView] = useState<'ranks' | 'activity'>('ranks');
+const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync, onNavigateTab }) => {
+  const [activeView, setActiveView] = useState<'ranks' | 'challenges' | 'activity'>('ranks');
   const [globalTop, setGlobalTop] = useState<any[]>([]);
   const [activityFeed, setActivityFeed] = useState<any[]>([]);
   const [userRank, setUserRank] = useState<number | null>(null);
@@ -182,13 +185,43 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
         <span className="text-[8px] font-black text-emerald-600/40 header-font uppercase">{currentQuote.source}</span>
       </div>
 
-      {/* التبديل بين المتصدرين والنشاط */}
+      {/* التبديل بين المتصدرين، التحديات الجماعية، والنشاط */}
       <div className="bg-white p-1 rounded-2xl shadow-sm border border-slate-100 flex gap-1">
-        <button onClick={() => setActiveView('ranks')} className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${activeView === 'ranks' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}>
-          <Trophy className="w-4 h-4" /> المتصدرون
+        <button
+          onClick={() => setActiveView('ranks')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${
+            activeView === 'ranks'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Trophy className="w-4 h-4" />
+          <span>المتصدرون</span>
         </button>
-        <button onClick={() => setActiveView('activity')} className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-2 ${activeView === 'activity' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400'}`}>
-          <Activity className="w-4 h-4" /> نشاط العابدين
+
+        <button
+          onClick={() => setActiveView('challenges')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 relative ${
+            activeView === 'challenges'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>التحديات الجماعية</span>
+          <span className="w-2 h-2 rounded-full bg-amber-400 absolute top-2 left-2 animate-pulse" />
+        </button>
+
+        <button
+          onClick={() => setActiveView('activity')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 ${
+            activeView === 'activity'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Activity className="w-4 h-4" />
+          <span>نشاط العابدين</span>
         </button>
       </div>
 
@@ -235,6 +268,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync })
             }) : <LoaderBox isLoading={isLoading} networkError={networkError} />}
           </div>
         </div>
+      ) : activeView === 'challenges' ? (
+        <SpiritualGroupChallenges
+          user={user}
+          currentScore={currentScore}
+          onNavigateTab={onNavigateTab}
+        />
       ) : (
         <div className="space-y-3">
           <div className="px-2 mb-2 flex items-center justify-between">

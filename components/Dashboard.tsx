@@ -47,6 +47,7 @@ import { NextPrayerWidget } from './NextPrayerWidget';
 import { WeeklyCardModal } from './WeeklyCardModal';
 import { DAILY_TADABBUR_SEEDS } from '../utils/quranData';
 import { WeeklyGoalsDashboardCard } from './WeeklyGoalsDashboardCard';
+import { TodayRemainingGoalsChecklist } from './TodayRemainingGoalsChecklist';
 import { WeeklyGoalsSettingsModal } from './WeeklyGoalsSettingsModal';
 import { getIslamicDateString } from '../utils/prayerTimes';
 import { loadWeeklyGoalsConfig, calculateWeeklyGoalsProgress } from '../utils/weeklyGoals';
@@ -998,6 +999,13 @@ const Dashboard: React.FC<DashboardProps> = ({
             : `لقد أنجزت ${Math.round(progressPercent)}% من هدفك الروحي`}
         </p>
       </div>
+
+      {/* 2.4 قائمة مصغرة (Checklist) للأهداف والمهام المتبقية لليوم الحالي */}
+      <TodayRemainingGoalsChecklist
+        summary={weeklyGoalsSummary}
+        onNavigateTab={onSwitchTab}
+        onOpenWeeklyGoalsModal={() => setShowWeeklyGoalsSettings(true)}
+      />
 
       {/* 2.5 الأهداف الأسبوعية المخصصة */}
       <WeeklyGoalsDashboardCard

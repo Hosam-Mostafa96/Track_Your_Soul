@@ -350,7 +350,7 @@ const App: React.FC = () => {
       case 'dashboard': return <Dashboard log={currentLog} logs={logs} weights={weights} user={user} onDateChange={setCurrentDate} targetScore={targetScore} onTargetChange={(val) => { setTargetScore(val); localStorage.setItem('worship_target', val.toString()); }} onOpenSettings={() => setActiveTab('profile')} books={books} onUpdateBook={handleUpdateBookProgress} onSwitchTab={setActiveTab} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onUpdateLog={updateLog} onOpenWeeklyEvaluation={(tab) => { setWeekEvalInitialTab(tab || 'custom_goals'); setShowWeekEvalModal(true); }} />;
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} onSwitchTab={setActiveTab} />;
       case 'heart': return <HeartTazkiya log={currentLog} onUpdate={updateLog} />;
-      case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} />;
+      case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} onNavigateTab={(tab) => setActiveTab(tab as any)} />;
       case 'timer': return (
         <WorshipTimer 
           isSync={isGlobalSyncEnabled} 
