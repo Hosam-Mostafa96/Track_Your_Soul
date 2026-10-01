@@ -1344,6 +1344,8 @@ export const calculateWeeklyGoalsProgress = (
     }
 
     const activeDaysThisWeek = dailyValues.filter(d => d.value > 0).length;
+    const dailyRecommendedTarget = Math.max(1, Math.round(target / 7));
+    const todayRemaining = Math.max(0, dailyRecommendedTarget - todayVal);
 
     return {
       goal,
@@ -1356,7 +1358,10 @@ export const calculateWeeklyGoalsProgress = (
       paceStatus,
       streak: continuousStreak,
       isTodayDone,
-      activeDaysThisWeek
+      activeDaysThisWeek,
+      todayValue: todayVal,
+      dailyRecommendedTarget,
+      todayRemaining
     };
   });
 
@@ -1372,6 +1377,7 @@ export const calculateWeeklyGoalsProgress = (
     : 0;
   const activeStreakGoalsCount = goalsProgress.filter(g => g.streak > 0).length;
   const todayGoalsCompletedCount = goalsProgress.filter(g => g.isTodayDone).length;
+  const todayRemainingGoalsCount = goalsProgress.filter(g => !g.isTodayDone).length;
 
   // أفضل هدف أداءً والهدف الأكثر احتياجاً للهمة
   const sortedByPct = [...goalsProgress].sort((a, b) => b.percentage - a.percentage);
@@ -1393,6 +1399,7 @@ export const calculateWeeklyGoalsProgress = (
     mostNeededGoal,
     maxActiveStreak,
     activeStreakGoalsCount,
-    todayGoalsCompletedCount
+    todayGoalsCompletedCount,
+    todayRemainingGoalsCount
   };
 };

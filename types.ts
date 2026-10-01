@@ -306,6 +306,9 @@ export interface WeeklyGoalProgress {
   streak: number; // عدد الأيام المتتالية المستمرة لهذا الهدف حتى اليوم
   isTodayDone: boolean; // هل تم تسجيل إنجاز لهذا الهدف اليوم
   activeDaysThisWeek: number; // عدد الأيام التي تم فيها العمل خلال الأسبوع الحالي
+  todayValue: number; // القيمة المنجزة اليوم تحديداً
+  dailyRecommendedTarget: number; // المعدل اليومي الموصى به
+  todayRemaining: number; // المتبقي لإكمال وتيرة اليوم
 }
 
 export interface WeeklyGoalsSummary {
@@ -322,5 +325,6 @@ export interface WeeklyGoalsSummary {
   maxActiveStreak: number; // أعلى تتابع نشط بين جميع الأهداف
   activeStreakGoalsCount: number; // عدد الأهداف ذات التتابع النشط
   todayGoalsCompletedCount: number; // عدد الأهداف المحققة اليوم
+  todayRemainingGoalsCount: number; // عدد الأهداف المتبقية لليوم لمواصلة التتابع
 }
 

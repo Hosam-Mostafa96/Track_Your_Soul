@@ -1008,6 +1008,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           }
         }}
         onOpenSettings={() => setShowWeeklyGoalsSettings(true)}
+        onNavigateTab={onSwitchTab}
       />
 
       {/* 3. متابعة القراءة اليومية (تم تصغير المربع) */}
