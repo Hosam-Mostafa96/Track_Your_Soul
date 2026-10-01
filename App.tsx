@@ -24,7 +24,8 @@ import {
   ScrollText,
   Target,
   Shield,
-  TrendingUp
+  TrendingUp,
+  Flame
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
@@ -32,6 +33,7 @@ import { arSA as ar } from 'date-fns/locale';
 import { DailyLog, PrayerName, TranquilityLevel, JihadFactor, AppWeights, User, Book } from './types';
 import { calculateTotalScore, isSinOrAccountabilityActivity } from './utils/scoring';
 import { DEFAULT_WEIGHTS, GOOGLE_STATS_API } from './constants';
+import { calculateWeeklyGoalsProgress, loadWeeklyGoalsConfig } from './utils/weeklyGoals';
 import Dashboard from './components/Dashboard';
 import DailyEntry from './DailyEntry';
 import WorshipHistory from './components/WorshipHistory';
@@ -145,6 +147,11 @@ const App: React.FC = () => {
 
   // حالة ملء الشاشة للمصحف الشريف لإخفاء التاب والأشرطة السفلية والعلوية
   const [isMushafFullScreen, setIsMushafFullScreen] = useState(false);
+
+  // ملخص الأهداف الأسبوعية والتتابع الإيماني لعرضه بشكل دائم أمام عين المستخدم في الرأس
+  const appWeeklySummary = useMemo(() => {
+    return calculateWeeklyGoalsProgress(logs, loadWeeklyGoalsConfig(), currentDate);
+  }, [logs, currentDate]);
 
   useEffect(() => {
     if (activeTab !== 'quran') {
@@ -427,7 +434,28 @@ const App: React.FC = () => {
               <div className="flex-1 flex flex-col items-center justify-center min-w-0"><h1 className="text-sm sm:text-base md:text-xl font-black header-font text-center leading-tight whitespace-normal">إدارة العبادات والأوراد</h1><span className="text-[10px] sm:text-xs text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">مرحباً، {user.name}</span></div>
               <div className="flex items-center gap-1 shrink-0"><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
             </div>
-            <div className="flex flex-col items-center gap-1.5"><div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div></div>
+            <div className="flex flex-col items-center gap-1.5">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm">
+                  <Calendar className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>{hijriDate}</span>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setWeekEvalInitialTab('custom_goals');
+                    setShowWeekEvalModal(true);
+                  }}
+                  className="flex items-center gap-1.5 text-[11px] font-black text-amber-950 bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 px-3.5 py-1.5 rounded-full border border-amber-300 shadow-md backdrop-blur-sm active:scale-95 transition-all group"
+                  title="التتابع الإيماني للأهداف - انقر لعرض التفاصيل الكاملة"
+                >
+                  <Flame className="w-3.5 h-3.5 text-orange-600 fill-orange-600 group-hover:scale-110 transition-transform animate-pulse" />
+                  <span>
+                    تتابع الأهداف: {appWeeklySummary.maxActiveStreak > 0 ? `🔥 ${appWeeklySummary.maxActiveStreak} أيام` : 'ابدأ اليوم'}
+                  </span>
+                </button>
+              </div>
+            </div>
             <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl">
               <div className="flex items-center gap-3">
                 <div className={`p-2.5 rounded-2xl ${todayScore < 0 ? 'bg-rose-500/20 text-rose-300' : 'bg-yellow-400/20 text-yellow-400'}`}>

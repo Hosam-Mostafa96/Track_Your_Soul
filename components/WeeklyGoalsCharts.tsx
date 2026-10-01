@@ -540,9 +540,28 @@ export const WeeklyGoalsCharts: React.FC<WeeklyGoalsChartsProps> = ({
                   </div>
                 </div>
 
-                {/* وتيرة الأيام السبعة (Sunday to Saturday Mini Dots) */}
-                <div className="pt-2 border-t border-slate-100/80 flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-slate-400">سجل الأيام:</span>
+                {/* وتيرة الأيام السبعة والاستريك تحت الهدف */}
+                <div className="pt-2.5 border-t border-slate-100/80 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-black text-[10px] transition-all ${
+                        gp.streak > 0
+                          ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-900 border border-amber-300 shadow-2xs'
+                          : 'bg-slate-100 text-slate-400'
+                      }`}
+                    >
+                      <Flame className={`w-3.5 h-3.5 ${gp.streak > 0 ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-slate-300'}`} />
+                      <span>{gp.streak > 0 ? `${gp.streak} أيام متتالية` : 'ابدأ التتابع'}</span>
+                    </span>
+
+                    {gp.isTodayDone && (
+                      <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
+                        منجز اليوم
+                      </span>
+                    )}
+                  </div>
+
                   <div className="flex items-center gap-1.5">
                     {gp.dailyValues.map(dVal => {
                       const hasVal = dVal.value > 0;

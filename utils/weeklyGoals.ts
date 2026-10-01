@@ -1,5 +1,5 @@
 import { DailyLog, WeeklyGoalsConfig, WeeklyGoalsSummary, WeeklyGoalProgress, WeeklyWorshipGoalItem, WorshipGoalCategory } from '../types';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
 
 export const WEEKLY_GOALS_STORAGE_KEY = 'worship_weekly_custom_goals_v1';
@@ -1297,6 +1297,54 @@ export const calculateWeeklyGoalsProgress = (
       paceStatus = 'behind';
     }
 
+    // حساب التتابع المتتالي المستمر لهذا الهدف (Streak) عبر الأيام المتصلة
+    let continuousStreak = 0;
+    const todayLog = logs[currentDateStr];
+    const todayVal = extractGoalValueFromDailyLog(goal, todayLog);
+    const isTodayDone = todayVal > 0;
+
+    const baseDate = new Date(currentDateStr.replace(/-/g, '/'));
+    if (isTodayDone) {
+      continuousStreak = 1;
+      let d = addDays(baseDate, -1);
+      while (true) {
+        const dStr = format(d, 'yyyy-MM-dd');
+        const prevLog = logs[dStr];
+        if (!prevLog) break;
+        const prevVal = extractGoalValueFromDailyLog(goal, prevLog);
+        if (prevVal > 0) {
+          continuousStreak++;
+          d = addDays(d, -1);
+        } else {
+          break;
+        }
+      }
+    } else {
+      // إذا لم ينجز بعد اليوم، نتحقق من الأمس ليبقى التتابع مستمراً بانتظار إنجاز اليوم
+      let d = addDays(baseDate, -1);
+      const yesterdayLog = logs[format(d, 'yyyy-MM-dd')];
+      if (yesterdayLog && extractGoalValueFromDailyLog(goal, yesterdayLog) > 0) {
+        continuousStreak = 1;
+        d = addDays(d, -1);
+        while (true) {
+          const dStr = format(d, 'yyyy-MM-dd');
+          const prevLog = logs[dStr];
+          if (!prevLog) break;
+          const prevVal = extractGoalValueFromDailyLog(goal, prevLog);
+          if (prevVal > 0) {
+            continuousStreak++;
+            d = addDays(d, -1);
+          } else {
+            break;
+          }
+        }
+      } else {
+        continuousStreak = 0;
+      }
+    }
+
+    const activeDaysThisWeek = dailyValues.filter(d => d.value > 0).length;
+
     return {
       goal,
       current: weekTotal,
@@ -1305,7 +1353,10 @@ export const calculateWeeklyGoalsProgress = (
       remaining,
       isCompleted,
       dailyValues,
-      paceStatus
+      paceStatus,
+      streak: continuousStreak,
+      isTodayDone,
+      activeDaysThisWeek
     };
   });
 
@@ -1314,6 +1365,13 @@ export const calculateWeeklyGoalsProgress = (
 
   const totalPercentages = goalsProgress.reduce((sum, g) => sum + Math.min(100, g.percentage), 0);
   const overallCompletionPct = totalGoalsCount > 0 ? Math.round(totalPercentages / totalGoalsCount) : 0;
+
+  // أعلى تتابع نشط بين جميع الأهداف، وإحصائيات التتابع
+  const maxActiveStreak = goalsProgress.length > 0
+    ? Math.max(...goalsProgress.map(g => g.streak), 0)
+    : 0;
+  const activeStreakGoalsCount = goalsProgress.filter(g => g.streak > 0).length;
+  const todayGoalsCompletedCount = goalsProgress.filter(g => g.isTodayDone).length;
 
   // أفضل هدف أداءً والهدف الأكثر احتياجاً للهمة
   const sortedByPct = [...goalsProgress].sort((a, b) => b.percentage - a.percentage);
@@ -1332,6 +1390,9 @@ export const calculateWeeklyGoalsProgress = (
     overallCompletionPct,
     goalsProgress,
     bestPerformingGoal,
-    mostNeededGoal
+    mostNeededGoal,
+    maxActiveStreak,
+    activeStreakGoalsCount,
+    todayGoalsCompletedCount
   };
 };
