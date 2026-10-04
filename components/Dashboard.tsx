@@ -72,14 +72,13 @@ interface DashboardProps {
   onOpenWeeklyEvaluation?: (tab?: 'general' | 'custom_goals') => void;
   onOpenHifzTracker?: () => void;
   onOpenWorshipMind?: () => void;
-  onOpenPwaWidget?: () => void;
   onOpenKaffarah?: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   log, logs, weights, onDateChange, targetScore, onTargetChange, onOpenSettings,
   books, onUpdateBook, onSwitchTab, installPrompt, onClearInstallPrompt, onUpdateLog, user,
-  onOpenWeeklyEvaluation, onOpenHifzTracker, onOpenWorshipMind, onOpenPwaWidget, onOpenKaffarah
+  onOpenWeeklyEvaluation, onOpenHifzTracker, onOpenWorshipMind, onOpenKaffarah
 }) => {
   const [showWeeklyCard, setShowWeeklyCard] = useState(false);
   const [isEditingTarget, setIsEditingTarget] = useState(false);
@@ -1083,7 +1082,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-3 gap-2.5">
           {onOpenHifzTracker && (
             <button
               type="button"
@@ -1128,22 +1127,6 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div>
                 <span className="text-xs font-black text-slate-800 block header-font">أثر العبادة</span>
                 <span className="text-[9px] text-slate-400 font-bold">سكينة وطمأنينة</span>
-              </div>
-            </button>
-          )}
-
-          {onOpenPwaWidget && (
-            <button
-              type="button"
-              onClick={onOpenPwaWidget}
-              className="p-3.5 rounded-2xl bg-slate-50 hover:bg-amber-50/70 border border-slate-100 hover:border-amber-200 transition-all text-center flex flex-col items-center gap-2 group active:scale-95"
-            >
-              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Smartphone className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-xs font-black text-slate-800 block header-font">ودجت الشاشة</span>
-                <span className="text-[9px] text-slate-400 font-bold">وصول بلمسة</span>
               </div>
             </button>
           )}
