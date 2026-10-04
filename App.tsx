@@ -24,7 +24,8 @@ import {
   ScrollText,
   Target,
   Shield,
-  TrendingUp
+  TrendingUp,
+  CheckSquare
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { arSA as ar } from 'date-fns/locale';
@@ -58,6 +59,7 @@ import { InAppReminderBanner } from './components/InAppReminderBanner';
 import { QuranHifzRepetitionTracker } from './components/QuranHifzRepetitionTracker';
 import { WorshipMindCorrelation } from './components/WorshipMindCorrelation';
 import { KaffarahSystem } from './components/KaffarahSystem';
+import DailyTasksPlanner from './components/DailyTasksPlanner';
 import { getIslamicDateString, isCurrentIslamicNight } from './utils/prayerTimes';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
@@ -96,7 +98,7 @@ const INITIAL_LOG = (date: string): DailyLog => ({
 });
 
 const App: React.FC = () => {
-  type Tab = 'dashboard' | 'fortress' | 'entry' | 'athkar' | 'forty' | 'heart' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide' | 'notifications';
+  type Tab = 'dashboard' | 'tasks' | 'fortress' | 'entry' | 'athkar' | 'forty' | 'heart' | 'leaderboard' | 'timer' | 'subha' | 'quran' | 'library' | 'stats' | 'notes' | 'profile' | 'history' | 'contact' | 'guide' | 'notifications';
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [logs, setLogs] = useState<Record<string, DailyLog>>({});
   const [books, setBooks] = useState<Book[]>([]);
@@ -375,6 +377,12 @@ const App: React.FC = () => {
           onOpenKaffarah={() => setShowKaffarahModal(true)}
         />
       );
+      case 'tasks': return (
+        <DailyTasksPlanner
+          currentDate={currentDate}
+          onNavigateTab={(tab) => setActiveTab(tab as any)}
+        />
+      );
       case 'entry': return <DailyEntry log={currentLog} onUpdate={updateLog} weights={weights} onUpdateWeights={setWeights} currentDate={currentDate} onDateChange={setCurrentDate} onSwitchTab={setActiveTab} />;
       case 'heart': return <HeartTazkiya log={currentLog} onUpdate={updateLog} />;
       case 'leaderboard': return <Leaderboard user={user} currentScore={todayScore} isSync={isGlobalSyncEnabled} onNavigateTab={(tab) => setActiveTab(tab as any)} />;
@@ -538,6 +546,7 @@ const App: React.FC = () => {
             <nav className="bg-white/95 shadow-2xl rounded-full px-6 py-3 flex items-center gap-1 border border-slate-200 backdrop-blur-lg overflow-x-auto no-scrollbar max-w-[92vw]">
               {[
                 {id: 'dashboard', icon: LayoutDashboard, label: 'الرئيسية'},
+                {id: 'tasks', icon: CheckSquare, label: 'المهام'},
                 {id: 'entry', icon: PenLine, label: 'تسجيل'},
                 {id: 'athkar', icon: ScrollText, label: 'الأذكار'},
                 {id: 'quran', icon: BookOpen, label: 'القرآن'},
