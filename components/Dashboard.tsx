@@ -34,7 +34,8 @@ import {
   TrendingDown,
   TrendingUp,
   Clock,
-  Zap
+  Zap,
+  Compass
 } from 'lucide-react';
 import { XAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, ReferenceLine, YAxis } from 'recharts';
 import { format, addDays } from 'date-fns';
@@ -69,12 +70,16 @@ interface DashboardProps {
   onUpdateLog: (log: DailyLog) => void;
   user?: User | null;
   onOpenWeeklyEvaluation?: (tab?: 'general' | 'custom_goals') => void;
+  onOpenHifzTracker?: () => void;
+  onOpenWorshipMind?: () => void;
+  onOpenPwaWidget?: () => void;
+  onOpenKaffarah?: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   log, logs, weights, onDateChange, targetScore, onTargetChange, onOpenSettings,
   books, onUpdateBook, onSwitchTab, installPrompt, onClearInstallPrompt, onUpdateLog, user,
-  onOpenWeeklyEvaluation
+  onOpenWeeklyEvaluation, onOpenHifzTracker, onOpenWorshipMind, onOpenPwaWidget, onOpenKaffarah
 }) => {
   const [showWeeklyCard, setShowWeeklyCard] = useState(false);
   const [isEditingTarget, setIsEditingTarget] = useState(false);
@@ -1058,6 +1063,91 @@ const Dashboard: React.FC<DashboardProps> = ({
         ) : (
           <div className="text-center py-4 border-2 border-dashed border-slate-100 rounded-2xl"><p className="text-[10px] text-slate-400 font-bold header-font">أضف كتاباً من المكتبة للبدء</p></div>
         )}
+      </div>
+
+      {/* 3.5 أدوات ومحاريب الاستقامة والارتقاء الروحي */}
+      <div className="bg-white rounded-[2rem] p-5 sm:p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+              <Compass className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 header-font leading-tight">
+                أدوات ومحاريب الاستقامة
+              </h3>
+              <p className="text-[10px] text-slate-400 font-bold">
+                محطات عملية لتثبيت الحفظ، تأديب النفس، وتخصيص شاشتك
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {onOpenHifzTracker && (
+            <button
+              type="button"
+              onClick={onOpenHifzTracker}
+              className="p-3.5 rounded-2xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-100 hover:border-emerald-200 transition-all text-center flex flex-col items-center gap-2 group active:scale-95"
+            >
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-slate-800 block header-font">تثبيت الحفظ</span>
+                <span className="text-[9px] text-slate-400 font-bold">التكرار المتباعد</span>
+              </div>
+            </button>
+          )}
+
+          {onOpenKaffarah && (
+            <button
+              type="button"
+              onClick={onOpenKaffarah}
+              className="p-3.5 rounded-2xl bg-slate-50 hover:bg-rose-50/70 border border-slate-100 hover:border-rose-200 transition-all text-center flex flex-col items-center gap-2 group active:scale-95"
+            >
+              <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-slate-800 block header-font">كفارات النفس</span>
+                <span className="text-[9px] text-slate-400 font-bold">صدقة وصيام</span>
+              </div>
+            </button>
+          )}
+
+          {onOpenWorshipMind && (
+            <button
+              type="button"
+              onClick={onOpenWorshipMind}
+              className="p-3.5 rounded-2xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-100 hover:border-indigo-200 transition-all text-center flex flex-col items-center gap-2 group active:scale-95"
+            >
+              <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-slate-800 block header-font">أثر العبادة</span>
+                <span className="text-[9px] text-slate-400 font-bold">سكينة وطمأنينة</span>
+              </div>
+            </button>
+          )}
+
+          {onOpenPwaWidget && (
+            <button
+              type="button"
+              onClick={onOpenPwaWidget}
+              className="p-3.5 rounded-2xl bg-slate-50 hover:bg-amber-50/70 border border-slate-100 hover:border-amber-200 transition-all text-center flex flex-col items-center gap-2 group active:scale-95"
+            >
+              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-slate-800 block header-font">ودجت الشاشة</span>
+                <span className="text-[9px] text-slate-400 font-bold">وصول بلمسة</span>
+              </div>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 4. أوسمة الأبرار اليوم */}

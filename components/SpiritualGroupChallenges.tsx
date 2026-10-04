@@ -39,6 +39,7 @@ export interface GroupMember {
   isCurrentUser?: boolean;
   joinedAt: string;
   cheersReceived: number;
+  familyRole?: string;
 }
 
 export interface GroupChallenge {
@@ -59,11 +60,37 @@ export interface GroupChallenge {
   userContribution: number;
   createdBy: string;
   isOfficial?: boolean;
+  isFamilyCircle?: boolean;
 }
 
 const STORAGE_KEY = 'worship_group_challenges_v1';
 
 const INITIAL_CHALLENGES: GroupChallenge[] = [
+  {
+    id: 'family_circle_alnoor',
+    title: 'حلقة عائلة النور المباركة 👨‍👩‍👧‍👦',
+    category: 'general',
+    description: 'تحدي أسري مغلق للمحافظة على صلاة الفجر في جماعة بالبيت أو المسجد، وسورة الكهف يوم الجمعة، والذكر والتدبر المشترك.',
+    iconName: 'Heart',
+    targetValue: 60,
+    unit: 'طاعة أسرية مشتركة',
+    currentProgress: 42,
+    membersCount: 4,
+    durationDays: 7,
+    daysRemaining: 3,
+    inviteCode: 'FAMILY-NOOR',
+    isJoined: false,
+    userContribution: 0,
+    createdBy: 'الوالد (رب الأسرة)',
+    isOfficial: false,
+    isFamilyCircle: true,
+    members: [
+      { id: 'f1', name: 'أبو أحمد (الوالد)', score: 950, contribution: 16, streak: 7, joinedAt: '2026-09-27', cheersReceived: 21, familyRole: 'الوالد 👑' },
+      { id: 'f2', name: 'أم أحمد (الوالدة)', score: 920, contribution: 14, streak: 7, joinedAt: '2026-09-27', cheersReceived: 25, familyRole: 'الوالدة 🌸' },
+      { id: 'f3', name: 'أحمد (الابن)', score: 740, contribution: 8, streak: 5, joinedAt: '2026-09-28', cheersReceived: 12, familyRole: 'الابن ⚡' },
+      { id: 'f4', name: 'سارة (الابنة)', score: 680, contribution: 4, streak: 4, joinedAt: '2026-09-28', cheersReceived: 14, familyRole: 'الابنة 🌼' }
+    ]
+  },
   {
     id: 'fajr_knights',
     title: 'فرسان صلاة الفجر في جماعة 🕌',
@@ -207,7 +234,7 @@ export const SpiritualGroupChallenges: React.FC<SpiritualGroupChallengesProps> =
     return INITIAL_CHALLENGES;
   });
 
-  const [activeFilter, setActiveFilter] = useState<'all' | 'my_groups' | 'prayer' | 'quran' | 'athkar' | 'nawafil'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'my_groups' | 'family' | 'prayer' | 'quran' | 'athkar' | 'nawafil'>('all');
   const [selectedChallenge, setSelectedChallenge] = useState<GroupChallenge | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinByCodeModal, setShowJoinByCodeModal] = useState(false);
@@ -219,11 +246,12 @@ export const SpiritualGroupChallenges: React.FC<SpiritualGroupChallengesProps> =
 
   // New challenge form state
   const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState<'prayer' | 'quran' | 'athkar' | 'nawafil' | 'fasting'>('prayer');
+  const [newCategory, setNewCategory] = useState<'prayer' | 'quran' | 'athkar' | 'nawafil' | 'fasting' | 'general'>('prayer');
   const [newDescription, setNewDescription] = useState('');
   const [newTarget, setNewTarget] = useState('100');
   const [newUnit, setNewUnit] = useState('عمل صالح');
   const [newDays, setNewDays] = useState('7');
+  const [newIsFamily, setNewIsFamily] = useState(false);
 
   // Save to local storage
   useEffect(() => {
@@ -243,6 +271,9 @@ export const SpiritualGroupChallenges: React.FC<SpiritualGroupChallengesProps> =
   const filteredChallenges = useMemo(() => {
     if (activeFilter === 'my_groups') {
       return challenges.filter(c => c.isJoined);
+    }
+    if (activeFilter === 'family') {
+      return challenges.filter(c => c.isFamilyCircle);
     }
     if (activeFilter === 'all') {
       return challenges;
@@ -611,6 +642,21 @@ export const SpiritualGroupChallenges: React.FC<SpiritualGroupChallengesProps> =
 
         <button
           type="button"
+          onClick={() => setActiveFilter('family')}
+          className={`px-3 py-1.5 rounded-full shrink-0 transition-all flex items-center gap-1 ${
+            activeFilter === 'family'
+              ? 'bg-amber-600 text-white shadow-xs font-black'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-100'
+          }`}
+        >
+          <span>👨‍👩‍👧‍👦 حلقات العائلة والأصدقاء المغلقة</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-100 text-amber-900 font-mono">
+            {challenges.filter(c => c.isFamilyCircle).length}
+          </span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveFilter('prayer')}
           className={`px-3 py-1.5 rounded-full shrink-0 transition-all ${
             activeFilter === 'prayer'
@@ -940,6 +986,11 @@ export const SpiritualGroupChallenges: React.FC<SpiritualGroupChallengesProps> =
                             <span className={`text-xs font-black truncate ${m.isCurrentUser ? 'text-white' : 'text-slate-800'}`}>
                               {m.name}
                             </span>
+                            {m.familyRole && (
+                              <span className="px-1.5 py-0.2 rounded-full text-[8.5px] bg-amber-100 text-amber-900 font-bold border border-amber-200">
+                                {m.familyRole}
+                              </span>
+                            )}
                             {m.isCurrentUser && (
                               <span className="px-1 py-0.2 rounded text-[8px] bg-white/20 text-white font-bold">
                                 أنت
