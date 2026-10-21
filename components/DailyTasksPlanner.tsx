@@ -32,7 +32,9 @@ import {
   Quote,
   Feather,
   Eye,
-  Award
+  Award,
+  ListTodo,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getIslamicDateString } from '../utils/prayerTimes';
@@ -41,6 +43,12 @@ export type TaskCategory = 'faith' | 'work' | 'family' | 'growth';
 export type PrayerWindow = 'fajr_ishraq' | 'duha_dhuhr' | 'dhuhr_maghrib' | 'maghrib_isha' | 'night' | 'anytime';
 export type PriorityLevel = 'urgent' | 'important' | 'routine';
 export type RecurrenceType = 'once' | 'daily' | 'mondays_thursdays' | 'fridays';
+
+export interface SubTask {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+}
 
 export interface DailyTask {
   id: string;
@@ -54,6 +62,7 @@ export interface DailyTask {
   date: string;
   recurrence: RecurrenceType;
   points: number;
+  subTasks?: SubTask[];
 }
 
 export interface RecurringHabit {
@@ -238,7 +247,12 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
         isCompleted: false,
         date: currentDate,
         recurrence: 'daily',
-        points: 25
+        points: 25,
+        subTasks: [
+          { id: 'st-1-1', title: 'الاستماع لتلاوة الصفحة المتقنة ٣ مرات', isCompleted: false },
+          { id: 'st-1-2', title: 'قراءة التفسير الميسر لمعرفة معاني الكلمات', isCompleted: false },
+          { id: 'st-1-3', title: 'تكرار الآيات غيباً ٥ مرات بتأنٍ', isCompleted: false }
+        ]
       },
       {
         id: 't-2',
@@ -250,7 +264,11 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
         isCompleted: false,
         date: currentDate,
         recurrence: 'daily',
-        points: 20
+        points: 20,
+        subTasks: [
+          { id: 'st-2-1', title: 'إغلاق المشتتات وتجهيز مساحة العمل', isCompleted: false },
+          { id: 'st-2-2', title: 'جلسة تركيز عميق لمدة ٤٠ دقيقة متواصلة', isCompleted: false }
+        ]
       },
       {
         id: 't-3',
@@ -279,6 +297,10 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
   const [newPriority, setNewPriority] = useState<PriorityLevel>('important');
   const [newIntention, setNewIntention] = useState('');
   const [newRecurrence, setNewRecurrence] = useState<RecurrenceType>('once');
+  const [newSubTasks, setNewSubTasks] = useState<string[]>([]);
+  const [currentSubTaskInput, setCurrentSubTaskInput] = useState('');
+  const [quickSubTaskInputs, setQuickSubTaskInputs] = useState<Record<string, string>>({});
+  const [expandedSubTasks, setExpandedSubTasks] = useState<Record<string, boolean>>({});
 
   // --- 2. RECURRING HABITS STATE (مهام متكررة يومياً) ---
   const [recurringHabits, setRecurringHabits] = useState<RecurringHabit[]>(() => {
@@ -542,15 +564,100 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
               onAddBonusScore(pts, `إنجاز مهمة: ${task.title}`);
             }
           }
+          // تحديث جميع الخطوات الفرعية بالتزامن مع المهمة الرئيسية
+          const updatedSubTasks = (task.subTasks || []).map(st => ({
+            ...st,
+            isCompleted: willComplete
+          }));
           return {
             ...task,
             isCompleted: willComplete,
+            subTasks: updatedSubTasks.length > 0 ? updatedSubTasks : task.subTasks,
             completedAt: willComplete ? new Date().toISOString() : undefined
           };
         }
         return task;
       })
     );
+  };
+
+  const toggleSubTask = (taskId: string, subTaskId: string) => {
+    setTasks(prev =>
+      prev.map(task => {
+        if (task.id === taskId) {
+          const currentSubTasks = task.subTasks || [];
+          const updatedSubTasks = currentSubTasks.map(st =>
+            st.id === subTaskId ? { ...st, isCompleted: !st.isCompleted } : st
+          );
+          const allCompleted = updatedSubTasks.length > 0 && updatedSubTasks.every(st => st.isCompleted);
+          const wasCompleted = task.isCompleted;
+
+          if (allCompleted && !wasCompleted) {
+            confetti({
+              particleCount: 25,
+              spread: 50,
+              origin: { y: 0.8 }
+            });
+            if (onAddBonusScore) {
+              const pts = task.points || 15;
+              onAddBonusScore(pts, `إنجاز جميع خطوات: ${task.title}`);
+            }
+          }
+
+          return {
+            ...task,
+            subTasks: updatedSubTasks,
+            isCompleted: allCompleted,
+            completedAt: allCompleted ? new Date().toISOString() : undefined
+          };
+        }
+        return task;
+      })
+    );
+  };
+
+  const addSubTaskToTask = (taskId: string, title: string) => {
+    if (!title.trim()) return;
+    setTasks(prev =>
+      prev.map(task => {
+        if (task.id === taskId) {
+          const newSubTask: SubTask = {
+            id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            title: title.trim(),
+            isCompleted: false
+          };
+          return {
+            ...task,
+            subTasks: [...(task.subTasks || []), newSubTask],
+            isCompleted: false
+          };
+        }
+        return task;
+      })
+    );
+    setQuickSubTaskInputs(prev => ({ ...prev, [taskId]: '' }));
+    setExpandedSubTasks(prev => ({ ...prev, [taskId]: true }));
+  };
+
+  const deleteSubTaskFromTask = (taskId: string, subTaskId: string) => {
+    setTasks(prev =>
+      prev.map(task => {
+        if (task.id === taskId) {
+          const updatedSubTasks = (task.subTasks || []).filter(st => st.id !== subTaskId);
+          const allCompleted = updatedSubTasks.length > 0 && updatedSubTasks.every(st => st.isCompleted);
+          return {
+            ...task,
+            subTasks: updatedSubTasks,
+            isCompleted: updatedSubTasks.length > 0 ? allCompleted : task.isCompleted
+          };
+        }
+        return task;
+      })
+    );
+  };
+
+  const toggleExpandSubTasks = (taskId: string) => {
+    setExpandedSubTasks(prev => ({ ...prev, [taskId]: !prev[taskId] }));
   };
 
   const deleteTask = (taskId: string) => {
@@ -560,6 +667,14 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
+
+    const subTasksList: SubTask[] = newSubTasks
+      .filter(t => t.trim().length > 0)
+      .map((title, idx) => ({
+        id: `st-${Date.now()}-${idx}`,
+        title: title.trim(),
+        isCompleted: false
+      }));
 
     const newTask: DailyTask = {
       id: `task-${Date.now()}`,
@@ -571,12 +686,15 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
       isCompleted: false,
       date: currentDate,
       recurrence: newRecurrence,
-      points: newIntention ? 25 : 15
+      points: newIntention ? 25 : 15,
+      subTasks: subTasksList.length > 0 ? subTasksList : undefined
     };
 
     setTasks(prev => [newTask, ...prev]);
     setNewTitle('');
     setNewIntention('');
+    setNewSubTasks([]);
+    setCurrentSubTaskInput('');
     setShowAddModal(false);
   };
 
@@ -845,6 +963,11 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
                 const catConf = CATEGORIES_CONFIG[task.category];
                 const winConf = PRAYER_WINDOWS_CONFIG[task.prayerWindow];
                 const WinIcon = winConf.icon;
+                const hasSubTasks = Boolean(task.subTasks && task.subTasks.length > 0);
+                const totalSub = task.subTasks?.length || 0;
+                const completedSub = task.subTasks?.filter(st => st.isCompleted).length || 0;
+                const subPercent = totalSub > 0 ? Math.round((completedSub / totalSub) * 100) : 0;
+                const isExpanded = Boolean(expandedSubTasks[task.id]);
 
                 return (
                   <div
@@ -921,7 +1044,121 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
                           <span className="text-[10px] font-mono font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
                             +{task.points} ن بركة
                           </span>
+
+                          {/* زر إظهار أو إضافة خطوات فرعية */}
+                          {hasSubTasks ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleExpandSubTasks(task.id)}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+                            >
+                              <ListTodo className="w-3 h-3 text-indigo-600" />
+                              <span>{completedSub}/{totalSub} خطوات فرعية</span>
+                              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => toggleExpandSubTasks(task.id)}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 border border-dashed border-slate-200 transition-colors"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>خطوات فرعية</span>
+                            </button>
+                          )}
                         </div>
+
+                        {/* قسم الخطوات الفرعية القابلة للتقسيم والإنجاز */}
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-slate-100 space-y-2 bg-slate-50/70 p-3 rounded-2xl animate-in fade-in">
+                            <div className="flex items-center justify-between text-[11px] font-bold">
+                              <span className="flex items-center gap-1.5 font-black text-slate-700">
+                                <ListTodo className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>الخطوات الفرعية المجزأة</span>
+                                {hasSubTasks && <span className="font-mono text-emerald-700">({completedSub}/{totalSub})</span>}
+                              </span>
+                              {hasSubTasks && (
+                                <span className="text-[10px] text-emerald-700 font-mono font-bold">{subPercent}% إنجاز</span>
+                              )}
+                            </div>
+
+                            {hasSubTasks && (
+                              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
+                                  style={{ width: `${subPercent}%` }}
+                                />
+                              </div>
+                            )}
+
+                            {/* قائمة الخطوات الفرعية */}
+                            <div className="space-y-1.5 pt-1">
+                              {task.subTasks?.map(st => (
+                                <div
+                                  key={st.id}
+                                  className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-white border border-slate-100 hover:border-emerald-200 transition-all group/sub"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSubTask(task.id, st.id)}
+                                    className="flex items-center gap-2 text-right flex-1 min-w-0"
+                                  >
+                                    <span
+                                      className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 border transition-all ${
+                                        st.isCompleted
+                                          ? 'bg-emerald-600 border-emerald-600 text-white shadow-2xs'
+                                          : 'border-slate-300 bg-white hover:border-emerald-500'
+                                      }`}
+                                    >
+                                      {st.isCompleted && <Check className="w-3 h-3 stroke-[3]" />}
+                                    </span>
+                                    <span
+                                      className={`text-xs font-bold truncate transition-all ${
+                                        st.isCompleted ? 'line-through text-slate-400' : 'text-slate-800'
+                                      }`}
+                                    >
+                                      {st.title}
+                                    </span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteSubTaskFromTask(task.id, st.id)}
+                                    className="text-slate-300 hover:text-rose-500 p-1 rounded-md opacity-0 group-hover/sub:opacity-100 transition-opacity shrink-0"
+                                    title="حذف هذه الخطوة"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* حقل إضافة خطوة فرعية سريعة */}
+                            <div className="flex items-center gap-1.5 pt-1.5">
+                              <input
+                                type="text"
+                                value={quickSubTaskInputs[task.id] || ''}
+                                onChange={(e) => setQuickSubTaskInputs(prev => ({ ...prev, [task.id]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    addSubTaskToTask(task.id, quickSubTaskInputs[task.id] || '');
+                                  }
+                                }}
+                                placeholder="أضف خطوة فرعية سريعة..."
+                                className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-bold outline-none focus:border-emerald-500 transition-all"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => addSubTaskToTask(task.id, quickSubTaskInputs[task.id] || '')}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black header-font shadow-xs transition-all active:scale-95 whitespace-nowrap flex items-center gap-1"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>إضافة</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1394,6 +1631,72 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* الخطوات الفرعية في المودال */}
+              <div>
+                <label className="block text-xs font-black text-slate-700 header-font mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <ListTodo className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>تقسيم المهمة إلى خطوات فرعية (اختياري)</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-bold">
+                    {newSubTasks.length} خطوات مضافة
+                  </span>
+                </label>
+
+                <div className="flex items-center gap-1.5 mb-2">
+                  <input
+                    type="text"
+                    value={currentSubTaskInput}
+                    onChange={e => setCurrentSubTaskInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (currentSubTaskInput.trim()) {
+                          setNewSubTasks(prev => [...prev, currentSubTaskInput.trim()]);
+                          setCurrentSubTaskInput('');
+                        }
+                      }
+                    }}
+                    placeholder="اكتب خطوة صغيرة واضغط إضافة (مثال: قراءة صفحة، تجهيز ملف...)"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (currentSubTaskInput.trim()) {
+                        setNewSubTasks(prev => [...prev, currentSubTaskInput.trim()]);
+                        setCurrentSubTaskInput('');
+                      }
+                    }}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black header-font shadow-xs transition-all active:scale-95 whitespace-nowrap"
+                  >
+                    + إضافة
+                  </button>
+                </div>
+
+                {newSubTasks.length > 0 && (
+                  <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-2xl border border-slate-100 max-h-36 overflow-y-auto no-scrollbar">
+                    {newSubTasks.map((st, idx) => (
+                      <div key={idx} className="flex items-center justify-between gap-2 p-1.5 bg-white rounded-xl border border-slate-100 text-xs font-bold text-slate-700">
+                        <span className="flex items-center gap-2 truncate">
+                          <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <span className="truncate">{st}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setNewSubTasks(prev => prev.filter((_, i) => i !== idx))}
+                          className="text-slate-300 hover:text-rose-500 p-1"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
