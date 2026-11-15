@@ -125,7 +125,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, installPrompt }) =>
         ) : step === 1 ? (
           <div className="space-y-6 text-center">
             <div className="flex flex-col items-center">
-              <div className="p-5 bg-emerald-50 rounded-[2rem] mb-4"><Sparkles className="w-12 h-12 text-emerald-600" /></div>
+              <img
+                src="/assets/aistudio/1794763564242_610e28c1.jpg"
+                alt="شعار تطبيق أوراد"
+                className="w-24 h-24 rounded-[1.75rem] shadow-lg object-cover mb-4 border-2 border-emerald-100"
+              />
               <h1 className="text-2xl font-black text-slate-800 header-font mb-2">تطبيق إدارة العبادات والأوراد</h1>
               <p className="text-xs text-slate-500 font-bold header-font">بوابتك للارتقاء الروحي ومحاسبة النفس</p>
             </div>

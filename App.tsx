@@ -440,7 +440,16 @@ const App: React.FC = () => {
     }
   };
 
-  if (!isAppReady) return <div className="min-h-screen bg-emerald-900 flex items-center justify-center"><Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /></div>;
+  if (!isAppReady) return (
+    <div className="min-h-screen bg-emerald-900 flex flex-col items-center justify-center gap-4">
+      <img
+        src="/assets/aistudio/1794763564242_610e28c1.jpg"
+        alt="شعار تطبيق أوراد"
+        className="w-20 h-20 rounded-[1.5rem] shadow-2xl object-cover border border-white/20"
+      />
+      <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+    </div>
+  );
   if (!user) return <Onboarding installPrompt={deferredPrompt} onComplete={(u, restoredLogs, restoredBooks) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); if (restoredLogs) { const parsedLogs = JSON.parse(restoredLogs); setLogs(parsedLogs); localStorage.setItem('worship_logs', JSON.stringify(parsedLogs)); } if (restoredBooks) { const parsedBooks = JSON.parse(restoredBooks); setBooks(parsedBooks); localStorage.setItem('worship_books', JSON.stringify(parsedBooks)); } }} />;
 
   return (
@@ -459,7 +468,17 @@ const App: React.FC = () => {
           <div className="relative z-10 flex flex-col gap-4">
             <div className="flex items-center justify-between gap-2 w-full">
               <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0"><UserCircle className="w-8 h-8 text-white" /></button>
-              <div className="flex-1 flex flex-col items-center justify-center min-w-0"><h1 className="text-sm sm:text-base md:text-xl font-black header-font text-center leading-tight whitespace-normal">إدارة العبادات والأوراد</h1><span className="text-[10px] sm:text-xs text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">مرحباً، {user.name}</span></div>
+              <div className="flex-1 flex items-center justify-center gap-2.5 min-w-0">
+                <img
+                  src="/assets/aistudio/1794763564242_610e28c1.jpg"
+                  alt="شعار أوراد"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-md object-cover border border-white/25 shrink-0"
+                />
+                <div className="flex flex-col items-start min-w-0">
+                  <h1 className="text-sm sm:text-base md:text-xl font-black header-font leading-tight whitespace-normal">إدارة العبادات والأوراد</h1>
+                  <span className="text-[10px] sm:text-xs text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">مرحباً، {user.name}</span>
+                </div>
+              </div>
               <div className="flex items-center gap-1 shrink-0"><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
             </div>
             <div className="flex flex-col items-center gap-1.5"><div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div></div>
