@@ -29,6 +29,7 @@ import {
   Brain
 } from 'lucide-react';
 import { DailyLog, ReflectionNote } from '../types';
+import { MushafEdition, convertPageBetweenEditions } from '../utils/quranData';
 import { QuranTadabbur } from './QuranTadabbur';
 import { QuranWardPlanner } from './QuranWardPlanner';
 import { QuranKhatmatHistory } from './QuranKhatmatHistory';
@@ -482,6 +483,20 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
   const [mushafInitialPage, setMushafInitialPage] = useState<number | undefined>(undefined);
   const [mushafTestMode, setMushafTestMode] = useState<boolean>(false);
   const [hifzUnit, setHifzUnit] = useState<HifzUnitType>('rub');
+  const [mushafEdition, setMushafEdition] = useState<MushafEdition>(() => {
+    try {
+      const saved = localStorage.getItem('worship_mushaf_edition') as MushafEdition;
+      if (saved === 'madani' || saved === 'shamarly') return saved;
+    } catch (e) {}
+    return 'madani';
+  });
+
+  const handleMushafEditionChange = (nextEdition: MushafEdition) => {
+    setMushafEdition(nextEdition);
+    try {
+      localStorage.setItem('worship_mushaf_edition', nextEdition);
+    } catch (e) {}
+  };
 
   const handleSubTabChange = (newTab: QuranSubTabType) => {
     setSubTab(newTab);
@@ -688,15 +703,73 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
       </div>
 
       {subTab === 'mushaf' && (
-        <MushafReader
-          log={log}
-          onUpdateLog={onUpdateLog}
-          initialPage={mushafInitialPage}
-          initialTestMode={mushafTestMode}
-          onNavigateToWardPlanner={() => handleSubTabChange('ward')}
-          onNavigateToTadabbur={() => handleSubTabChange('tadabbur')}
-          onFullScreenChange={onFullScreenChange}
-        />
+        <div className="space-y-4">
+          {/* خيار التبديل بين مصحف المدينة ومصحف الشمرلي */}
+          <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-slate-800 header-font leading-tight">
+                  نسخة المصحف الشريف
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                  {mushafEdition === 'shamarly'
+                    ? 'مصحف الشمرلي • الطبعة المصرية التراثية (٥٢١ صفحة)'
+                    : 'مصحف المدينة المنورة • مجمع الملك فهد (٦٠٤ صفحات)'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-100 p-1 rounded-2xl border border-slate-200 flex items-center gap-1 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => handleMushafEditionChange('madani')}
+                className={`flex-1 sm:flex-initial px-3.5 py-2 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
+                  mushafEdition === 'madani'
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>مصحف المدينة</span>
+                <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full ${
+                  mushafEdition === 'madani' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  604 ص
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMushafEditionChange('shamarly')}
+                className={`flex-1 sm:flex-initial px-3.5 py-2 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
+                  mushafEdition === 'shamarly'
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>مصحف الشمرلي</span>
+                <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full ${
+                  mushafEdition === 'shamarly' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  521 ص
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <MushafReader
+            log={log}
+            onUpdateLog={onUpdateLog}
+            edition={mushafEdition}
+            onEditionChange={handleMushafEditionChange}
+            initialPage={mushafInitialPage}
+            initialTestMode={mushafTestMode}
+            onNavigateToWardPlanner={() => handleSubTabChange('ward')}
+            onNavigateToTadabbur={() => handleSubTabChange('tadabbur')}
+            onFullScreenChange={onFullScreenChange}
+          />
+        </div>
       )}
 
       {subTab === 'ward' && (
@@ -704,7 +777,10 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
           log={log} 
           onUpdateLog={onUpdateLog} 
           onOpenMushafAtPage={(targetPage) => {
-            setMushafInitialPage(targetPage);
+            const mapped = mushafEdition === 'shamarly'
+              ? convertPageBetweenEditions(targetPage, 'madani', 'shamarly')
+              : targetPage;
+            setMushafInitialPage(mapped);
             handleSubTabChange('mushaf');
           }}
         />
@@ -819,7 +895,10 @@ const QuranPage: React.FC<QuranPageProps> = ({ log, logs, plan, onUpdatePlan, on
                            }
                          }
                        }
-                       setMushafInitialPage(targetPage);
+                       const mappedPage = mushafEdition === 'shamarly'
+                         ? convertPageBetweenEditions(targetPage, 'madani', 'shamarly')
+                         : targetPage;
+                       setMushafInitialPage(mappedPage);
                        setMushafTestMode(true);
                        handleSubTabChange('mushaf');
                      }}

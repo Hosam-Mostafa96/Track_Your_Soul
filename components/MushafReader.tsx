@@ -42,10 +42,13 @@ import {
 import confetti from 'canvas-confetti';
 import { DailyLog } from '../types';
 import { 
-  QURAN_114_SURAHS, 
-  QURAN_30_JUZ, 
+  MushafEdition,
   getSurahAtPage, 
-  getJuzAtPage 
+  getJuzAtPage,
+  getTotalPagesForEdition,
+  getSurahsForEdition,
+  getJuzsForEdition,
+  convertPageBetweenEditions
 } from '../utils/quranData';
 
 export type BookmarkColor = 'amber' | 'emerald' | 'rose' | 'blue' | 'purple';
@@ -57,6 +60,7 @@ export interface MushafBookmark {
   date: string;
   surahName: string;
   color?: BookmarkColor;
+  edition?: MushafEdition;
 }
 
 export type PageMasteryRating = 'excellent' | 'good' | 'needs_practice';
@@ -71,6 +75,8 @@ export interface PageRatingRecord {
 interface MushafReaderProps {
   log: DailyLog;
   onUpdateLog: (log: DailyLog, activityLabel?: string, activityType?: string) => void;
+  edition?: MushafEdition;
+  onEditionChange?: (edition: MushafEdition) => void;
   initialPage?: number;
   initialTestMode?: boolean;
   onNavigateToTadabbur?: (surahNumber: number, surahName: string, ayahNumber: string, ayahText?: string) => void;
@@ -113,24 +119,54 @@ const COLOR_CLASSES: Record<BookmarkColor, { bg: string; text: string; border: s
 export const MushafReader: React.FC<MushafReaderProps> = ({
   log,
   onUpdateLog,
+  edition,
+  onEditionChange,
   initialPage,
   initialTestMode = false,
   onNavigateToTadabbur,
   onNavigateToWardPlanner,
   onFullScreenChange
 }) => {
+  // طبعة المصحف المختارة: مصحف المدينة (604 صفحة) أو مصحف الشمرلي (521 صفحة)
+  const [mushafEdition, setMushafEdition] = useState<MushafEdition>(() => {
+    if (edition === 'madani' || edition === 'shamarly') return edition;
+    try {
+      const saved = localStorage.getItem('worship_mushaf_edition') as MushafEdition;
+      if (saved === 'madani' || saved === 'shamarly') return saved;
+    } catch (e) {}
+    return 'madani';
+  });
+
+  const totalPages = useMemo(() => getTotalPagesForEdition(mushafEdition), [mushafEdition]);
+  const editionLabel = mushafEdition === 'shamarly' ? 'مصحف الشمرلي' : 'مصحف المدينة';
+
   // استرجاع آخر صفحة تمت قراءتها من الذاكرة المحلية
   const [currentPage, setCurrentPage] = useState<number>(() => {
-    if (initialPage && initialPage >= 1 && initialPage <= 604) return initialPage;
+    const initialMax = (() => {
+      try {
+        const ed = localStorage.getItem('worship_mushaf_edition');
+        return ed === 'shamarly' ? 521 : 604;
+      } catch (e) {
+        return 604;
+      }
+    })();
+
+    if (initialPage && initialPage >= 1 && initialPage <= initialMax) return initialPage;
     try {
+      const ed = localStorage.getItem('worship_mushaf_edition') === 'shamarly' ? 'shamarly' : 'madani';
+      const savedEditionPage = localStorage.getItem(`worship_quran_last_read_page_${ed}`);
+      if (savedEditionPage) {
+        const p = parseInt(savedEditionPage, 10);
+        if (p >= 1 && p <= initialMax) return p;
+      }
       const saved = localStorage.getItem('worship_quran_last_read_page');
       if (saved) {
         const p = parseInt(saved, 10);
-        if (p >= 1 && p <= 604) return p;
+        if (p >= 1 && p <= initialMax) return p;
       }
     } catch (e) {}
     if (log.quran?.wardPlan?.startPage) {
-      return log.quran.wardPlan.startPage;
+      return Math.min(initialMax, log.quran.wardPlan.startPage);
     }
     return 1;
   });
@@ -216,9 +252,9 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     toastTimeoutRef.current = window.setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // معلومات السورة والجزء الحالي
-  const currentSurah = useMemo(() => getSurahAtPage(currentPage), [currentPage]);
-  const currentJuz = useMemo(() => getJuzAtPage(currentPage), [currentPage]);
+  // معلومات السورة والجزء الحالي بحسب الطبعة المختارة
+  const currentSurah = useMemo(() => getSurahAtPage(currentPage, mushafEdition), [currentPage, mushafEdition]);
+  const currentJuz = useMemo(() => getJuzAtPage(currentPage, mushafEdition), [currentPage, mushafEdition]);
 
   // حساب الحزب التقريبي
   const currentHizb = useMemo(() => {
@@ -229,8 +265,8 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
 
   // فواصل الصفحة الحالية
   const currentPageBookmarks = useMemo(() => {
-    return bookmarks.filter(b => b.page === currentPage);
-  }, [bookmarks, currentPage]);
+    return bookmarks.filter(b => b.page === currentPage && (b.edition || 'madani') === mushafEdition);
+  }, [bookmarks, currentPage, mushafEdition]);
 
   // تقييم الصفحة الحالية إن وجد
   const currentPageRating = useMemo(() => {
@@ -241,8 +277,36 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   useEffect(() => {
     try {
       localStorage.setItem('worship_quran_last_read_page', currentPage.toString());
+      localStorage.setItem(`worship_quran_last_read_page_${mushafEdition}`, currentPage.toString());
     } catch (e) {}
-  }, [currentPage]);
+  }, [currentPage, mushafEdition]);
+
+  // تبديل طبعة المصحف (المدينة ↔ الشمرلي) مع الحفاظ على موضع السورة والآيات
+  const changeMushafEdition = useCallback((nextEdition: MushafEdition) => {
+    if (nextEdition === mushafEdition) return;
+    const mappedPage = convertPageBetweenEditions(currentPage, mushafEdition, nextEdition);
+    setMushafEdition(nextEdition);
+    setCurrentPage(mappedPage);
+    setImageLoaded(false);
+    setImageError(false);
+    stopAudio();
+    try {
+      localStorage.setItem('worship_mushaf_edition', nextEdition);
+    } catch (e) {}
+    onEditionChange?.(nextEdition);
+    showToast(
+      nextEdition === 'shamarly'
+        ? `تم التبديل إلى مصحف الشمرلي (٥٢١ صفحة) — صفحة ${mappedPage} 📖`
+        : `تم التبديل إلى مصحف المدينة المنورة (٦٠٤ صفحات) — صفحة ${mappedPage} 📖`
+    );
+  }, [mushafEdition, currentPage, onEditionChange]);
+
+  // مزامنة الطبعة عند تغييرها من واجهة QuranPage.tsx
+  useEffect(() => {
+    if (edition && edition !== mushafEdition) {
+      changeMushafEdition(edition);
+    }
+  }, [edition, mushafEdition, changeMushafEdition]);
 
   // إعادة ضبط وضع الاختبار عند تغيير الصفحة إذا كان مفعلاً
   useEffect(() => {
@@ -268,41 +332,54 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     } catch (e) {}
   };
 
-  // رابط صورة صفحة المصحف عالية الدقة من خادم مصحف المدينة
+  // رابط صورة صفحة المصحف عالية الدقة حسب الطبعة المختارة
   const pageImageSrc = useMemo(() => {
+    if (mushafEdition === 'shamarly') {
+      return `https://cdn.jsdelivr.net/gh/quran8vs/m-qpc-shamarly@main/imgs/${currentPage}.png`;
+    }
     const padded = String(currentPage).padStart(3, '0');
     return `https://files.quran.app/hafs/madani/width_1024/page${padded}.png`;
-  }, [currentPage]);
+  }, [currentPage, mushafEdition]);
 
   const fallbackPageImageSrc = useMemo(() => {
+    if (mushafEdition === 'shamarly') {
+      return `https://tafsir.app/scans/m-qpc-shamarly/${currentPage}.png`;
+    }
     return `https://quran.ksu.edu.sa/ayat/safahat/${currentPage}.png`;
-  }, [currentPage]);
+  }, [currentPage, mushafEdition]);
 
   // التحميل المسبق للصفحات المجاورة (Preloading) لتقليب فوري بدون تأخير
   useEffect(() => {
     const preload = (page: number) => {
-      if (page >= 1 && page <= 604) {
-        const padded = String(page).padStart(3, '0');
+      if (page >= 1 && page <= totalPages) {
         const img = new Image();
-        img.src = `https://files.quran.app/hafs/madani/width_1024/page${padded}.png`;
+        if (mushafEdition === 'shamarly') {
+          img.src = `https://cdn.jsdelivr.net/gh/quran8vs/m-qpc-shamarly@main/imgs/${page}.png`;
+        } else {
+          const padded = String(page).padStart(3, '0');
+          img.src = `https://files.quran.app/hafs/madani/width_1024/page${padded}.png`;
+        }
       }
     };
     preload(currentPage + 1);
     preload(currentPage - 1);
-  }, [currentPage]);
+  }, [currentPage, mushafEdition, totalPages]);
 
-  // إعادة تعيين حالة الصورة عند تغيير الصفحة
+  // إعادة تعيين حالة الصورة عند تغيير الصفحة أو الطبعة
   useEffect(() => {
     setImageLoaded(false);
     setImageError(false);
-  }, [currentPage]);
+  }, [currentPage, mushafEdition]);
 
   // جلب آيات الصفحة في وضع الآيات والتفسير أو وضع الاختبار
   useEffect(() => {
     let isMounted = true;
     if (viewMode === 'ayahs' || testModeActive) {
       setLoadingAyahs(true);
-      fetch(`https://api.alquran.cloud/v1/page/${currentPage}/quran-uthmani`)
+      const apiPage = mushafEdition === 'shamarly'
+        ? convertPageBetweenEditions(currentPage, 'shamarly', 'madani')
+        : currentPage;
+      fetch(`https://api.alquran.cloud/v1/page/${apiPage}/quran-uthmani`)
         .then(res => res.json())
         .then(data => {
           if (isMounted && data.code === 200 && data.data?.ayahs) {
@@ -317,7 +394,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [currentPage, viewMode, testModeActive]);
+  }, [currentPage, mushafEdition, viewMode, testModeActive]);
 
   // جلب تفسير الآية عند اختيارها
   const handleSelectAyahForTafsir = useCallback((ayah: AyahData) => {
@@ -391,7 +468,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   }, []);
 
   const goToNextPage = () => {
-    if (currentPage < 604) {
+    if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1);
       stopAudio();
     } else {
@@ -406,8 +483,17 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     }
   };
 
-  const goToPage = (page: number) => {
-    const valid = Math.max(1, Math.min(604, page));
+  const goToPage = (page: number, targetEdition?: MushafEdition) => {
+    const activeEd = targetEdition || mushafEdition;
+    const maxP = getTotalPagesForEdition(activeEd);
+    const valid = Math.max(1, Math.min(maxP, page));
+    if (targetEdition && targetEdition !== mushafEdition) {
+      setMushafEdition(targetEdition);
+      try {
+        localStorage.setItem('worship_mushaf_edition', targetEdition);
+      } catch (e) {}
+      onEditionChange?.(targetEdition);
+    }
     setCurrentPage(valid);
     stopAudio();
     setShowIndexModal(false);
@@ -534,7 +620,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage, showIndexModal, showBookmarkModal, isFullScreen]);
+  }, [currentPage, totalPages, showIndexModal, showBookmarkModal, isFullScreen]);
 
   // إدارة الفواصل المتعددة والمخصصة
   const handleOpenAddBookmark = () => {
@@ -555,7 +641,8 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
       title: newBookmarkTitle.trim(),
       date: new Date().toLocaleDateString('ar-SA'),
       surahName: currentSurah.name,
-      color: newBookmarkColor
+      color: newBookmarkColor,
+      edition: mushafEdition
     };
 
     const updated = [newBm, ...bookmarks];
@@ -747,28 +834,33 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
 
   const wardTotalPages = log.quran?.wardPlan?.targetPagesCount || 20;
   const todayReadCount = (log.quran?.readPages || []).length;
-  const wardStartPage = log.quran?.wardPlan?.startPage || 1;
+  const wardStartPage = mushafEdition === 'shamarly'
+    ? convertPageBetweenEditions(log.quran?.wardPlan?.startPage || 1, 'madani', 'shamarly')
+    : (log.quran?.wardPlan?.startPage || 1);
+
+  const editionSurahs = useMemo(() => getSurahsForEdition(mushafEdition), [mushafEdition]);
+  const editionJuzs = useMemo(() => getJuzsForEdition(mushafEdition), [mushafEdition]);
 
   const filteredSurahs = useMemo(() => {
-    if (!indexSearchQuery.trim()) return QURAN_114_SURAHS;
+    if (!indexSearchQuery.trim()) return editionSurahs;
     const q = indexSearchQuery.trim().toLowerCase();
-    return QURAN_114_SURAHS.filter(s => 
+    return editionSurahs.filter(s => 
       s.name.includes(q) || 
       s.arabicName.includes(q) || 
       s.id.toString() === q ||
       s.page.toString() === q
     );
-  }, [indexSearchQuery]);
+  }, [indexSearchQuery, editionSurahs]);
 
   const filteredJuzs = useMemo(() => {
-    if (!indexSearchQuery.trim()) return QURAN_30_JUZ;
+    if (!indexSearchQuery.trim()) return editionJuzs;
     const q = indexSearchQuery.trim().toLowerCase();
-    return QURAN_30_JUZ.filter(j => 
+    return editionJuzs.filter(j => 
       j.name.includes(q) || 
       j.popularName.includes(q) || 
       j.id.toString() === q
     );
-  }, [indexSearchQuery]);
+  }, [indexSearchQuery, editionJuzs]);
 
   // وضع ملء الشاشة الحصري: يظهر المصحف فقط في كامل شاشة الهاتف مع خلفية وثيم أصيل وإمكانية تسجيل القراءة مباشرة
   if (isFullScreen) {
@@ -856,7 +948,31 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* مبدّل طبعة المصحف في وضع ملء الشاشة */}
+            <div className={`flex items-center p-0.5 rounded-full border ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white/90 border-slate-200'
+            }`}>
+              <button
+                onClick={() => changeMushafEdition('madani')}
+                className={`px-2 py-1 rounded-full text-[10px] font-black header-font transition-all ${
+                  mushafEdition === 'madani' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="مصحف المدينة المنورة (٦٠٤ صفحة)"
+              >
+                المدينة
+              </button>
+              <button
+                onClick={() => changeMushafEdition('shamarly')}
+                className={`px-2 py-1 rounded-full text-[10px] font-black header-font transition-all ${
+                  mushafEdition === 'shamarly' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="مصحف الشمرلي (٥٢١ صفحة)"
+              >
+                الشمرلي
+              </button>
+            </div>
+
             {/* التكبير والتصغير أثناء ملء الشاشة */}
             <div className={`flex items-center p-0.5 rounded-full border ${
               theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white/90 border-slate-200'
@@ -979,7 +1095,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
               )}
               <img
                 src={imageError ? fallbackPageImageSrc : pageImageSrc}
-                alt={`مصحف المدينة - صفحة ${currentPage}`}
+                alt={`${editionLabel} - صفحة ${currentPage}`}
                 loading="eager"
                 onLoad={() => setImageLoaded(true)}
                 onError={() => {
@@ -1389,18 +1505,18 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
               <input
                 type="number"
                 min="1"
-                max="604"
+                max={totalPages}
                 value={currentPage}
                 onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
-                  if (!isNaN(val) && val >= 1 && val <= 604) {
+                  if (!isNaN(val) && val >= 1 && val <= totalPages) {
                     goToPage(val);
                   }
                 }}
                 className="w-16 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-center text-xs font-black font-mono text-emerald-800 outline-none focus:border-emerald-500"
               />
             </div>
-            <span className="text-xs font-bold text-slate-400 font-mono">/ 604</span>
+            <span className="text-xs font-bold text-slate-400 font-mono">/ {totalPages}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1462,6 +1578,9 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
             <span className="font-bold">سورة {currentSurah.arabicName || currentSurah.name}</span>
             <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-amber-500/10 border border-amber-500/20">
               {currentSurah.type}
+            </span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+              {editionLabel}
             </span>
             {testModeActive && (
               <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-600 text-white font-black animate-pulse">
@@ -1551,7 +1670,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
             >
               <img
                 src={imageError ? fallbackPageImageSrc : pageImageSrc}
-                alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
+                alt={`${editionLabel} - صفحة ${currentPage}`}
                 loading="eager"
                 onLoad={() => setImageLoaded(true)}
                 onError={() => {
@@ -1675,14 +1794,14 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
           <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 header-font">
             <span>سورة الفاتحة (صفحة ١)</span>
             <span className="font-mono font-black text-emerald-700">
-              صفحة {currentPage} ({Math.round((currentPage / 604) * 100)}%)
+              صفحة {currentPage} ({Math.round((currentPage / totalPages) * 100)}%)
             </span>
-            <span>سورة الناس (صفحة ٦٠٤)</span>
+            <span>سورة الناس (صفحة {totalPages})</span>
           </div>
           <input
             type="range"
             min="1"
-            max="604"
+            max={totalPages}
             value={currentPage}
             onChange={(e) => goToPage(parseInt(e.target.value, 10))}
             className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-100 rounded-lg"
@@ -2005,7 +2124,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-amber-300" />
-                  <h3 className="font-black text-sm header-font">فهرس المصحف الشريف</h3>
+                  <h3 className="font-black text-sm header-font">فهرس {editionLabel} ({totalPages} صفحة)</h3>
                 </div>
                 <button
                   onClick={() => setShowIndexModal(false)}
@@ -2161,14 +2280,17 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
                       const colorInfo = COLOR_CLASSES[bm.color || 'amber'];
                       const isEditing = editingBookmarkId === bm.id;
 
+                      const bmEdition: MushafEdition = bm.edition || 'madani';
+                      const isSameEdition = bmEdition === mushafEdition;
+
                       return (
                         <div
                           key={bm.id}
                           onClick={() => {
-                            if (!isEditing) goToPage(bm.page);
+                            if (!isEditing) goToPage(bm.page, bmEdition);
                           }}
                           className={`p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer group ${
-                            bm.page === currentPage ? 'bg-amber-50/80 border-amber-200' : 'bg-slate-50 hover:bg-emerald-50 border-slate-200'
+                            bm.page === currentPage && isSameEdition ? 'bg-amber-50/80 border-amber-200' : 'bg-slate-50 hover:bg-emerald-50 border-slate-200'
                           }`}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -2201,9 +2323,16 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
                                 </div>
                               ) : (
                                 <>
-                                  <h4 className="font-black text-xs header-font text-slate-800 truncate group-hover:text-emerald-800">
-                                    {bm.title}
-                                  </h4>
+                                  <div className="flex items-center gap-1.5">
+                                    <h4 className="font-black text-xs header-font text-slate-800 truncate group-hover:text-emerald-800">
+                                      {bm.title}
+                                    </h4>
+                                    <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold shrink-0 ${
+                                      bmEdition === 'shamarly' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                                    }`}>
+                                      {bmEdition === 'shamarly' ? 'الشمرلي' : 'المدينة'}
+                                    </span>
+                                  </div>
                                   <p className="text-[10px] text-slate-400 font-bold mt-0.5">
                                     صفحة {bm.page} • سورة {bm.surahName} • {bm.date}
                                   </p>

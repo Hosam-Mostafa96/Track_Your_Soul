@@ -1,3 +1,8 @@
+export type MushafEdition = 'madani' | 'shamarly';
+
+export const MADANI_TOTAL_PAGES = 604;
+export const SHAMARLY_TOTAL_PAGES = 521;
+
 export interface SurahMeta {
   id: number;
   name: string;
@@ -355,9 +360,62 @@ export const QURAN_30_JUZ: QuranJuzMeta[] = [
   { id: 30, name: "الجزء الثلاثون", popularName: "عمّ يتساءلون", startPage: 582, endPage: 604, totalPages: 23, surahsDesc: "من سورة النبأ إلى سورة الناس (قصار السور)" }
 ];
 
-export const getSurahAtPage = (pageNumber: number): SurahMeta => {
-  let matched = QURAN_114_SURAHS[0];
-  for (const surah of QURAN_114_SURAHS) {
+// صفحات بداية كل سورة في مصحف الشمرلي (521 صفحة)
+export const SHAMARLY_SURAH_START_PAGES: Record<number, number> = {
+  1: 1, 2: 2, 3: 41, 4: 63, 5: 86, 6: 104, 7: 122, 8: 143, 9: 152, 10: 168,
+  11: 180, 12: 192, 13: 203, 14: 209, 15: 215, 16: 220, 17: 232, 18: 242, 19: 252, 20: 259,
+  21: 267, 22: 275, 23: 283, 24: 290, 25: 299, 26: 305, 27: 314, 28: 322, 29: 331, 30: 337,
+  31: 342, 32: 346, 33: 348, 34: 357, 35: 363, 36: 368, 37: 373, 38: 379, 39: 384, 40: 391,
+  41: 399, 42: 404, 43: 410, 44: 416, 45: 418, 46: 421, 47: 426, 48: 429, 49: 433, 50: 436,
+  51: 438, 52: 441, 53: 443, 54: 446, 55: 448, 56: 451, 57: 454, 58: 458, 59: 461, 60: 464,
+  61: 467, 62: 468, 63: 469, 64: 471, 65: 473, 66: 475, 67: 477, 68: 479, 69: 481, 70: 483,
+  71: 485, 72: 487, 73: 489, 74: 490, 75: 492, 76: 493, 77: 495, 78: 497, 79: 498, 80: 500,
+  81: 501, 82: 502, 83: 503, 84: 504, 85: 505, 86: 506, 87: 507, 88: 508, 89: 509, 90: 510,
+  91: 511, 92: 511, 93: 512, 94: 512, 95: 513, 96: 513, 97: 514, 98: 514, 99: 515, 100: 516,
+  101: 516, 102: 517, 103: 517, 104: 518, 105: 518, 106: 518, 107: 519, 108: 519, 109: 519, 110: 520,
+  111: 520, 112: 521, 113: 521, 114: 521
+};
+
+// صفحات بداية الأجزاء الثلاثين في مصحف الشمرلي (521 صفحة)
+export const SHAMARLY_JUZ_START_PAGES: number[] = [
+  1, 19, 35, 51, 67, 83, 98, 115, 131, 147,
+  163, 180, 198, 215, 232, 249, 267, 283, 301, 319,
+  335, 352, 369, 387, 403, 422, 439, 458, 477, 497
+];
+
+export const SHAMARLY_114_SURAHS: SurahMeta[] = QURAN_114_SURAHS.map((s) => ({
+  ...s,
+  page: SHAMARLY_SURAH_START_PAGES[s.id] || 1
+}));
+
+export const SHAMARLY_30_JUZ: QuranJuzMeta[] = QURAN_30_JUZ.map((j, idx) => {
+  const startPage = SHAMARLY_JUZ_START_PAGES[idx] || 1;
+  const nextStart = SHAMARLY_JUZ_START_PAGES[idx + 1];
+  const endPage = nextStart ? nextStart - 1 : SHAMARLY_TOTAL_PAGES;
+  return {
+    ...j,
+    startPage,
+    endPage,
+    totalPages: Math.max(1, endPage - startPage + 1)
+  };
+});
+
+export const getTotalPagesForEdition = (edition: MushafEdition = 'madani'): number => {
+  return edition === 'shamarly' ? SHAMARLY_TOTAL_PAGES : MADANI_TOTAL_PAGES;
+};
+
+export const getSurahsForEdition = (edition: MushafEdition = 'madani'): SurahMeta[] => {
+  return edition === 'shamarly' ? SHAMARLY_114_SURAHS : QURAN_114_SURAHS;
+};
+
+export const getJuzsForEdition = (edition: MushafEdition = 'madani'): QuranJuzMeta[] => {
+  return edition === 'shamarly' ? SHAMARLY_30_JUZ : QURAN_30_JUZ;
+};
+
+export const getSurahAtPage = (pageNumber: number, edition: MushafEdition = 'madani'): SurahMeta => {
+  const surahs = getSurahsForEdition(edition);
+  let matched = surahs[0];
+  for (const surah of surahs) {
     if (surah.page <= pageNumber) {
       matched = surah;
     } else {
@@ -367,7 +425,38 @@ export const getSurahAtPage = (pageNumber: number): SurahMeta => {
   return matched;
 };
 
-export const getJuzAtPage = (pageNumber: number): QuranJuzMeta => {
-  const found = QURAN_30_JUZ.find(j => pageNumber >= j.startPage && pageNumber <= j.endPage);
-  return found || QURAN_30_JUZ[0];
+export const getJuzAtPage = (pageNumber: number, edition: MushafEdition = 'madani'): QuranJuzMeta => {
+  const juzs = getJuzsForEdition(edition);
+  const found = juzs.find(j => pageNumber >= j.startPage && pageNumber <= j.endPage);
+  return found || juzs[0];
+};
+
+export const convertPageBetweenEditions = (
+  page: number,
+  fromEdition: MushafEdition,
+  toEdition: MushafEdition
+): number => {
+  if (fromEdition === toEdition) return page;
+  const fromSurahs = getSurahsForEdition(fromEdition);
+  const toSurahs = getSurahsForEdition(toEdition);
+  const fromMax = getTotalPagesForEdition(fromEdition);
+  const toMax = getTotalPagesForEdition(toEdition);
+
+  const clampedPage = Math.max(1, Math.min(fromMax, page));
+  const currentSurah = getSurahAtPage(clampedPage, fromEdition);
+  const fromIdx = fromSurahs.findIndex(s => s.id === currentSurah.id);
+  const toSurah = toSurahs[fromIdx] || toSurahs[0];
+
+  const nextFromSurah = fromSurahs[fromIdx + 1];
+  const nextToSurah = toSurahs[fromIdx + 1];
+
+  const fromSurahEnd = nextFromSurah ? Math.max(currentSurah.page, nextFromSurah.page - 1) : fromMax;
+  const toSurahEnd = nextToSurah ? Math.max(toSurah.page, nextToSurah.page - 1) : toMax;
+
+  const fromSpan = Math.max(1, fromSurahEnd - currentSurah.page);
+  const toSpan = Math.max(1, toSurahEnd - toSurah.page);
+  const ratio = Math.max(0, Math.min(1, (clampedPage - currentSurah.page) / fromSpan));
+
+  const mapped = Math.round(toSurah.page + ratio * toSpan);
+  return Math.max(1, Math.min(toMax, mapped));
 };
