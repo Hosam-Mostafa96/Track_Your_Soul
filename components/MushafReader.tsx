@@ -862,255 +862,653 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     );
   }, [indexSearchQuery, editionJuzs]);
 
-  // وضع ملء الشاشة الحصري: يظهر المصحف فقط في كامل شاشة الهاتف مع خلفية وثيم أصيل وإمكانية تسجيل القراءة مباشرة
-  if (isFullScreen) {
-    return createPortal(
-      <div 
-        className={`fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] flex flex-col justify-between items-center select-none overflow-hidden ${
-          theme === 'sepia' 
-            ? 'bg-[#fcf7ec]' 
-            : theme === 'dark' 
-              ? 'bg-[#121314]' 
-              : 'bg-white'
-        }`}
-        dir="rtl"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        style={{ touchAction: 'pan-y' }}
-      >
-        {/* رسالة التنبيه السريعة (Toast) في ملء الشاشة */}
-        {toastMessage && (
-          <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-emerald-950 text-white px-5 py-2.5 rounded-full shadow-2xl border border-emerald-500/40 text-xs font-bold header-font flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>{toastMessage}</span>
-          </div>
-        )}
-
-        {/* الشريط العلوي الخفيف والأنيق المتوافق مع ثيم المصحف تماماً */}
-        <div className={`w-full z-40 px-3 py-2 flex items-center justify-between flex-wrap gap-2 border-b shadow-xs pointer-events-auto backdrop-blur-md ${
-          theme === 'dark'
-            ? 'bg-slate-900/95 text-slate-100 border-slate-800'
-            : theme === 'sepia'
-              ? 'bg-[#f7eed8]/95 text-[#7d5e2d] border-[#eedfc5]'
-              : 'bg-white/95 text-slate-800 border-slate-200'
-        }`}>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* زر الخروج من ملء الشاشة */}
-            <button
-              onClick={toggleFullScreen}
-              className={`py-1.5 px-3 rounded-full text-xs font-black header-font transition-all flex items-center gap-1.5 shadow-xs active:scale-95 border ${
-                theme === 'dark'
-                  ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'
-                  : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300'
-              }`}
-              title="إنهاء ملء الشاشة والعودة للواجهة الرئيسية"
-            >
-              <Minimize2 className="w-4 h-4 text-emerald-600" />
-              <span>خروج</span>
-            </button>
-
-            {/* زر تسجيل قراءة الصفحة مباشرة في وضع ملء الشاشة (دون الحاجة للخروج إطلاقاً) */}
-            <button
-              onClick={togglePageReadInDailyWard}
-              className={`py-1.5 px-3.5 rounded-full text-xs font-black header-font transition-all flex items-center gap-1.5 shadow-sm active:scale-95 border ${
-                isReadToday
-                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-200'
-                  : theme === 'dark'
-                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900'
-                    : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-              }`}
-              title="تسجيل قراءة هذه الصفحة في الورد اليومي واحتساب 15 نقطة بالرصيد"
-            >
-              {isReadToday ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                  <span>مقروءة اليوم ✓</span>
-                </>
-              ) : (
-                <>
-                  <Circle className="w-4 h-4 text-emerald-600" />
-                  <span>تحديد كـ مقروءة (+15 ن)</span>
-                </>
-              )}
-            </button>
-
-            {onNavigateToWardPlanner && (
-              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border hidden sm:inline-flex items-center ${
-                theme === 'dark' 
-                  ? 'bg-slate-800/80 text-slate-300 border-slate-700' 
-                  : 'bg-white/80 text-slate-600 border-slate-200'
-              }`}>
-                الورد: {todayReadCount}/{wardTotalPages}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* مبدّل طبعة المصحف في وضع ملء الشاشة */}
-            <div className={`flex items-center p-0.5 rounded-full border ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white/90 border-slate-200'
-            }`}>
-              <button
-                onClick={() => changeMushafEdition('madani')}
-                className={`px-2 py-1 rounded-full text-[10px] font-black header-font transition-all ${
-                  mushafEdition === 'madani' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="مصحف المدينة المنورة (٦٠٤ صفحة)"
-              >
-                المدينة
-              </button>
-              <button
-                onClick={() => changeMushafEdition('shamarly')}
-                className={`px-2 py-1 rounded-full text-[10px] font-black header-font transition-all ${
-                  mushafEdition === 'shamarly' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="مصحف الشمرلي (٥٢١ صفحة)"
-              >
-                الشمرلي
-              </button>
-            </div>
-
-            {/* التكبير والتصغير أثناء ملء الشاشة */}
-            <div className={`flex items-center p-0.5 rounded-full border ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white/90 border-slate-200'
-            }`}>
-              <button
-                onClick={() => setZoomLevel(prev => Math.min(1.6, prev + 0.15))}
-                className="p-1.5 text-slate-600 hover:text-slate-900 rounded-full transition-all"
-                title="تكبير حجم الصفحة"
-              >
-                <ZoomIn className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setZoomLevel(prev => Math.max(0.85, prev - 0.15))}
-                className="p-1.5 text-slate-600 hover:text-slate-900 rounded-full transition-all"
-                title="تصغير"
-              >
-                <ZoomOut className="w-3.5 h-3.5" />
-              </button>
-              {zoomLevel !== 1 && (
-                <button
-                  onClick={() => setZoomLevel(1)}
-                  className="p-1.5 text-emerald-600 hover:text-emerald-800 rounded-full transition-all"
-                  title="إعادة ضبط الحجم الأصلي"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* أزرار ثيم القراءة */}
-            <div className={`flex items-center p-0.5 rounded-full border ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white/90 border-slate-200'
-            }`}>
-              <button
-                onClick={() => changeTheme('sepia')}
-                className={`p-1.5 rounded-full transition-all ${theme === 'sepia' ? 'bg-amber-100 text-amber-900 shadow-xs' : 'text-slate-400 hover:text-slate-700'}`}
-                title="ورق عاجي دافئ"
-              >
-                <Coffee className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => changeTheme('white')}
-                className={`p-1.5 rounded-full transition-all ${theme === 'white' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-400 hover:text-slate-700'}`}
-                title="أبيض ناصع"
-              >
-                <Sun className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => changeTheme('dark')}
-                className={`p-1.5 rounded-full transition-all ${theme === 'dark' ? 'bg-slate-700 text-yellow-300 shadow-xs' : 'text-slate-400 hover:text-slate-700'}`}
-                title="الوضع الليلي"
-              >
-                <Moon className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <span className={`text-xs font-black px-3 py-1 rounded-full border header-font ${
-              theme === 'dark' 
-                ? 'bg-slate-800 text-amber-300 border-slate-700' 
-                : 'bg-white/90 text-emerald-900 border-slate-200'
-            }`}>
-              سورة {currentSurah.name}
-            </span>
-          </div>
-        </div>
-
-        {/* فواصل الصفحة المرجعية إن وجدت */}
-        {currentPageBookmarks.length > 0 && (
-          <div className="absolute top-14 right-6 z-30 flex items-start gap-1 pointer-events-none">
-            {currentPageBookmarks.map(bm => {
-              const colorInfo = COLOR_CLASSES[bm.color || 'amber'];
-              return (
-                <div 
-                  key={bm.id} 
-                  className={`w-7 h-12 shadow-md rounded-b-md flex items-end justify-center pb-1 font-black ${colorInfo.bg} ${colorInfo.text} border-b border-x ${colorInfo.border}`}
-                  title={bm.title}
-                >
-                  <Bookmark className={`w-3.5 h-3.5 ${colorInfo.fill}`} />
+  const bookmarkModalPortal = showBookmarkModal
+    ? createPortal(
+        <div
+          className="fixed inset-0 z-[100001] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200"
+          dir="rtl"
+          onClick={() => setShowBookmarkModal(false)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200 max-h-[90dvh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                  <BookmarkPlus className="w-5 h-5 text-amber-600" />
                 </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* جسم المصحف في كامل شاشة الهاتف - شاشة نقية مضيئة بدون سواد باهت */}
-        <div className="flex-1 w-full h-full flex items-center justify-center p-1 sm:p-2 overflow-auto relative">
-          {/* كشف الحفظ الغيبي في وضع الاختبار إن كان مفعلاً */}
-          {testModeActive && isContentHidden && (
-            <div className="absolute inset-0 z-30 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
-              <div className="w-16 h-16 rounded-3xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shadow-xl">
-                <Brain className="w-8 h-8 animate-bounce" />
+                <div>
+                  <h3 className="font-black text-sm header-font text-slate-800">
+                    إضافة فاصل مسمّى على صفحة {currentPage}
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-bold">
+                    سورة {currentSurah.name} • الجزء {currentJuz.id}
+                  </span>
+                </div>
               </div>
-              <h3 className="text-lg font-black header-font text-white">
-                صفحة {currentPage} (سورة {currentSurah.name})
-              </h3>
-              <p className="text-xs text-purple-200/90 max-w-sm font-bold">
-                اقرأ من حفظك وذاكرتك، ثم انقر الزر لكشف صفحة المصحف للمقارنة والتصحيح.
-              </p>
               <button
-                onClick={toggleRevealAll}
-                className="py-3 px-6 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-emerald-950 font-black header-font text-xs flex items-center gap-2 shadow-xl active:scale-95 transition-all"
+                onClick={() => setShowBookmarkModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full"
               >
-                <Eye className="w-4 h-4 text-emerald-950" />
-                <span>كشف صفحة المصحف لمقارنة الحفظ 👁️</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
-          )}
 
-          {/* صورة مصحف المدينة بدقة فائقة تملأ الشاشة بنقاء ووضوح */}
-          {viewMode === 'page' ? (
-            <div 
-              className="w-full h-full flex items-center justify-center relative transition-transform duration-150 ease-out"
-              style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }}
-            >
-              {!imageLoaded && !imageError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10">
-                  <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-xs font-bold text-slate-500 header-font">جاري استحضار الصفحة المباركة {currentPage}...</span>
-                </div>
-              )}
-              <img
-                src={imageError ? fallbackPageImageSrc : pageImageSrc}
-                alt={`${editionLabel} - صفحة ${currentPage}`}
-                loading="eager"
-                onLoad={() => setImageLoaded(true)}
-                onError={() => {
-                  if (!imageError) setImageError(true);
-                }}
-                className={`max-w-full max-h-[calc(100dvh-88px)] w-auto h-auto object-contain select-none drop-shadow-md transition-all duration-150 ${
-                  theme === 'dark'
-                    ? 'invert-[0.90] hue-rotate-180 brightness-95 contrast-125'
-                    : theme === 'sepia'
-                      ? 'contrast-[1.02] sepia-[0.08]'
-                      : ''
-                }`}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700 header-font block">
+                اسم الفاصل:
+              </label>
+              <input
+                type="text"
+                value={newBookmarkTitle}
+                onChange={(e) => setNewBookmarkTitle(e.target.value)}
+                placeholder="اكتب اسم الفاصل (مثلاً: ورد الفجر، مراجعة، تدبر...)"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-800 font-bold outline-none focus:border-emerald-500 focus:bg-white transition-all header-font"
+                autoFocus
               />
             </div>
-          ) : (
+
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-500 block header-font">
+                أو اختر اسماً مقترحاً بلمسة:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {BOOKMARK_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setNewBookmarkTitle(preset)}
+                    className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all border ${
+                      newBookmarkTitle === preset
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200'
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-500 block header-font">
+                لون شارة الفاصل:
+              </span>
+              <div className="flex items-center gap-2">
+                {(['amber', 'emerald', 'rose', 'blue', 'purple'] as BookmarkColor[]).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setNewBookmarkColor(c)}
+                    className={`w-8 h-8 rounded-full transition-all flex items-center justify-center border-2 ${
+                      newBookmarkColor === c ? 'scale-110 shadow-md ring-2 ring-slate-300' : 'opacity-70 hover:opacity-100'
+                    } ${
+                      c === 'amber' ? 'bg-amber-400 border-amber-500' :
+                      c === 'emerald' ? 'bg-emerald-500 border-emerald-600' :
+                      c === 'rose' ? 'bg-rose-500 border-rose-600' :
+                      c === 'blue' ? 'bg-sky-500 border-sky-600' :
+                      'bg-purple-500 border-purple-600'
+                    }`}
+                  >
+                    {newBookmarkColor === c && <Check className="w-4 h-4 text-white" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {currentPageBookmarks.length > 0 && (
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5">
+                <span className="text-[10px] font-black text-slate-500 block header-font">
+                  الفواصل المحفوظة مسبقاً على صفحة {currentPage}:
+                </span>
+                <div className="space-y-1">
+                  {currentPageBookmarks.map(bm => (
+                    <div key={bm.id} className="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-100 text-xs">
+                      <span className="font-bold text-slate-700">{bm.title}</span>
+                      <button
+                        onClick={() => handleRemoveBookmark(bm.id)}
+                        className="text-rose-500 hover:text-rose-700 p-1"
+                        title="حذف هذا الفاصل"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={handleSaveNewBookmark}
+                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black header-font text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <Bookmark className="w-4 h-4 fill-white" />
+                <span>حفظ الفاصل 🔖</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBookmarkModal(false)}
+                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold header-font text-xs"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )
+    : null;
+
+  const indexModalPortal = showIndexModal
+    ? createPortal(
+        <div
+          className="fixed inset-0 z-[100000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200"
+          dir="rtl"
+          onClick={() => setShowIndexModal(false)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-xl w-full max-h-[88dvh] overflow-hidden flex flex-col shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 bg-emerald-800 text-white space-y-3 shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-amber-300" />
+                  <h3 className="font-black text-sm header-font">فهرس {editionLabel} ({totalPages} صفحة)</h3>
+                </div>
+                <button
+                  onClick={() => setShowIndexModal(false)}
+                  className="p-2 hover:bg-white/10 rounded-full text-emerald-100 hover:text-white transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  value={indexSearchQuery}
+                  onChange={(e) => setIndexSearchQuery(e.target.value)}
+                  placeholder="ابحث عن اسم السورة، الجزء، أو رقم الصفحة..."
+                  className="w-full bg-white/15 border border-white/20 rounded-2xl p-2.5 pr-9 text-xs text-white placeholder:text-white/60 outline-none focus:bg-white/25 transition-all header-font"
+                />
+                <Search className="w-4 h-4 text-white/70 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                {indexSearchQuery && (
+                  <button
+                    onClick={() => setIndexSearchQuery('')}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-1 bg-black/20 p-1 rounded-2xl">
+                <button
+                  onClick={() => setIndexTab('surahs')}
+                  className={`py-2 rounded-xl text-xs font-black header-font transition-all ${
+                    indexTab === 'surahs' ? 'bg-white text-emerald-900 shadow-sm' : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  السور (١١٤)
+                </button>
+                <button
+                  onClick={() => setIndexTab('juzs')}
+                  className={`py-2 rounded-xl text-xs font-black header-font transition-all ${
+                    indexTab === 'juzs' ? 'bg-white text-emerald-900 shadow-sm' : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  الأجزاء (٣٠)
+                </button>
+                <button
+                  onClick={() => setIndexTab('bookmarks')}
+                  className={`py-2 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-1 ${
+                    indexTab === 'bookmarks' ? 'bg-white text-emerald-900 shadow-sm' : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  <span>الفواصل ({bookmarks.length})</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 overflow-y-auto flex-1 divide-y divide-slate-100">
+              {indexTab === 'surahs' && (
+                <div className="space-y-1">
+                  {filteredSurahs.map((surah) => (
+                    <button
+                      key={surah.id}
+                      onClick={() => goToPage(surah.page)}
+                      className={`w-full p-3 rounded-2xl hover:bg-emerald-50/70 transition-all flex items-center justify-between text-right ${
+                        currentSurah.id === surah.id ? 'bg-emerald-50 border border-emerald-200' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-mono font-black shrink-0">
+                          {surah.id}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-xs header-font text-slate-800">سورة {surah.name}</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-500">
+                              {surah.type}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-bold">
+                            {surah.totalAyahs} آية
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black font-mono text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100">
+                          ص {surah.page}
+                        </span>
+                        <ChevronLeft className="w-4 h-4 text-slate-300" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {indexTab === 'juzs' && (
+                <div className="space-y-1">
+                  {filteredJuzs.map((juz) => (
+                    <button
+                      key={juz.id}
+                      onClick={() => goToPage(juz.startPage)}
+                      className={`w-full p-3 rounded-2xl hover:bg-emerald-50/70 transition-all flex items-center justify-between text-right ${
+                        currentJuz.id === juz.id ? 'bg-emerald-50 border border-emerald-200' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-mono font-black shrink-0">
+                          {juz.id}
+                        </div>
+                        <div>
+                          <h4 className="font-black text-xs header-font text-slate-800">{juz.name}</h4>
+                          <p className="text-[10px] text-slate-500 font-bold truncate max-w-[200px] sm:max-w-xs">
+                            {juz.popularName}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black font-mono text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100">
+                          ص {juz.startPage} - {juz.endPage}
+                        </span>
+                        <ChevronLeft className="w-4 h-4 text-slate-300" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {indexTab === 'bookmarks' && (
+                <div className="space-y-2 py-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-xs font-black text-slate-700 header-font">
+                      جميع الفواصل المحفوظة ({bookmarks.length})
+                    </span>
+                    <button
+                      onClick={handleOpenAddBookmark}
+                      className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 rounded-xl text-xs font-black header-font flex items-center gap-1 shadow-2xs"
+                    >
+                      <BookmarkPlus className="w-3.5 h-3.5" />
+                      <span>إضافة فاصل جديد</span>
+                    </button>
+                  </div>
+
+                  {bookmarks.length === 0 ? (
+                    <div className="py-12 text-center space-y-2">
+                      <Bookmark className="w-8 h-8 text-slate-300 mx-auto" />
+                      <p className="text-xs font-black text-slate-600 header-font">لا توجد فواصل قراءة محفوظة بعد</p>
+                      <p className="text-[10px] text-slate-400">انقر على زر «إضافة فاصل» لتسمية فاصل خاص لورد الحفظ، التلاوة، أو التدبر والرجوع إليه دائماً.</p>
+                    </div>
+                  ) : (
+                    bookmarks.map((bm) => {
+                      const colorInfo = COLOR_CLASSES[bm.color || 'amber'];
+                      const isEditing = editingBookmarkId === bm.id;
+                      const bmEdition: MushafEdition = bm.edition || 'madani';
+                      const isSameEdition = bmEdition === mushafEdition;
+
+                      return (
+                        <div
+                          key={bm.id}
+                          onClick={() => {
+                            if (!isEditing) goToPage(bm.page, bmEdition);
+                          }}
+                          className={`p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer group ${
+                            bm.page === currentPage && isSameEdition ? 'bg-amber-50/80 border-amber-200' : 'bg-slate-50 hover:bg-emerald-50 border-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${colorInfo.bg} ${colorInfo.border}`}>
+                              <Bookmark className={`w-4 h-4 ${colorInfo.fill}`} />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              {isEditing ? (
+                                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="text"
+                                    value={editBookmarkTitle}
+                                    onChange={(e) => setEditBookmarkTitle(e.target.value)}
+                                    className="px-2 py-1 bg-white border border-emerald-400 rounded-lg text-xs font-bold w-full outline-none"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => handleSaveEditBookmark(bm.id)}
+                                    className="p-1.5 bg-emerald-600 text-white rounded-lg"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingBookmarkId(null)}
+                                    className="p-1.5 bg-slate-200 text-slate-600 rounded-lg"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex items-center gap-1.5">
+                                    <h4 className="font-black text-xs header-font text-slate-800 truncate group-hover:text-emerald-800">
+                                      {bm.title}
+                                    </h4>
+                                    <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold shrink-0 ${
+                                      bmEdition === 'shamarly' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                                    }`}>
+                                      {bmEdition === 'shamarly' ? 'الشمرلي' : 'المدينة'}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                                    صفحة {bm.page} • سورة {bm.surahName} • {bm.date}
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0 mr-2">
+                            <button
+                              onClick={(e) => handleStartEditBookmark(bm, e)}
+                              className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all"
+                              title="تعديل اسم الفاصل"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => handleRemoveBookmark(bm.id, e)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                              title="حذف هذا الفاصل"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            <ChevronLeft className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:-translate-x-0.5 transition-all" />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )
+    : null;
+
+  // وضع ملء الشاشة الحصري: يظهر المصحف فقط في كامل شاشة الهاتف مع خلفية وثيم أصيل وإمكانية تسجيل القراءة مباشرة
+  if (isFullScreen) {
+    return (
+      <>
+        {createPortal(
+          <div 
+            className={`fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] flex flex-col justify-between items-center select-none overflow-hidden ${
+              theme === 'sepia' 
+                ? 'bg-[#fcf7ec]' 
+                : theme === 'dark' 
+                  ? 'bg-[#121314]' 
+                  : 'bg-white'
+            }`}
+            dir="rtl"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            style={{ touchAction: 'pan-y' }}
+          >
+            {/* رسالة التنبيه السريعة (Toast) في ملء الشاشة */}
+            {toastMessage && (
+              <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-emerald-950 text-white px-5 py-2.5 rounded-full shadow-2xl border border-emerald-500/40 text-xs font-bold header-font flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>{toastMessage}</span>
+              </div>
+            )}
+
+            {/* الشريط العلوي المدمج (سطر أو سطران كحد أقصى فوق المصحف) */}
+            <div className={`w-full z-40 px-2.5 py-1.5 flex items-center justify-between flex-wrap gap-1.5 border-b shadow-xs pointer-events-auto backdrop-blur-md shrink-0 ${
+              theme === 'dark'
+                ? 'bg-slate-900/95 text-slate-100 border-slate-800'
+                : theme === 'sepia'
+                  ? 'bg-[#f7eed8]/95 text-[#7d5e2d] border-[#eedfc5]'
+                  : 'bg-white/95 text-slate-800 border-slate-200'
+            }`}>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* زر الخروج من ملء الشاشة */}
+                <button
+                  type="button"
+                  onClick={toggleFullScreen}
+                  className={`py-1 px-2.5 rounded-full text-[11px] font-black header-font transition-all flex items-center gap-1 shadow-xs active:scale-95 border ${
+                    theme === 'dark'
+                      ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'
+                      : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300'
+                  }`}
+                  title="إنهاء ملء الشاشة والعودة للواجهة الرئيسية"
+                >
+                  <Minimize2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>خروج</span>
+                </button>
+
+                {/* زر تسجيل قراءة الصفحة مباشرة في وضع ملء الشاشة */}
+                <button
+                  type="button"
+                  onClick={togglePageReadInDailyWard}
+                  className={`py-1 px-2.5 rounded-full text-[11px] font-black header-font transition-all flex items-center gap-1 shadow-sm active:scale-95 border ${
+                    isReadToday
+                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-200'
+                      : theme === 'dark'
+                        ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900'
+                        : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                  }`}
+                  title="تسجيل قراءة هذه الصفحة في الورد اليومي واحتساب 15 نقطة بالرصيد"
+                >
+                  {isReadToday ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-white shrink-0" />
+                      <span>مقروءة ✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <Circle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>مقروءة (+15)</span>
+                    </>
+                  )}
+                </button>
+
+                {onNavigateToWardPlanner && (
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border hidden md:inline-flex items-center ${
+                    theme === 'dark' 
+                      ? 'bg-slate-800/80 text-slate-300 border-slate-700' 
+                      : 'bg-white/80 text-slate-600 border-slate-200'
+                  }`}>
+                    الورد: {todayReadCount}/{wardTotalPages}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* زر اسم السورة التفاعلي لفتح فهرس سور القرآن والتنقل بينها */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIndexTab('surahs');
+                    setShowIndexModal(true);
+                  }}
+                  className={`py-1 px-2.5 rounded-full border text-[11px] font-black header-font transition-all active:scale-95 flex items-center gap-1 shadow-xs ${
+                    theme === 'dark' 
+                      ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border-slate-700' 
+                      : 'bg-emerald-50/90 hover:bg-emerald-100 text-emerald-900 border-emerald-200'
+                  }`}
+                  title="فتح فهرس سور القرآن للتنقل"
+                >
+                  <List className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="truncate max-w-[115px] sm:max-w-none">سورة {currentSurah.name}</span>
+                  <ChevronLeft className="w-3 h-3 -rotate-90 opacity-60 shrink-0" />
+                </button>
+
+                {/* التكبير والتصغير أثناء ملء الشاشة */}
+                <div className={`flex items-center p-0.5 rounded-full border ${
+                  theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white/90 border-slate-200'
+                }`}>
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel(prev => Math.min(1.6, prev + 0.15))}
+                    className="p-1 text-slate-600 hover:text-slate-900 rounded-full transition-all"
+                    title="تكبير حجم الصفحة"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel(prev => Math.max(0.85, prev - 0.15))}
+                    className="p-1 text-slate-600 hover:text-slate-900 rounded-full transition-all"
+                    title="تصغير"
+                  >
+                    <ZoomOut className="w-3.5 h-3.5" />
+                  </button>
+                  {zoomLevel !== 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel(1)}
+                      className="p-1 text-emerald-600 hover:text-emerald-800 rounded-full transition-all"
+                      title="إعادة ضبط الحجم الأصلي"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* أزرار ثيم القراءة */}
+                <div className={`flex items-center p-0.5 rounded-full border ${
+                  theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white/90 border-slate-200'
+                }`}>
+                  <button
+                    type="button"
+                    onClick={() => changeTheme('sepia')}
+                    className={`p-1 rounded-full transition-all ${theme === 'sepia' ? 'bg-amber-100 text-amber-900 shadow-xs' : 'text-slate-400 hover:text-slate-700'}`}
+                    title="ورق عاجي دافئ"
+                  >
+                    <Coffee className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => changeTheme('white')}
+                    className={`p-1 rounded-full transition-all ${theme === 'white' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-400 hover:text-slate-700'}`}
+                    title="أبيض ناصع"
+                  >
+                    <Sun className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => changeTheme('dark')}
+                    className={`p-1 rounded-full transition-all ${theme === 'dark' ? 'bg-slate-700 text-yellow-300 shadow-xs' : 'text-slate-400 hover:text-slate-700'}`}
+                    title="الوضع الليلي"
+                  >
+                    <Moon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* فواصل الصفحة المرجعية إن وجدت */}
+            {currentPageBookmarks.length > 0 && (
+              <div className="absolute top-14 right-6 z-30 flex items-start gap-1 pointer-events-none">
+                {currentPageBookmarks.map(bm => {
+                  const colorInfo = COLOR_CLASSES[bm.color || 'amber'];
+                  return (
+                    <div 
+                      key={bm.id} 
+                      className={`w-7 h-12 shadow-md rounded-b-md flex items-end justify-center pb-1 font-black ${colorInfo.bg} ${colorInfo.text} border-b border-x ${colorInfo.border}`}
+                      title={bm.title}
+                    >
+                      <Bookmark className={`w-3.5 h-3.5 ${colorInfo.fill}`} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* جسم المصحف في كامل شاشة الهاتف - شاشة نقية مضيئة بدون سواد باهت */}
+            <div className="flex-1 min-h-0 w-full flex items-center justify-center p-1 sm:p-2 overflow-auto relative">
+              {/* كشف الحفظ الغيبي في وضع الاختبار إن كان مفعلاً */}
+              {testModeActive && isContentHidden && (
+                <div className="absolute inset-0 z-30 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
+                  <div className="w-16 h-16 rounded-3xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shadow-xl">
+                    <Brain className="w-8 h-8 animate-bounce" />
+                  </div>
+                  <h3 className="text-lg font-black header-font text-white">
+                    صفحة {currentPage} (سورة {currentSurah.name})
+                  </h3>
+                  <p className="text-xs text-purple-200/90 max-w-sm font-bold">
+                    اقرأ من حفظك وذاكرتك، ثم انقر الزر لكشف صفحة المصحف للمقارنة والتصحيح.
+                  </p>
+                  <button
+                    onClick={toggleRevealAll}
+                    className="py-3 px-6 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 text-emerald-950 font-black header-font text-xs flex items-center gap-2 shadow-xl active:scale-95 transition-all"
+                  >
+                    <Eye className="w-4 h-4 text-emerald-950" />
+                    <span>كشف صفحة المصحف لمقارنة الحفظ 👁️</span>
+                  </button>
+                </div>
+              )}
+
+              {/* صورة صفحة المصحف بدقة فائقة تملأ الشاشة المتاحة بنقاء ووضوح */}
+              {viewMode === 'page' ? (
+                <div 
+                  className="w-full h-full flex items-center justify-center relative transition-transform duration-150 ease-out"
+                  style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }}
+                >
+                  {!imageLoaded && !imageError && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10">
+                      <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-xs font-bold text-slate-500 header-font">جاري استحضار الصفحة المباركة {currentPage}...</span>
+                    </div>
+                  )}
+                  <img
+                    src={imageError ? fallbackPageImageSrc : pageImageSrc}
+                    alt={`${editionLabel} - صفحة ${currentPage}`}
+                    loading="eager"
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => {
+                      if (!imageError) setImageError(true);
+                    }}
+                    className={`max-w-full max-h-full w-auto h-auto object-contain select-none drop-shadow-md transition-all duration-150 ${
+                      theme === 'dark'
+                        ? 'invert-[0.90] hue-rotate-180 brightness-95 contrast-125'
+                        : theme === 'sepia'
+                          ? 'contrast-[1.02] sepia-[0.08]'
+                          : ''
+                    }`}
+                  />
+                </div>
+              ) : (
             /* وضع الآيات في ملء الشاشة */
             <div className={`w-full max-w-2xl max-h-[85dvh] overflow-y-auto p-4 sm:p-6 rounded-3xl border space-y-4 shadow-sm ${
               theme === 'dark' 
@@ -1137,28 +1535,32 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
           )}
         </div>
 
-        {/* شريط الإطار السفلي البسيط والأنيق المتوافق مع ثيم المصحف */}
-        <div className={`w-full z-40 px-4 py-2 flex items-center justify-between text-xs font-bold border-t pointer-events-auto backdrop-blur-md ${
-          theme === 'dark' 
-            ? 'bg-slate-900/95 text-slate-300 border-slate-800' 
-            : theme === 'sepia' 
-              ? 'bg-[#f7eed8]/95 text-[#7d5e2d] border-[#eedfc5]' 
-              : 'bg-white/95 text-slate-700 border-slate-200'
-        }`}>
-          <span className="font-mono text-xs opacity-75">الحزب {currentHizb}</span>
-          
-          <div className="flex items-center gap-2 font-mono">
-            <span>الجزء {currentJuz.id}</span>
-            <span>•</span>
-            <span className="font-black text-sm px-2.5 py-0.5 rounded-md bg-black/5">صفحة {currentPage}</span>
-          </div>
+            {/* شريط الإطار السفلي البسيط والأنيق المتوافق مع ثيم المصحف */}
+            <div className={`w-full z-40 px-4 py-1.5 flex items-center justify-between text-xs font-bold border-t pointer-events-auto backdrop-blur-md shrink-0 ${
+              theme === 'dark' 
+                ? 'bg-slate-900/95 text-slate-300 border-slate-800' 
+                : theme === 'sepia' 
+                  ? 'bg-[#f7eed8]/95 text-[#7d5e2d] border-[#eedfc5]' 
+                  : 'bg-white/95 text-slate-700 border-slate-200'
+            }`}>
+              <span className="font-mono text-xs opacity-75">الحزب {currentHizb}</span>
+              
+              <div className="flex items-center gap-2 font-mono">
+                <span>الجزء {currentJuz.id}</span>
+                <span>•</span>
+                <span className="font-black text-sm px-2.5 py-0.5 rounded-md bg-black/5">صفحة {currentPage}</span>
+              </div>
 
-          <span className="text-[11px] font-bold opacity-75 font-sans hidden sm:inline">
-            اسحب من اليسار إلى اليمين للتقدم
-          </span>
-        </div>
-      </div>,
-      document.body
+              <span className="text-[11px] font-bold opacity-75 font-sans hidden sm:inline">
+                اسحب من اليسار إلى اليمين للتقدم
+              </span>
+            </div>
+          </div>,
+          document.body
+        )}
+        {bookmarkModalPortal}
+        {indexModalPortal}
+      </>
     );
   }
 
@@ -1980,394 +2382,8 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
         </div>
       )}
 
-      {/* نافذة إضافة وتسمية فاصل جديد مخصص (Multiple Named Bookmarks Modal) */}
-      {showBookmarkModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
-                  <BookmarkPlus className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                  <h3 className="font-black text-sm header-font text-slate-800">
-                    إضافة فاصل مسمّى على صفحة {currentPage}
-                  </h3>
-                  <span className="text-[10px] text-slate-400 font-bold">
-                    سورة {currentSurah.name} • الجزء {currentJuz.id}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowBookmarkModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* حقل اسم الفاصل */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-700 header-font block">
-                اسم الفاصل:
-              </label>
-              <input
-                type="text"
-                value={newBookmarkTitle}
-                onChange={(e) => setNewBookmarkTitle(e.target.value)}
-                placeholder="اكتب اسم الفاصل (مثلاً: ورد الفجر، مراجعة، تدبر...)"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-800 font-bold outline-none focus:border-emerald-500 focus:bg-white transition-all header-font"
-                autoFocus
-              />
-            </div>
-
-            {/* اختيارات جاهزة للأسماء */}
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-bold text-slate-500 block header-font">
-                أو اختر اسماً مقترحاً بلمسة:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {BOOKMARK_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setNewBookmarkTitle(preset)}
-                    className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all border ${
-                      newBookmarkTitle === preset
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200'
-                    }`}
-                  >
-                    {preset}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* اختيار لون الفاصل */}
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-bold text-slate-500 block header-font">
-                لون شارة الفاصل:
-              </span>
-              <div className="flex items-center gap-2">
-                {(['amber', 'emerald', 'rose', 'blue', 'purple'] as BookmarkColor[]).map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setNewBookmarkColor(c)}
-                    className={`w-8 h-8 rounded-full transition-all flex items-center justify-center border-2 ${
-                      newBookmarkColor === c ? 'scale-110 shadow-md ring-2 ring-slate-300' : 'opacity-70 hover:opacity-100'
-                    } ${
-                      c === 'amber' ? 'bg-amber-400 border-amber-500' :
-                      c === 'emerald' ? 'bg-emerald-500 border-emerald-600' :
-                      c === 'rose' ? 'bg-rose-500 border-rose-600' :
-                      c === 'blue' ? 'bg-sky-500 border-sky-600' :
-                      'bg-purple-500 border-purple-600'
-                    }`}
-                  >
-                    {newBookmarkColor === c && <Check className="w-4 h-4 text-white" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* الفواصل الموجودة مسبقاً على هذه الصفحة */}
-            {currentPageBookmarks.length > 0 && (
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5">
-                <span className="text-[10px] font-black text-slate-500 block header-font">
-                  الفواصل المحفوظة مسبقاً على صفحة {currentPage}:
-                </span>
-                <div className="space-y-1">
-                  {currentPageBookmarks.map(bm => (
-                    <div key={bm.id} className="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-100 text-xs">
-                      <span className="font-bold text-slate-700">{bm.title}</span>
-                      <button
-                        onClick={() => handleRemoveBookmark(bm.id)}
-                        className="text-rose-500 hover:text-rose-700 p-1"
-                        title="حذف هذا الفاصل"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* أزرار الحفظ والإلغاء */}
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={handleSaveNewBookmark}
-                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black header-font text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
-              >
-                <Bookmark className="w-4 h-4 fill-white" />
-                <span>حفظ الفاصل 🔖</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowBookmarkModal(false)}
-                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold header-font text-xs"
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة فهرس المصحف الشريف (السور والأجزاء والفواصل المسمّاة) */}
-      {showIndexModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-xl w-full max-h-[88vh] overflow-hidden flex flex-col shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="p-4 bg-emerald-800 text-white space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-amber-300" />
-                  <h3 className="font-black text-sm header-font">فهرس {editionLabel} ({totalPages} صفحة)</h3>
-                </div>
-                <button
-                  onClick={() => setShowIndexModal(false)}
-                  className="p-2 hover:bg-white/10 rounded-full text-emerald-100 hover:text-white transition-all"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="relative">
-                <input
-                  type="text"
-                  value={indexSearchQuery}
-                  onChange={(e) => setIndexSearchQuery(e.target.value)}
-                  placeholder="ابحث عن اسم السورة، الجزء، أو رقم الصفحة..."
-                  className="w-full bg-white/15 border border-white/20 rounded-2xl p-2.5 pr-9 text-xs text-white placeholder:text-white/60 outline-none focus:bg-white/25 transition-all header-font"
-                />
-                <Search className="w-4 h-4 text-white/70 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                {indexSearchQuery && (
-                  <button
-                    onClick={() => setIndexSearchQuery('')}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-3 gap-1 bg-black/20 p-1 rounded-2xl">
-                <button
-                  onClick={() => setIndexTab('surahs')}
-                  className={`py-2 rounded-xl text-xs font-black header-font transition-all ${
-                    indexTab === 'surahs' ? 'bg-white text-emerald-900 shadow-sm' : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  السور (١١٤)
-                </button>
-                <button
-                  onClick={() => setIndexTab('juzs')}
-                  className={`py-2 rounded-xl text-xs font-black header-font transition-all ${
-                    indexTab === 'juzs' ? 'bg-white text-emerald-900 shadow-sm' : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  الأجزاء (٣٠)
-                </button>
-                <button
-                  onClick={() => setIndexTab('bookmarks')}
-                  className={`py-2 rounded-xl text-xs font-black header-font transition-all flex items-center justify-center gap-1 ${
-                    indexTab === 'bookmarks' ? 'bg-white text-emerald-900 shadow-sm' : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  <Bookmark className="w-3.5 h-3.5" />
-                  <span>الفواصل ({bookmarks.length})</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-3 overflow-y-auto flex-1 divide-y divide-slate-100">
-              {indexTab === 'surahs' && (
-                <div className="space-y-1">
-                  {filteredSurahs.map((surah) => (
-                    <button
-                      key={surah.id}
-                      onClick={() => goToPage(surah.page)}
-                      className={`w-full p-3 rounded-2xl hover:bg-emerald-50/70 transition-all flex items-center justify-between text-right ${
-                        currentSurah.id === surah.id ? 'bg-emerald-50 border border-emerald-200' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-mono font-black shrink-0">
-                          {surah.id}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-xs header-font text-slate-800">سورة {surah.name}</span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-500">
-                              {surah.type}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-400 font-bold">
-                            {surah.totalAyahs} آية
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black font-mono text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100">
-                          ص {surah.page}
-                        </span>
-                        <ChevronLeft className="w-4 h-4 text-slate-300" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {indexTab === 'juzs' && (
-                <div className="space-y-1">
-                  {filteredJuzs.map((juz) => (
-                    <button
-                      key={juz.id}
-                      onClick={() => goToPage(juz.startPage)}
-                      className={`w-full p-3 rounded-2xl hover:bg-emerald-50/70 transition-all flex items-center justify-between text-right ${
-                        currentJuz.id === juz.id ? 'bg-emerald-50 border border-emerald-200' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-mono font-black shrink-0">
-                          {juz.id}
-                        </div>
-                        <div>
-                          <h4 className="font-black text-xs header-font text-slate-800">{juz.name}</h4>
-                          <p className="text-[10px] text-slate-500 font-bold truncate max-w-[200px] sm:max-w-xs">
-                            {juz.popularName}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black font-mono text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100">
-                          ص {juz.startPage} - {juz.endPage}
-                        </span>
-                        <ChevronLeft className="w-4 h-4 text-slate-300" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {indexTab === 'bookmarks' && (
-                <div className="space-y-2 py-2">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <span className="text-xs font-black text-slate-700 header-font">
-                      جميع الفواصل المحفوظة ({bookmarks.length})
-                    </span>
-                    <button
-                      onClick={handleOpenAddBookmark}
-                      className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 rounded-xl text-xs font-black header-font flex items-center gap-1 shadow-2xs"
-                    >
-                      <BookmarkPlus className="w-3.5 h-3.5" />
-                      <span>إضافة فاصل جديد</span>
-                    </button>
-                  </div>
-
-                  {bookmarks.length === 0 ? (
-                    <div className="py-12 text-center space-y-2">
-                      <Bookmark className="w-8 h-8 text-slate-300 mx-auto" />
-                      <p className="text-xs font-black text-slate-600 header-font">لا توجد فواصل قراءة محفوظة بعد</p>
-                      <p className="text-[10px] text-slate-400">انقر على زر «إضافة فاصل» لتسمية فاصل خاص لورد الحفظ، التلاوة، أو التدبر والرجوع إليه دائماً.</p>
-                    </div>
-                  ) : (
-                    bookmarks.map((bm) => {
-                      const colorInfo = COLOR_CLASSES[bm.color || 'amber'];
-                      const isEditing = editingBookmarkId === bm.id;
-
-                      const bmEdition: MushafEdition = bm.edition || 'madani';
-                      const isSameEdition = bmEdition === mushafEdition;
-
-                      return (
-                        <div
-                          key={bm.id}
-                          onClick={() => {
-                            if (!isEditing) goToPage(bm.page, bmEdition);
-                          }}
-                          className={`p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer group ${
-                            bm.page === currentPage && isSameEdition ? 'bg-amber-50/80 border-amber-200' : 'bg-slate-50 hover:bg-emerald-50 border-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${colorInfo.bg} ${colorInfo.border}`}>
-                              <Bookmark className={`w-4 h-4 ${colorInfo.fill}`} />
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              {isEditing ? (
-                                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                  <input
-                                    type="text"
-                                    value={editBookmarkTitle}
-                                    onChange={(e) => setEditBookmarkTitle(e.target.value)}
-                                    className="px-2 py-1 bg-white border border-emerald-400 rounded-lg text-xs font-bold w-full outline-none"
-                                    autoFocus
-                                  />
-                                  <button
-                                    onClick={() => handleSaveEditBookmark(bm.id)}
-                                    className="p-1.5 bg-emerald-600 text-white rounded-lg"
-                                  >
-                                    <Check className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingBookmarkId(null)}
-                                    className="p-1.5 bg-slate-200 text-slate-600 rounded-lg"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="flex items-center gap-1.5">
-                                    <h4 className="font-black text-xs header-font text-slate-800 truncate group-hover:text-emerald-800">
-                                      {bm.title}
-                                    </h4>
-                                    <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold shrink-0 ${
-                                      bmEdition === 'shamarly' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                                    }`}>
-                                      {bmEdition === 'shamarly' ? 'الشمرلي' : 'المدينة'}
-                                    </span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                                    صفحة {bm.page} • سورة {bm.surahName} • {bm.date}
-                                  </p>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0 mr-2">
-                            <button
-                              onClick={(e) => handleStartEditBookmark(bm, e)}
-                              className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all"
-                              title="تعديل اسم الفاصل"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={(e) => handleRemoveBookmark(bm.id, e)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                              title="حذف هذا الفاصل"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                            <ChevronLeft className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:-translate-x-0.5 transition-all" />
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {bookmarkModalPortal}
+      {indexModalPortal}
     </div>
   );
 };

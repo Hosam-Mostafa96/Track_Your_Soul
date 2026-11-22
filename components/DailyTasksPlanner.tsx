@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CheckSquare,
   Square,
@@ -1510,372 +1511,398 @@ export const DailyTasksPlanner: React.FC<DailyTasksPlannerProps> = ({
       )}
 
       {/* Modal: Add Daily Task */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
-          <div className="bg-white rounded-[2.5rem] p-6 max-w-lg w-full shadow-2xl border border-slate-100 my-6 relative text-right" dir="rtl">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-emerald-50 rounded-2xl text-emerald-700">
-                  <CheckSquare className="w-6 h-6" />
+      {showAddModal && createPortal(
+        <div
+          className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in"
+          dir="rtl"
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            className="bg-white rounded-[2rem] w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl border border-slate-100 relative text-right"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 px-4 sm:px-6 pt-4 pb-3 border-b border-slate-100 shrink-0 bg-white">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-emerald-50 rounded-2xl text-emerald-700 shrink-0">
+                  <CheckSquare className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 header-font">
+                <div className="min-w-0">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 header-font truncate">
                     إضافة مهمة جديدة للمخطط
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-bold">
+                  <p className="text-[10px] text-slate-400 font-bold truncate">
                     اربط عملك بنية صالحة ومحطة صلاة محددة
                   </p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowAddModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateTask} className="space-y-4">
-              <div>
-                <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
-                  عنوان المهمة *
-                </label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  placeholder="مثال: تسليم تقرير العمل، إحضار طلبات البيت..."
-                  required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
-                  التصنيف
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['faith', 'work', 'family', 'growth'] as TaskCategory[]).map(catKey => {
-                    const conf = CATEGORIES_CONFIG[catKey];
-                    const isSel = newCategory === catKey;
-                    return (
-                      <button
-                        key={catKey}
-                        type="button"
-                        onClick={() => setNewCategory(catKey)}
-                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                          isSel
-                            ? `${conf.bg} ${conf.color} ${conf.border} font-black shadow-sm ring-1 ring-emerald-500/20`
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span>{conf.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
-                  المحطة الزمنية (حول الصلاة)
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(['fajr_ishraq', 'duha_dhuhr', 'dhuhr_maghrib', 'maghrib_isha', 'night', 'anytime'] as PrayerWindow[]).map(winKey => {
-                    const conf = PRAYER_WINDOWS_CONFIG[winKey];
-                    const isSel = newWindow === winKey;
-                    return (
-                      <button
-                        key={winKey}
-                        type="button"
-                        onClick={() => setNewWindow(winKey)}
-                        className={`p-2 rounded-xl border text-[11px] font-bold transition-all text-right ${
-                          isSel
-                            ? 'bg-emerald-50 text-emerald-900 border-emerald-400 font-black'
-                            : 'bg-slate-50 text-slate-600 border-slate-200'
-                        }`}
-                      >
-                        {conf.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
-                  نيّة العمل (احتساب الأجر) ✨
-                </label>
-                <input
-                  type="text"
-                  value={newIntention}
-                  onChange={e => setNewIntention(e.target.value)}
-                  placeholder="مثال: إعفاف النفس، بر الوالدين، إدخال السرور..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-amber-400 transition-all mb-2"
-                />
-
-                <div className="space-y-1">
-                  <p className="text-[10px] text-slate-400 font-bold">
-                    أو اختر نية جاهزة مباركة:
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {INTENTION_PRESETS.map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setNewIntention(preset)}
-                        className="text-[10px] bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 rounded-lg border border-amber-200/60 font-bold transition-colors"
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* الخطوات الفرعية في المودال */}
-              <div>
-                <label className="block text-xs font-black text-slate-700 header-font mb-1.5 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <ListTodo className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>تقسيم المهمة إلى خطوات فرعية (اختياري)</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-bold">
-                    {newSubTasks.length} خطوات مضافة
-                  </span>
-                </label>
-
-                <div className="flex items-center gap-1.5 mb-2">
+            <form onSubmit={handleCreateTask} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 py-4 space-y-4">
+                <div className="min-w-0">
+                  <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
+                    عنوان المهمة *
+                  </label>
                   <input
                     type="text"
-                    value={currentSubTaskInput}
-                    onChange={e => setCurrentSubTaskInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
+                    value={newTitle}
+                    onChange={e => setNewTitle(e.target.value)}
+                    placeholder="مثال: تسليم تقرير العمل، إحضار طلبات البيت..."
+                    required
+                    className="w-full min-w-0 bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all"
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
+                    التصنيف
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['faith', 'work', 'family', 'growth'] as TaskCategory[]).map(catKey => {
+                      const conf = CATEGORIES_CONFIG[catKey];
+                      const isSel = newCategory === catKey;
+                      return (
+                        <button
+                          key={catKey}
+                          type="button"
+                          onClick={() => setNewCategory(catKey)}
+                          className={`min-w-0 p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                            isSel
+                              ? `${conf.bg} ${conf.color} ${conf.border} font-black shadow-sm ring-1 ring-emerald-500/20`
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="truncate">{conf.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
+                    المحطة الزمنية (حول الصلاة)
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(['fajr_ishraq', 'duha_dhuhr', 'dhuhr_maghrib', 'maghrib_isha', 'night', 'anytime'] as PrayerWindow[]).map(winKey => {
+                      const conf = PRAYER_WINDOWS_CONFIG[winKey];
+                      const isSel = newWindow === winKey;
+                      return (
+                        <button
+                          key={winKey}
+                          type="button"
+                          onClick={() => setNewWindow(winKey)}
+                          className={`min-w-0 p-2 rounded-xl border text-[11px] font-bold transition-all text-right leading-snug ${
+                            isSel
+                              ? 'bg-emerald-50 text-emerald-900 border-emerald-400 font-black'
+                              : 'bg-slate-50 text-slate-600 border-slate-200'
+                          }`}
+                        >
+                          {conf.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
+                    نيّة العمل (احتساب الأجر) ✨
+                  </label>
+                  <input
+                    type="text"
+                    value={newIntention}
+                    onChange={e => setNewIntention(e.target.value)}
+                    placeholder="مثال: إعفاف النفس، بر الوالدين، إدخال السرور..."
+                    className="w-full min-w-0 bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-amber-400 transition-all mb-2"
+                  />
+
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] text-slate-400 font-bold">
+                      أو اختر نية جاهزة مباركة:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {INTENTION_PRESETS.map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setNewIntention(preset)}
+                          className={`max-w-full text-right text-[10px] px-2.5 py-1 rounded-xl border font-bold transition-colors leading-snug ${
+                            newIntention === preset
+                              ? 'bg-amber-100 text-amber-950 border-amber-400'
+                              : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200/60'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* الخطوات الفرعية في المودال */}
+                <div className="min-w-0">
+                  <label className="text-xs font-black text-slate-700 header-font mb-1.5 flex items-center justify-between gap-2 flex-wrap">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <ListTodo className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>تقسيم المهمة إلى خطوات فرعية (اختياري)</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-bold shrink-0">
+                      {newSubTasks.length} خطوات مضافة
+                    </span>
+                  </label>
+
+                  <div className="flex items-center gap-1.5 mb-2 w-full min-w-0">
+                    <input
+                      type="text"
+                      value={currentSubTaskInput}
+                      onChange={e => setCurrentSubTaskInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (currentSubTaskInput.trim()) {
+                            setNewSubTasks(prev => [...prev, currentSubTaskInput.trim()]);
+                            setCurrentSubTaskInput('');
+                          }
+                        }
+                      }}
+                      placeholder="اكتب خطوة فرعية واضغط إضافة..."
+                      className="flex-1 min-w-0 w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
                         if (currentSubTaskInput.trim()) {
                           setNewSubTasks(prev => [...prev, currentSubTaskInput.trim()]);
                           setCurrentSubTaskInput('');
                         }
-                      }
-                    }}
-                    placeholder="اكتب خطوة صغيرة واضغط إضافة (مثال: قراءة صفحة، تجهيز ملف...)"
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (currentSubTaskInput.trim()) {
-                        setNewSubTasks(prev => [...prev, currentSubTaskInput.trim()]);
-                        setCurrentSubTaskInput('');
-                      }
-                    }}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black header-font shadow-xs transition-all active:scale-95 whitespace-nowrap"
-                  >
-                    + إضافة
-                  </button>
-                </div>
-
-                {newSubTasks.length > 0 && (
-                  <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-2xl border border-slate-100 max-h-36 overflow-y-auto no-scrollbar">
-                    {newSubTasks.map((st, idx) => (
-                      <div key={idx} className="flex items-center justify-between gap-2 p-1.5 bg-white rounded-xl border border-slate-100 text-xs font-bold text-slate-700">
-                        <span className="flex items-center gap-2 truncate">
-                          <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black flex items-center justify-center shrink-0">
-                            {idx + 1}
-                          </span>
-                          <span className="truncate">{st}</span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setNewSubTasks(prev => prev.filter((_, i) => i !== idx))}
-                          className="text-slate-300 hover:text-rose-500 p-1"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                      }}
+                      className="shrink-0 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black header-font shadow-xs transition-all active:scale-95 whitespace-nowrap"
+                    >
+                      + إضافة
+                    </button>
                   </div>
-                )}
-              </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div>
-                  <label className="block text-[11px] font-black text-slate-700 header-font mb-1">
-                    الأولوية
-                  </label>
-                  <select
-                    value={newPriority}
-                    onChange={e => setNewPriority(e.target.value as PriorityLevel)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
-                  >
-                    <option value="urgent">🔴 عاجل وأساسي</option>
-                    <option value="important">🟡 مهم ومركزي</option>
-                    <option value="routine">🟢 يسير وروتيني</option>
-                  </select>
+                  {newSubTasks.length > 0 && (
+                    <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-2xl border border-slate-100 max-h-36 overflow-y-auto no-scrollbar">
+                      {newSubTasks.map((st, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 p-1.5 bg-white rounded-xl border border-slate-100 text-xs font-bold text-slate-700 min-w-0">
+                          <span className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <span className="truncate">{st}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setNewSubTasks(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-slate-300 hover:text-rose-500 p-1 shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-black text-slate-700 header-font mb-1">
-                    التكرار
-                  </label>
-                  <select
-                    value={newRecurrence}
-                    onChange={e => setNewRecurrence(e.target.value as RecurrenceType)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
-                  >
-                    <option value="once">اليوم فقط</option>
-                    <option value="daily">يتكرر يومياً</option>
-                    <option value="mondays_thursdays">إثنين وخميس</option>
-                    <option value="fridays">كل جمعة</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <div className="min-w-0">
+                    <label className="block text-[11px] font-black text-slate-700 header-font mb-1">
+                      الأولوية
+                    </label>
+                    <select
+                      value={newPriority}
+                      onChange={e => setNewPriority(e.target.value as PriorityLevel)}
+                      className="w-full min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 outline-none"
+                    >
+                      <option value="urgent">🔴 عاجل وأساسي</option>
+                      <option value="important">🟡 مهم ومركزي</option>
+                      <option value="routine">🟢 يسير وروتيني</option>
+                    </select>
+                  </div>
+
+                  <div className="min-w-0">
+                    <label className="block text-[11px] font-black text-slate-700 header-font mb-1">
+                      التكرار
+                    </label>
+                    <select
+                      value={newRecurrence}
+                      onChange={e => setNewRecurrence(e.target.value as RecurrenceType)}
+                      className="w-full min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 outline-none"
+                    >
+                      <option value="once">اليوم فقط</option>
+                      <option value="daily">يتكرر يومياً</option>
+                      <option value="mondays_thursdays">إثنين وخميس</option>
+                      <option value="fridays">كل جمعة</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-4">
+              <div className="flex items-center gap-2 px-4 sm:px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 shrink-0">
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs header-font shadow-md transition-all active:scale-95"
+                  className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs header-font shadow-md transition-all active:scale-95"
                 >
                   حفظ المهمة في المخطط
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold text-xs header-font transition-all"
+                  className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-2xl font-bold text-xs header-font transition-all shrink-0"
                 >
                   إلغاء
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal: Add Recurring Habit */}
-      {showAddHabitModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
-          <div className="bg-white rounded-[2.5rem] p-6 max-w-lg w-full shadow-2xl border border-slate-100 my-6 relative text-right" dir="rtl">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-emerald-50 rounded-2xl text-emerald-700">
-                  <RotateCw className="w-6 h-6" />
+      {showAddHabitModal && createPortal(
+        <div
+          className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in"
+          dir="rtl"
+          onClick={() => setShowAddHabitModal(false)}
+        >
+          <div
+            className="bg-white rounded-[2rem] w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl border border-slate-100 relative text-right"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 px-4 sm:px-6 pt-4 pb-3 border-b border-slate-100 shrink-0 bg-white">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 bg-emerald-50 rounded-2xl text-emerald-700 shrink-0">
+                  <RotateCw className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 header-font">
+                <div className="min-w-0">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 header-font truncate">
                     إضافة عادة أو مهمة متكررة يومياً
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-bold">
+                  <p className="text-[10px] text-slate-400 font-bold truncate">
                     تتجدد كل يوم لتتبع استمرارية التزامك (Streak)
                   </p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowAddHabitModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateHabit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
-                  عنوان العادة اليومية *
-                </label>
-                <input
-                  type="text"
-                  value={newHabitTitle}
-                  onChange={e => setNewHabitTitle(e.target.value)}
-                  placeholder="مثال: شرب الماء، قراءة صفحة تفسير، رياضة الصباح..."
-                  required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all"
-                />
-              </div>
+            <form onSubmit={handleCreateHabit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 py-4 space-y-4">
+                <div className="min-w-0">
+                  <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
+                    عنوان العادة اليومية *
+                  </label>
+                  <input
+                    type="text"
+                    value={newHabitTitle}
+                    onChange={e => setNewHabitTitle(e.target.value)}
+                    placeholder="مثال: شرب الماء، قراءة صفحة تفسير، رياضة الصباح..."
+                    required
+                    className="w-full min-w-0 bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
-                  التصنيف
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['faith', 'work', 'family', 'growth'] as TaskCategory[]).map(catKey => {
-                    const conf = CATEGORIES_CONFIG[catKey];
-                    const isSel = newHabitCategory === catKey;
-                    return (
-                      <button
-                        key={catKey}
-                        type="button"
-                        onClick={() => setNewHabitCategory(catKey)}
-                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                          isSel
-                            ? `${conf.bg} ${conf.color} ${conf.border} font-black shadow-sm ring-1 ring-emerald-500/20`
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span>{conf.label}</span>
-                      </button>
-                    );
-                  })}
+                <div className="min-w-0">
+                  <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
+                    التصنيف
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['faith', 'work', 'family', 'growth'] as TaskCategory[]).map(catKey => {
+                      const conf = CATEGORIES_CONFIG[catKey];
+                      const isSel = newHabitCategory === catKey;
+                      return (
+                        <button
+                          key={catKey}
+                          type="button"
+                          onClick={() => setNewHabitCategory(catKey)}
+                          className={`min-w-0 p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                            isSel
+                              ? `${conf.bg} ${conf.color} ${conf.border} font-black shadow-sm ring-1 ring-emerald-500/20`
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="truncate">{conf.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
+                    المحطة المفضلة
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(['fajr_ishraq', 'duha_dhuhr', 'dhuhr_maghrib', 'maghrib_isha', 'night', 'anytime'] as PrayerWindow[]).map(winKey => {
+                      const conf = PRAYER_WINDOWS_CONFIG[winKey];
+                      const isSel = newHabitWindow === winKey;
+                      return (
+                        <button
+                          key={winKey}
+                          type="button"
+                          onClick={() => setNewHabitWindow(winKey)}
+                          className={`min-w-0 p-2 rounded-xl border text-[11px] font-bold transition-all text-right leading-snug ${
+                            isSel
+                              ? 'bg-emerald-50 text-emerald-900 border-emerald-400 font-black'
+                              : 'bg-slate-50 text-slate-600 border-slate-200'
+                          }`}
+                        >
+                          {conf.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
+                    النية الصالحة
+                  </label>
+                  <input
+                    type="text"
+                    value={newHabitIntention}
+                    onChange={e => setNewHabitIntention(e.target.value)}
+                    placeholder="مثال: التقوي على العبادة، بر الوالدين، حفظ الصحة..."
+                    className="w-full min-w-0 bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all"
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
-                  المحطة المفضلة
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(['fajr_ishraq', 'duha_dhuhr', 'dhuhr_maghrib', 'maghrib_isha', 'night', 'anytime'] as PrayerWindow[]).map(winKey => {
-                    const conf = PRAYER_WINDOWS_CONFIG[winKey];
-                    const isSel = newHabitWindow === winKey;
-                    return (
-                      <button
-                        key={winKey}
-                        type="button"
-                        onClick={() => setNewHabitWindow(winKey)}
-                        className={`p-2 rounded-xl border text-[11px] font-bold transition-all text-right ${
-                          isSel
-                            ? 'bg-emerald-50 text-emerald-900 border-emerald-400 font-black'
-                            : 'bg-slate-50 text-slate-600 border-slate-200'
-                        }`}
-                      >
-                        {conf.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-slate-700 header-font mb-1.5">
-                  النية الصالحة
-                </label>
-                <input
-                  type="text"
-                  value={newHabitIntention}
-                  onChange={e => setNewHabitIntention(e.target.value)}
-                  placeholder="مثال: التقوي على العبادة، بر الوالدين، حفظ الصحة..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-4">
+              <div className="flex items-center gap-2 px-4 sm:px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 shrink-0">
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs header-font shadow-md transition-all active:scale-95"
+                  className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs header-font shadow-md transition-all active:scale-95"
                 >
                   حفظ العادة المتكررة
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddHabitModal(false)}
-                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold text-xs header-font transition-all"
+                  className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-2xl font-bold text-xs header-font transition-all shrink-0"
                 >
                   إلغاء
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
