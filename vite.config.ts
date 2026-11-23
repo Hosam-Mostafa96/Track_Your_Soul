@@ -69,10 +69,10 @@ export default defineConfig(({ mode }) => {
               }
             },
             {
-              urlPattern: /^https:\/\/quran\.ksu\.edu\.sa\/.*/i,
+              urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/gh\/GovarJabbar\/Quran-PNG.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'mushaf-madani-fallback',
+                cacheName: 'mushaf-madani-cdn-v2',
                 expiration: {
                   maxEntries: 650,
                   maxAgeSeconds: 60 * 60 * 24 * 365
@@ -83,10 +83,10 @@ export default defineConfig(({ mode }) => {
               }
             },
             {
-              urlPattern: /^https:\/\/(cdn\.jsdelivr\.net\/gh\/quran8vs\/m-qpc-shamarly|tafsir\.app\/scans\/m-qpc-shamarly)\/.*/i,
+              urlPattern: /^https:\/\/(media\.githubusercontent\.com\/media\/quran8vs\/m-qpc-shamarly|tafsir\.app\/scans\/m-qpc-shamarly)\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'mushaf-shamarly-pages',
+                cacheName: 'mushaf-shamarly-pages-v2',
                 expiration: {
                   maxEntries: 550,
                   maxAgeSeconds: 60 * 60 * 24 * 365

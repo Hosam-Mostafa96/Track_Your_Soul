@@ -57,6 +57,8 @@ import {
 import {
   cacheSinglePage,
   getCachedPageObjectUrl,
+  getPageImageUrls,
+  invalidateCachedPage,
   downloadPageRange,
   clearOfflineCache,
   getOfflineCacheStats,
@@ -375,25 +377,16 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   };
 
   // رابط صورة صفحة المصحف عالية الدقة حسب الطبعة المختارة
-  const pageImageSrc = useMemo(() => {
-    if (mushafEdition === 'shamarly') {
-      return `https://cdn.jsdelivr.net/gh/quran8vs/m-qpc-shamarly@main/imgs/${currentPage}.png`;
-    }
-    const padded = String(currentPage).padStart(3, '0');
-    return `https://files.quran.app/hafs/madani/width_1024/page${padded}.png`;
-  }, [currentPage, mushafEdition]);
-
-  const fallbackPageImageSrc = useMemo(() => {
-    if (mushafEdition === 'shamarly') {
-      return `https://tafsir.app/scans/m-qpc-shamarly/${currentPage}.png`;
-    }
-    return `https://quran.ksu.edu.sa/ayat/safahat/${currentPage}.png`;
-  }, [currentPage, mushafEdition]);
+  const { primary: pageImageSrc, fallback: fallbackPageImageSrc } = useMemo(
+    () => getPageImageUrls(currentPage, mushafEdition),
+    [currentPage, mushafEdition]
+  );
 
   // التحميل المسبق للصفحات المجاورة وتخزينها محلياً للعمل بدون إنترنت
   useEffect(() => {
     let active = true;
     let objectUrlToRevoke: string | null = null;
+    setCachedImgObjectUrl(null);
 
     const loadAndCache = async () => {
       const localObjUrl = await getCachedPageObjectUrl(currentPage, mushafEdition);
@@ -1897,6 +1890,14 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
                     loading="eager"
                     onLoad={() => setImageLoaded(true)}
                     onError={() => {
+                      if (cachedImgObjectUrl) {
+                        URL.revokeObjectURL(cachedImgObjectUrl);
+                        setCachedImgObjectUrl(null);
+                        void invalidateCachedPage(currentPage, mushafEdition).then(() => {
+                          setOfflineStats(getOfflineCacheStats());
+                        });
+                        return;
+                      }
                       if (!imageError) setImageError(true);
                     }}
                     className={`max-w-full max-h-full w-auto h-auto object-contain select-none drop-shadow-md transition-all duration-150 ${
@@ -2507,6 +2508,14 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
                 loading="eager"
                 onLoad={() => setImageLoaded(true)}
                 onError={() => {
+                  if (cachedImgObjectUrl) {
+                    URL.revokeObjectURL(cachedImgObjectUrl);
+                    setCachedImgObjectUrl(null);
+                    void invalidateCachedPage(currentPage, mushafEdition).then(() => {
+                      setOfflineStats(getOfflineCacheStats());
+                    });
+                    return;
+                  }
                   if (!imageError) {
                     setImageError(true);
                   }

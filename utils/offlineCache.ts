@@ -1,8 +1,9 @@
 import { MushafEdition, getTotalPagesForEdition, convertPageBetweenEditions } from './quranData';
 
-export const MUSHAF_CACHE_NAME = 'awrad-mushaf-offline-v1';
+export const MUSHAF_CACHE_NAME = 'awrad-mushaf-offline-v2';
 export const QURAN_API_CACHE_NAME = 'awrad-quran-text-offline-v1';
-const OFFLINE_INDEX_KEY = 'awrad_offline_cached_pages_v1';
+const OFFLINE_INDEX_KEY = 'awrad_offline_cached_pages_v2';
+const LEGACY_OFFLINE_INDEX_KEY = 'awrad_offline_cached_pages_v1';
 
 interface CachedPagesIndex {
   madani: number[];
@@ -24,19 +25,78 @@ export interface OfflineCacheStats {
   estimatedMB: string;
 }
 
+let legacyCleanupPromise: Promise<void> | null = null;
+
+/**
+ * تنظيف الكاش القديم الذي قد يحتوي على روابط Git LFS التالفة (131 بايت)
+ */
+export function ensureLegacyCacheCleaned(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (!legacyCleanupPromise) {
+    legacyCleanupPromise = (async () => {
+      try {
+        if (localStorage.getItem(LEGACY_OFFLINE_INDEX_KEY) !== null) {
+          localStorage.removeItem(LEGACY_OFFLINE_INDEX_KEY);
+        }
+        if ('caches' in window) {
+          await Promise.all([
+            caches.delete('awrad-mushaf-offline-v1').catch(() => false),
+            caches.delete('mushaf-shamarly-pages').catch(() => false),
+            caches.delete('mushaf-madani-fallback').catch(() => false),
+          ]);
+        }
+      } catch {
+        // ignore cleanup errors
+      }
+    })();
+  }
+  return legacyCleanupPromise;
+}
+
 export const getPageImageUrls = (page: number, edition: MushafEdition): { primary: string; fallback: string } => {
   if (edition === 'shamarly') {
     return {
-      primary: `https://cdn.jsdelivr.net/gh/quran8vs/m-qpc-shamarly@main/imgs/${page}.png`,
+      // media.githubusercontent.com يقدّم ملفات Git LFS الفعلية ويدعم CORS كاملاً للتخزين أوفلاين
+      primary: `https://media.githubusercontent.com/media/quran8vs/m-qpc-shamarly/main/imgs/${page}.png`,
       fallback: `https://tafsir.app/scans/m-qpc-shamarly/${page}.png`,
     };
   }
   const padded = String(page).padStart(3, '0');
   return {
     primary: `https://files.quran.app/hafs/madani/width_1024/page${padded}.png`,
-    fallback: `https://quran.ksu.edu.sa/ayat/safahat/${page}.png`,
+    // يدعم CORS كاملاً ويعمل كبديل موثوق ومصدر للتخزين المحلي الموثّق
+    fallback: `https://cdn.jsdelivr.net/gh/GovarJabbar/Quran-PNG@master/${padded}.png`,
   };
 };
+
+async function isValidImageBlob(blob: Blob): Promise<boolean> {
+  // الصفحات الحقيقية للمصحف حجمها لا يقل عن 2 كيلوبايت؛ مؤشرات Git LFS أو صفحات الخطأ النصية أصغر أو غير PNG/JPG/WebP
+  if (!blob || blob.size < 2048) return false;
+  try {
+    const header = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
+    const isPng =
+      header[0] === 0x89 &&
+      header[1] === 0x50 &&
+      header[2] === 0x4e &&
+      header[3] === 0x47;
+    const isJpeg =
+      header[0] === 0xff &&
+      header[1] === 0xd8 &&
+      header[2] === 0xff;
+    const isWebp =
+      header[0] === 0x52 &&
+      header[1] === 0x49 &&
+      header[2] === 0x46 &&
+      header[3] === 0x46 &&
+      header[8] === 0x57 &&
+      header[9] === 0x45 &&
+      header[10] === 0x42 &&
+      header[11] === 0x50;
+    return isPng || isJpeg || isWebp;
+  } catch {
+    return false;
+  }
+}
 
 function loadIndex(): CachedPagesIndex {
   try {
@@ -71,16 +131,25 @@ function recordCachedPage(page: number, edition: MushafEdition): void {
   }
 }
 
+function removeCachedPageFromIndex(page: number, edition: MushafEdition): void {
+  const index = loadIndex();
+  if (index[edition].includes(page)) {
+    index[edition] = index[edition].filter((p) => p !== page);
+    saveIndex(index);
+  }
+}
+
 export function isPageCachedSync(page: number, edition: MushafEdition): boolean {
   const index = loadIndex();
   return index[edition].includes(page);
 }
 
 export function getOfflineCacheStats(): OfflineCacheStats {
+  void ensureLegacyCacheCleaned();
   const index = loadIndex();
   const totalPages = index.madani.length + index.shamarly.length;
-  // Average Mushaf PNG page ~ 150 KB
-  const estimatedMB = ((totalPages * 0.15)).toFixed(1);
+  // متوسط حجم الصفحة المخزنة محلياً ~ 150-220 كيلوبايت
+  const estimatedMB = (totalPages * 0.18).toFixed(1);
   return {
     madaniCount: index.madani.length,
     shamarlyCount: index.shamarly.length,
@@ -90,28 +159,37 @@ export function getOfflineCacheStats(): OfflineCacheStats {
   };
 }
 
-async function fetchAndStoreImage(url: string, cache: Cache, signal?: AbortSignal): Promise<boolean> {
+async function fetchAndValidateCorsImage(
+  url: string,
+  cache: Cache,
+  signal?: AbortSignal
+): Promise<boolean> {
   try {
     const corsResponse = await fetch(url, { mode: 'cors', signal });
-    if (corsResponse.ok) {
-      await cache.put(url, corsResponse.clone());
-      return true;
+    if (!corsResponse.ok) return false;
+    const blob = await corsResponse.clone().blob();
+    if (!(await isValidImageBlob(blob))) {
+      return false;
     }
+    await cache.put(url, corsResponse);
+    return true;
   } catch (err) {
     if ((err as Error)?.name === 'AbortError') throw err;
+    return false;
   }
+}
 
+export async function invalidateCachedPage(page: number, edition: MushafEdition): Promise<void> {
+  removeCachedPageFromIndex(page, edition);
+  if (typeof window === 'undefined' || !('caches' in window)) return;
   try {
-    const noCorsResponse = await fetch(url, { mode: 'no-cors', signal });
-    if (noCorsResponse && (noCorsResponse.ok || noCorsResponse.type === 'opaque')) {
-      await cache.put(url, noCorsResponse.clone());
-      return true;
-    }
-  } catch (err) {
-    if ((err as Error)?.name === 'AbortError') throw err;
+    const cache = await caches.open(MUSHAF_CACHE_NAME);
+    const { primary, fallback } = getPageImageUrls(page, edition);
+    await cache.delete(primary);
+    await cache.delete(fallback);
+  } catch {
+    // ignore
   }
-
-  return false;
 }
 
 export async function cacheSinglePage(
@@ -121,6 +199,7 @@ export async function cacheSinglePage(
   alsoCacheAyahText = true
 ): Promise<boolean> {
   if (typeof window === 'undefined' || !('caches' in window)) return false;
+  await ensureLegacyCacheCleaned();
 
   const maxP = getTotalPagesForEdition(edition);
   if (page < 1 || page > maxP) return false;
@@ -128,17 +207,24 @@ export async function cacheSinglePage(
   const cache = await caches.open(MUSHAF_CACHE_NAME);
   const { primary, fallback } = getPageImageUrls(page, edition);
 
-  // Skip network fetch if already present in cache
-  const existingPrimary = await cache.match(primary);
-  const existingFallback = existingPrimary ? existingPrimary : await cache.match(fallback);
-
-  let ok = Boolean(existingPrimary || existingFallback);
-
-  if (!ok) {
-    ok = await fetchAndStoreImage(primary, cache, signal);
-    if (!ok) {
-      ok = await fetchAndStoreImage(fallback, cache, signal);
+  // تحقق من وجود نسخة صالحة مسبقاً في الكاش قبل التحميل
+  for (const candidateUrl of [primary, fallback]) {
+    const existing = await cache.match(candidateUrl);
+    if (existing && existing.type !== 'opaque') {
+      const blob = await existing.clone().blob();
+      if (await isValidImageBlob(blob)) {
+        recordCachedPage(page, edition);
+        return true;
+      } else {
+        await cache.delete(candidateUrl);
+      }
     }
+  }
+
+  // تحميل بصيغة CORS لضمان فحص بايتات الصورة (PNG/JPG) وحفظها كـ Blob صالح للعمل 100% أوفلاين
+  let ok = await fetchAndValidateCorsImage(primary, cache, signal);
+  if (!ok) {
+    ok = await fetchAndValidateCorsImage(fallback, cache, signal);
   }
 
   if (ok) {
@@ -167,16 +253,22 @@ export async function cacheSinglePage(
 
 export async function getCachedPageObjectUrl(page: number, edition: MushafEdition): Promise<string | null> {
   if (typeof window === 'undefined' || !('caches' in window)) return null;
+  await ensureLegacyCacheCleaned();
   try {
     const cache = await caches.open(MUSHAF_CACHE_NAME);
     const { primary, fallback } = getPageImageUrls(page, edition);
-    const match = (await cache.match(primary)) || (await cache.match(fallback));
-    if (!match || match.type === 'opaque') {
-      return null;
-    }
-    const blob = await match.blob();
-    if (blob.size > 0) {
-      return URL.createObjectURL(blob);
+
+    for (const candidateUrl of [primary, fallback]) {
+      const match = await cache.match(candidateUrl);
+      if (!match || match.type === 'opaque') continue;
+      const blob = await match.blob();
+      if (await isValidImageBlob(blob)) {
+        return URL.createObjectURL(blob);
+      } else {
+        // إزالة الملف التالف فوراً حتى لا يظهر أيقونة صورة معطوبة
+        await cache.delete(candidateUrl);
+        removeCachedPageFromIndex(page, edition);
+      }
     }
   } catch {
     // fallback to normal img src
@@ -190,6 +282,7 @@ export async function downloadPageRange(
   onProgress?: (progress: OfflineCacheProgress) => void,
   signal?: AbortSignal
 ): Promise<OfflineCacheProgress> {
+  await ensureLegacyCacheCleaned();
   const uniquePages = Array.from(new Set(pages)).filter((p) => p >= 1 && p <= getTotalPagesForEdition(edition));
   const total = uniquePages.length;
   let done = 0;
@@ -231,6 +324,7 @@ export async function downloadPageRange(
 
 export async function clearOfflineCache(edition?: MushafEdition): Promise<void> {
   if (typeof window === 'undefined') return;
+  await ensureLegacyCacheCleaned();
   const index = loadIndex();
 
   if (!edition) {
