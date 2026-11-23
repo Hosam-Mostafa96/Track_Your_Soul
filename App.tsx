@@ -445,7 +445,7 @@ const App: React.FC = () => {
   if (!isAppReady) return (
     <div className="min-h-screen bg-emerald-900 flex flex-col items-center justify-center gap-4">
       <img
-        src="/assets/aistudio/1794763564242_610e28c1.jpg"
+        src="/assets/aistudio/1795470897746_dc9063b4.jpg"
         alt="شعار تطبيق أوراد"
         className="w-20 h-20 rounded-[1.5rem] shadow-2xl object-cover border border-white/20"
       />
@@ -474,7 +474,7 @@ const App: React.FC = () => {
               <button onClick={() => setActiveTab('profile')} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95 shrink-0"><UserCircle className="w-8 h-8 text-white" /></button>
               <div className="flex-1 flex items-center justify-center gap-2.5 min-w-0">
                 <img
-                  src="/assets/aistudio/1794763564242_610e28c1.jpg"
+                  src="/assets/aistudio/1795470897746_dc9063b4.jpg"
                   alt="شعار أوراد"
                   className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-md object-cover border border-white/25 shrink-0"
                 />

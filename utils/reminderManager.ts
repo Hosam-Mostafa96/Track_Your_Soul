@@ -263,8 +263,8 @@ export const sendBrowserNotification = async (
 
   const notifOptions: NotificationOptions = {
     body,
-    icon: options?.icon || '/assets/aistudio/1794763564242_610e28c1.jpg',
-    badge: '/assets/aistudio/1794763564242_610e28c1.jpg',
+    icon: options?.icon || '/assets/aistudio/1795470897746_dc9063b4.jpg',
+    badge: '/assets/aistudio/1795470897746_dc9063b4.jpg',
     tag: options?.tag || `reminder-${Date.now()}`,
     dir: 'rtl',
     lang: 'ar'

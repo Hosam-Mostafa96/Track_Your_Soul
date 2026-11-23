@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
           'pwa-192x192.png',
           'pwa-512x512.png',
           'pwa-maskable-512x512.png',
-          'assets/aistudio/1794763564242_610e28c1.jpg'
+          'assets/aistudio/1795470897746_dc9063b4.jpg'
         ],
         manifest: {
           id: '/',

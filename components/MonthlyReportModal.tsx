@@ -113,7 +113,7 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
       <div className="flex items-center justify-between gap-4 border-b-2 border-emerald-700 pb-4 mb-5">
         <div className="flex items-center gap-3">
           <img
-            src="/assets/aistudio/1794763564242_610e28c1.jpg"
+            src="/assets/aistudio/1795470897746_dc9063b4.jpg"
             alt="شعار أوراد"
             className="w-12 h-12 rounded-2xl object-cover border border-emerald-200 shrink-0"
           />

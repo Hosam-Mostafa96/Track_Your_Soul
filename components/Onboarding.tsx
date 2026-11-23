@@ -126,7 +126,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, installPrompt }) =>
           <div className="space-y-6 text-center">
             <div className="flex flex-col items-center">
               <img
-                src="/assets/aistudio/1794763564242_610e28c1.jpg"
+                src="/assets/aistudio/1795470897746_dc9063b4.jpg"
                 alt="شعار تطبيق أوراد"
                 className="w-24 h-24 rounded-[1.75rem] shadow-lg object-cover mb-4 border-2 border-emerald-100"
               />

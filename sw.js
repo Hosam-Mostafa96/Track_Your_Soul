@@ -1,10 +1,10 @@
 
-const CACHE_NAME = 'mizan-worship-v5-logo'; // تم تحديث الإصدار
+const CACHE_NAME = 'mizan-worship-v6-logo'; // تم تحديث الإصدار
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/assets/aistudio/1794763564242_610e28c1.jpg',
+  '/assets/aistudio/1795470897746_dc9063b4.jpg',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;700&family=Cairo:wght@400;700&display=swap'
 ];
