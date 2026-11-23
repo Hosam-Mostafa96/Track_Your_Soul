@@ -19,7 +19,8 @@ import {
   ArrowRight,
   Flame,
   Clock,
-  Settings2
+  Settings2,
+  Zap
 } from 'lucide-react';
 import { DailyLog, QuranWardPlan } from '../types';
 import { QURAN_30_JUZ, QURAN_114_SURAHS, getSurahAtPage, getJuzAtPage } from '../utils/quranData';
@@ -138,7 +139,19 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
   const progressPercent = effectiveTotal > 0 ? Math.min(100, Math.round((completedCount / effectiveTotal) * 100)) : 0;
   const isWardDone = completedCount >= effectiveTotal && effectiveTotal > 0;
 
-  // حفظ تفضيلات الخطة ومزامنتها في DailyLog
+  const autoTrackEnabled = useMemo(() => {
+    try {
+      return localStorage.getItem('worship_mushaf_auto_track_ward') !== 'false';
+    } catch {
+      return true;
+    }
+  }, []);
+
+  const nextUnreadPage = useMemo(() => {
+    return wardPagesList.find(p => !currentReadPages.has(p)) ?? effectiveStart;
+  }, [wardPagesList, currentReadPages, effectiveStart]);
+
+  // حفظ تفضيلات الخطة ومزامنتها في DailyLog بدون استخدام قيم قديمة
   const syncPlanToLog = (
     newMode: 'pages' | 'juz',
     newStart: number,
@@ -150,14 +163,25 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
       ? updatedReadPages 
       : (log.quran?.readPages || []);
 
+    const juzMeta = newMode === 'juz' ? (QURAN_30_JUZ.find(j => j.id === newJuzId) || QURAN_30_JUZ[0]) : null;
+    const actualStart = juzMeta ? juzMeta.startPage : Math.max(1, Math.min(604, newStart));
+    const actualEnd = juzMeta ? juzMeta.endPage : Math.min(604, actualStart + Math.max(1, newTarget) - 1);
+    const actualTotal = juzMeta ? juzMeta.totalPages : actualEnd - actualStart + 1;
+
+    const readSet = new Set(finalReadPages);
+    const computedCompletedPages: number[] = [];
+    for (let p = actualStart; p <= actualEnd; p++) {
+      if (readSet.has(p)) computedCompletedPages.push(p);
+    }
+
     const updatedPlan: QuranWardPlan = {
       mode: newMode,
-      startPage: newMode === 'juz' ? (QURAN_30_JUZ.find(j => j.id === newJuzId)?.startPage || 1) : newStart,
-      endPage: newMode === 'juz' ? (QURAN_30_JUZ.find(j => j.id === newJuzId)?.endPage || 21) : Math.min(604, newStart + newTarget - 1),
-      targetPagesCount: newMode === 'juz' ? (QURAN_30_JUZ.find(j => j.id === newJuzId)?.totalPages || 20) : newTarget,
+      startPage: actualStart,
+      endPage: actualEnd,
+      targetPagesCount: actualTotal,
       selectedJuz: newMode === 'juz' ? newJuzId : undefined,
-      completedPages: wardPagesList.filter(p => finalReadPages.includes(p)),
-      isCompleted: isWardDone
+      completedPages: computedCompletedPages,
+      isCompleted: actualTotal > 0 && computedCompletedPages.length >= actualTotal
     };
 
     // حفظ في localStorage
@@ -370,11 +394,17 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
               ></div>
             </div>
 
-            {/* الإحصائيات السريعة ومكافأة البركة */}
+            {/* الإحصائيات السريعة ومكافأة البركة + حالة الاحتساب التلقائي */}
             <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-1 text-emerald-100 font-bold">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
                 <span>الرصيد الإيماني: <b className="text-yellow-300">+{completedCount * 15}</b> نقطة بركة (+15/صفحة)</span>
+                {autoTrackEnabled && (
+                  <span className="inline-flex items-center gap-1 bg-emerald-500/30 border border-emerald-300/30 text-emerald-100 px-2 py-0.5 rounded-full text-[10px]">
+                    <Zap className="w-3 h-3 text-yellow-300" />
+                    <span>الاحتساب التلقائي من المصحف نشط</span>
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {isWardDone ? (
@@ -383,7 +413,7 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
                     <span>تم إتمام ورد اليوم</span>
                   </span>
                 ) : (
-                  <span>المتبقي: {effectiveTotal - completedCount} صفحة</span>
+                  <span>المتبقي: {effectiveTotal - completedCount} صفحة • إجمالي قراءة اليوم: {currentReadPages.size}/604</span>
                 )}
               </div>
             </div>
@@ -413,9 +443,20 @@ export const QuranWardPlanner: React.FC<QuranWardPlannerProps> = ({ log, onUpdat
             </div>
           )}
 
-          {/* أزرار الإجراءات السريعة (قراءة سريعة، إضافة صفحة، مشاركة) */}
+          {/* أزرار الإجراءات السريعة (فتح في المصحف، قراءة سريعة، إضافة صفحة، مشاركة) */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/10">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {onOpenMushafAtPage && (
+                <button
+                  type="button"
+                  onClick={() => onOpenMushafAtPage(nextUnreadPage)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-black header-font flex items-center gap-1.5 transition-all shadow-md active:scale-95 bg-yellow-400 hover:bg-yellow-300 text-emerald-950"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>{isWardDone ? `فتح المصحف (ص ${effectiveStart})` : `أكمل الورد في المصحف (ص ${nextUnreadPage})`}</span>
+                </button>
+              )}
+
               <button
                 onClick={handleCompleteAllWard}
                 disabled={isWardDone}

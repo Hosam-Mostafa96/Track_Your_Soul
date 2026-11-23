@@ -7,13 +7,20 @@ import {
   LockKeyhole, Globe, Flame, BookOpen, ListChecks,
   Activity, Mail, MapPin, Calendar, Sparkles, Skull,
   Repeat, Database, AlertTriangle, FileJson, Check,
-  Smartphone, Download, Share, X, Heart, ShieldAlert,
-  MessageCircle, Bell, BellRing
+  Smartphone, Download, X, Heart, ShieldAlert,
+  MessageCircle, BellRing, Upload, Printer
 } from 'lucide-react';
 import { AppWeights, User as UserType, DailyLog } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
 import confetti from 'canvas-confetti';
 import { BadgesSection } from './BadgesSection';
+import { PWAInstallButton, InstalledStatusBadge } from './PWAInstallButton';
+import { MonthlyReportModal } from './MonthlyReportModal';
+import {
+  downloadFullBackupJson,
+  inspectBackupJson,
+  restoreBackupJson,
+} from '../utils/backupAndReport';
 
 interface UserProfileProps {
   user: UserType | null;
@@ -22,8 +29,8 @@ interface UserProfileProps {
   onToggleSync: (enabled: boolean) => void;
   onUpdateUser: (user: UserType | null) => void;
   onUpdateWeights: (weights: AppWeights) => void;
-  installPrompt: any;
-  onClearInstallPrompt: () => void;
+  installPrompt?: any;
+  onClearInstallPrompt?: () => void;
   logs?: Record<string, DailyLog>;
   onOpenReminders?: () => void;
 }
@@ -35,8 +42,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
   onToggleSync, 
   onUpdateUser, 
   onUpdateWeights, 
-  installPrompt, 
-  onClearInstallPrompt,
   logs = {},
   onOpenReminders
 }) => {
@@ -45,8 +50,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
   const [showRecovery, setShowRecovery] = useState(false);
   const [isSavedWeights, setIsSavedWeights] = useState(false);
   const [importJson, setImportJson] = useState('');
+  const [restoreMode, setRestoreMode] = useState<'merge' | 'replace'>('merge');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [showiOSInstructions, setShowiOSInstructions] = useState(false);
+  const [importErrorMsg, setImportErrorMsg] = useState<string>('');
+  const [exportFeedback, setExportFeedback] = useState<string | null>(null);
+  const [showMonthlyReport, setShowMonthlyReport] = useState(false);
 
   const effectiveLogs = useMemo(() => {
     if (logs && Object.keys(logs).length > 0) return logs;
@@ -57,22 +65,19 @@ const UserProfile: React.FC<UserProfileProps> = ({
     }
   }, [logs]);
 
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  const targetScore = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('worship_target');
+      return saved ? parseInt(saved, 10) : 13500;
+    } catch {
+      return 13500;
+    }
+  }, []);
 
-  const handleInstallClick = async () => {
-    if (isIOS) {
-      setShowiOSInstructions(true);
-      return;
-    }
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') {
-      onClearInstallPrompt();
-      confetti({ particleCount: 150, spread: 90 });
-    }
-  };
+  const inspection = useMemo(() => {
+    if (!importJson.trim()) return null;
+    return inspectBackupJson(importJson);
+  }, [importJson]);
 
   const handleSaveWeights = () => {
     onUpdateWeights(localWeights);
@@ -81,27 +86,40 @@ const UserProfile: React.FC<UserProfileProps> = ({
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
   };
 
-  const handleManualImport = () => {
-    try {
-      const parsedLogs = JSON.parse(importJson);
-      const firstKey = Object.keys(parsedLogs)[0];
-      if (typeof parsedLogs !== 'object' || (firstKey && !firstKey.match(/^\d{4}-\d{2}-\d{2}$/))) {
-        throw new Error("Invalid format");
-      }
+  const handleDownloadFullBackup = () => {
+    const { fileName, sizeKB } = downloadFullBackupJson();
+    setExportFeedback(`تم تنزيل ${fileName} (${sizeKB} ك.ب) بنجاح ✓`);
+    setTimeout(() => setExportFeedback(null), 5000);
+  };
 
-      const existingLogs = JSON.parse(localStorage.getItem('worship_logs') || '{}');
-      const mergedLogs = { ...parsedLogs, ...existingLogs };
-      
-      localStorage.setItem('worship_logs', JSON.stringify(mergedLogs));
+  const handleBackupFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setImportJson(reader.result);
+        setImportStatus('idle');
+        setImportErrorMsg('');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleManualImport = () => {
+    const res = restoreBackupJson(importJson, restoreMode);
+    if (res.success) {
       setImportStatus('success');
+      setImportErrorMsg('');
       setImportJson('');
       setTimeout(() => {
         setImportStatus('idle');
         window.location.reload();
-      }, 2000);
-    } catch (e) {
+      }, 1500);
+    } else {
       setImportStatus('error');
-      setTimeout(() => setImportStatus('idle'), 3000);
+      setImportErrorMsg(res.error || 'تعذر استعادة البيانات.');
+      setTimeout(() => setImportStatus('idle'), 3500);
     }
   };
 
@@ -199,27 +217,35 @@ const UserProfile: React.FC<UserProfileProps> = ({
       {/* نظام الأوسمة والإنجاز الإيماني - وسام الـ 30 يوماً متتالياً */}
       <BadgesSection logs={effectiveLogs} weights={weights} user={user} />
 
-      {/* خيار تثبيت التطبيق */}
-      {(!isStandalone && (installPrompt || isIOS)) && (
-        <div className="bg-gradient-to-br from-amber-400 to-orange-600 rounded-3xl p-6 shadow-lg text-white animate-in zoom-in duration-300">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-              <Smartphone className="w-8 h-8 text-white" />
+      {/* خيار تثبيت التطبيق وحالة التثبيت */}
+      <PWAInstallButton variant="card" />
+      <div className="flex justify-center">
+        <InstalledStatusBadge />
+      </div>
+
+      {/* التقرير الشهري الشامل */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+              <Printer className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold header-font leading-tight">ثبّت التطبيق على هاتفك</h3>
-              <p className="text-[10px] text-amber-50 font-bold opacity-90">لسهولة الوصول، إشعارات أسرع، وتجربة أفضل 🌙</p>
+              <h3 className="font-bold text-slate-800 header-font">التقرير الشهري الشامل (PDF / صورة)</h3>
+              <p className="text-[10px] text-slate-400 font-bold header-font">
+                ملخص إنجازات الشهر في الصلوات والقرآن والأذكار قابل للطباعة أو الحفظ كصورة
+              </p>
             </div>
           </div>
-          <button 
-            onClick={handleInstallClick}
-            className="w-full py-4 bg-white text-orange-600 rounded-2xl font-black header-font text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+          <button
+            type="button"
+            onClick={() => setShowMonthlyReport(true)}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-2xl transition-all header-font shadow-sm active:scale-95"
           >
-            <Download className="w-4 h-4" />
-            {isIOS ? 'عرض تعليمات التثبيت' : 'تثبيت التطبيق الآن'}
+            عرض واستخراج التقرير
           </button>
         </div>
-      )}
+      </div>
 
       {/* المزامنة السحابية */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 group">
@@ -235,7 +261,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
           </div>
           <button 
             onClick={() => onToggleSync(!isGlobalSync)}
-            className={`w-14 h-8 rounded-full transition-all relative ${isGlobalSync ? 'bg-emerald-50' : 'bg-slate-200'}`}
+            className={`w-14 h-8 rounded-full transition-all relative ${isGlobalSync ? 'bg-emerald-500' : 'bg-slate-200'}`}
           >
             <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-sm flex items-center justify-center ${isGlobalSync ? 'left-1' : 'left-7'}`}>
                 {isGlobalSync ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <ShieldCheck className="w-3 h-3 text-slate-300" />}
@@ -268,29 +294,124 @@ const UserProfile: React.FC<UserProfileProps> = ({
         </div>
       </div>
 
-      {/* استعادة البيانات */}
+      {/* النسخ الاحتياطي الكامل واستعادة البيانات */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden">
         <button onClick={() => setShowRecovery(!showRecovery)} className="w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-50 rounded-xl"><Database className="w-5 h-5 text-amber-600" /></div>
             <div className="text-right">
-              <h3 className="font-bold text-slate-800 header-font">أدوات استعادة البيانات</h3>
-              <p className="text-[10px] text-slate-400 font-bold header-font">استرداد السجلات عبر كود JSON</p>
+              <h3 className="font-bold text-slate-800 header-font">النسخ الاحتياطي واستعادة البيانات</h3>
+              <p className="text-[10px] text-slate-400 font-bold header-font">تنزيل واستيراد نسخة كاملة (JSON) للعبادات والتدبرات والختمات</p>
             </div>
           </div>
           {showRecovery ? <ChevronUp className="w-5 h-5 text-slate-300" /> : <ChevronDown className="w-5 h-5 text-slate-300" />}
         </button>
         {showRecovery && (
           <div className="mt-6 space-y-4 animate-in slide-in-from-top duration-300">
-            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-              <p className="text-[10px] text-amber-800 font-bold leading-relaxed">هذه الخاصية مخصصة لاستعادة بياناتك إذا حصل تداخل في السحابة. قم بلصق كود السجلات (JSON) في المربع أدناه ثم اضغط استيراد.</p>
+            {/* زر تنزيل النسخة الاحتياطية الكاملة */}
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-2.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <h4 className="text-xs font-black text-emerald-950 header-font">تصدير نسخة احتياطية شاملة</h4>
+                  <p className="text-[10px] text-emerald-700 font-bold">
+                    تحفظ سجلات الأيام، التدبرات، الفواصل، الختمات، الكتب، الأوزان، والمهام.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadFullBackup}
+                  className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black header-font flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>تنزيل ملف JSON</span>
+                </button>
+              </div>
+              {exportFeedback && (
+                <p className="text-[11px] font-bold text-emerald-800 bg-white/80 rounded-xl px-3 py-1.5 border border-emerald-200">
+                  {exportFeedback}
+                </p>
+              )}
             </div>
+
+            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+              <p className="text-[10px] text-amber-800 font-bold leading-relaxed">
+                لاستعادة نسخة سابقة، اختر ملف (.json) من جهازك أو الصق النص أسفله، ثم راجع المعاينة قبل الاستيراد. يدعم النظام النسخ الشاملة (v2) ونسخ السجلات القديمة.
+              </p>
+            </div>
+
+            <label className="w-full py-3 px-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/40 transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-black text-slate-700 header-font">
+              <Upload className="w-4 h-4 text-emerald-600" />
+              <span>اختيار ملف نسخة احتياطية (.json) من الجهاز</span>
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={handleBackupFileSelected}
+                className="hidden"
+              />
+            </label>
+
             <div className="relative">
-              <textarea value={importJson} onChange={(e) => setImportJson(e.target.value)} placeholder="الصق كود السجلات هنا (JSON)..." className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-mono focus:border-emerald-300 transition-all resize-none" />
+              <textarea value={importJson} onChange={(e) => setImportJson(e.target.value)} placeholder="أو الصق محتوى النسخة الاحتياطية (JSON) هنا..." className="w-full h-28 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-mono focus:border-emerald-300 transition-all resize-none" />
               <FileJson className="absolute bottom-3 left-3 w-4 h-4 text-slate-300" />
             </div>
-            <button onClick={handleManualImport} disabled={!importJson.trim()} className={`w-full py-4 rounded-2xl font-black header-font text-xs shadow-lg flex items-center justify-center gap-2 transition-all ${importStatus === 'success' ? 'bg-emerald-500 text-white' : importStatus === 'error' ? 'bg-rose-500 text-white' : importJson.trim() ? 'bg-slate-900 text-white active:scale-95' : 'bg-slate-100 text-slate-300'}`}>{importStatus === 'success' ? <Check className="w-4 h-4" /> : <Database className="w-4 h-4" />}{importStatus === 'success' ? 'تم استيراد البيانات بنجاح' : importStatus === 'error' ? 'خطأ في تنسيق الكود!' : 'استيراد السجلات الآن'}</button>
+
+            {/* معاينة فورية للنسخة قبل الاستعادة */}
+            {inspection && (
+              <div className={`p-3.5 rounded-2xl border text-xs space-y-2 ${
+                inspection.valid
+                  ? 'bg-slate-50 border-emerald-200 text-slate-800'
+                  : 'bg-rose-50 border-rose-200 text-rose-800'
+              }`}>
+                {inspection.valid ? (
+                  <>
+                    <div className="flex items-center justify-between font-black header-font">
+                      <span className="text-emerald-800">
+                        {inspection.format === 'v2' ? '✓ نسخة شاملة صالحة (الإصدار ٢)' : '✓ نسخة سجلات يومية متوافقة'}
+                      </span>
+                      {inspection.userName && (
+                        <span className="text-[10px] text-slate-500">المستخدم: {inspection.userName}</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-bold">
+                      <div className="bg-white rounded-xl p-2 border border-slate-100">الأيام: <b>{inspection.daysCount}</b></div>
+                      <div className="bg-white rounded-xl p-2 border border-slate-100">التدبرات: <b>{inspection.tadabburCount}</b></div>
+                      <div className="bg-white rounded-xl p-2 border border-slate-100">الختمات: <b>{inspection.khatmatCount}</b></div>
+                      <div className="bg-white rounded-xl p-2 border border-slate-100">الكتب: <b>{inspection.booksCount}</b></div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setRestoreMode('merge')}
+                        className={`py-2 px-3 rounded-xl text-[11px] font-black header-font border transition-all ${
+                          restoreMode === 'merge'
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-white text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        دمج آمن مع الحالية
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRestoreMode('replace')}
+                        className={`py-2 px-3 rounded-xl text-[11px] font-black header-font border transition-all ${
+                          restoreMode === 'replace'
+                            ? 'bg-amber-600 text-white border-amber-600'
+                            : 'bg-white text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        استبدال كامل للبيانات
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="font-bold text-[11px]">{inspection.error}</p>
+                )}
+              </div>
+            )}
+
+            <button onClick={handleManualImport} disabled={!importJson.trim() || (inspection ? !inspection.valid : false)} className={`w-full py-4 rounded-2xl font-black header-font text-xs shadow-lg flex items-center justify-center gap-2 transition-all ${importStatus === 'success' ? 'bg-emerald-500 text-white' : importStatus === 'error' ? 'bg-rose-500 text-white' : importJson.trim() && inspection?.valid ? 'bg-slate-900 text-white active:scale-95' : 'bg-slate-100 text-slate-300'}`}>{importStatus === 'success' ? <Check className="w-4 h-4" /> : <Database className="w-4 h-4" />}{importStatus === 'success' ? 'تمت استعادة البيانات بنجاح — جاري التحديث...' : importStatus === 'error' ? (importErrorMsg || 'خطأ في تنسيق الملف!') : 'تنفيذ استعادة البيانات الآن'}</button>
           </div>
         )}
       </div>
@@ -387,28 +508,14 @@ const UserProfile: React.FC<UserProfileProps> = ({
         )}
       </div>
 
-      {showiOSInstructions && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/40 backdrop-blur-sm">
-           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in slide-in-from-bottom duration-500 text-right" dir="rtl">
-              <button onClick={() => setShowiOSInstructions(false)} className="absolute top-6 left-6 p-2 text-slate-400"><X className="w-5 h-5" /></button>
-              <div className="flex flex-col items-center text-center space-y-4">
-                 <div className="p-4 bg-emerald-50 rounded-3xl"><Smartphone className="w-10 h-10 text-emerald-600" /></div>
-                 <h3 className="text-xl font-black text-slate-800 header-font">تثبيت على آيفون</h3>
-                 <div className="space-y-4 text-right w-full">
-                    <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
-                       <div className="bg-white p-2 rounded-lg shadow-sm font-bold text-emerald-600 shrink-0">١</div>
-                       <p className="text-sm font-bold text-slate-600 leading-relaxed">اضغط على زر المشاركة <Share className="w-4 h-4 inline text-blue-500 mx-1" /> في متصفح Safari.</p>
-                    </div>
-                    <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl">
-                       <div className="bg-white p-2 rounded-lg shadow-sm font-bold text-emerald-600 shrink-0">٢</div>
-                       <p className="text-sm font-bold text-slate-600 leading-relaxed">اختر <b>"إضافة إلى الشاشة الرئيسية"</b> أو <b>"Add to Home Screen"</b>.</p>
-                    </div>
-                 </div>
-                 <button onClick={() => setShowiOSInstructions(false)} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black header-font">فهمت ذلك</button>
-              </div>
-           </div>
-        </div>
-      )}
+      <MonthlyReportModal
+        isOpen={showMonthlyReport}
+        onClose={() => setShowMonthlyReport(false)}
+        logs={effectiveLogs}
+        weights={weights}
+        user={user}
+        targetScore={targetScore}
+      />
     </div>
   );
 };

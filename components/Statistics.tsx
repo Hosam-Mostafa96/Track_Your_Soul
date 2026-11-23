@@ -24,9 +24,13 @@ import {
   GraduationCap,
   Star,
   Timer,
-  Share2
+  Share2,
+  Printer,
+  Check
 } from 'lucide-react';
 import { WeeklyCardModal } from './WeeklyCardModal';
+import { MonthlyReportModal } from './MonthlyReportModal';
+import { downloadFullBackupJson } from '../utils/backupAndReport';
 import { 
   ResponsiveContainer, 
   RadarChart, 
@@ -70,6 +74,8 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
   const [activityFilter, setActivityFilter] = useState<ActivityType>('all');
   const [isExporting, setIsExporting] = useState(false);
   const [showWeeklyCard, setShowWeeklyCard] = useState(false);
+  const [showMonthlyReport, setShowMonthlyReport] = useState(false);
+  const [backupMessage, setBackupMessage] = useState<string | null>(null);
 
   const targetScore = useMemo(() => {
     try {
@@ -294,19 +300,15 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
   };
 
   const handleDownloadBackup = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `awrad_backup_${format(new Date(), 'yyyy_MM_dd')}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    const { fileName, sizeKB } = downloadFullBackupJson();
+    setBackupMessage(`تم تنزيل النسخة الكاملة (${fileName} • ${sizeKB} ك.ب) بنجاح ✓`);
+    setTimeout(() => setBackupMessage(null), 5000);
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 text-right" dir="rtl">
       
-      {/* بطاقة السحابة */}
+      {/* بطاقة السحابة والنسخ الاحتياطي الكامل */}
       <div className="bg-emerald-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
         <div className="relative z-10 flex flex-col gap-4">
@@ -316,7 +318,7 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
                 <ShieldCheck className="w-8 h-8 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold header-font leading-tight">حالة البيانات السحابية</h2>
+                <h2 className="text-lg font-bold header-font leading-tight">حالة البيانات السحابية والنسخ الاحتياطي</h2>
                 <p className="text-[10px] text-emerald-200 font-bold">
                   {lastSyncTime ? `آخر مزامنة: ${formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true, locale: ar } as any)}` : 'لم يتم المزامنة بعد'}
                 </p>
@@ -331,8 +333,47 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
               </button>
             </div>
           </div>
-          <button onClick={handleDownloadBackup} className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 rounded-2xl text-[10px] font-black header-font transition-all border border-white/5">
-            <FileJson className="w-4 h-4 text-emerald-300" /> تصدير نسخة JSON احتياطية لجهازك
+          <button onClick={handleDownloadBackup} className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 hover:bg-white/15 rounded-2xl text-[11px] font-black header-font transition-all border border-white/10 active:scale-[0.99]">
+            <FileJson className="w-4 h-4 text-emerald-300" />
+            <span>تصدير نسخة احتياطية كاملة (JSON) تشمل السجلات والختمات والتدبرات</span>
+          </button>
+          {backupMessage && (
+            <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-200 bg-emerald-950/60 border border-emerald-400/30 rounded-xl py-2 px-3 animate-in fade-in">
+              <Check className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+              <span>{backupMessage}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* بطاقة التقرير الشهري الشامل (PDF / صورة) */}
+      <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-emerald-950 border border-indigo-400/30 rounded-3xl p-5 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 bg-indigo-500/20 text-indigo-300 rounded-2xl border border-indigo-400/30 shrink-0">
+              <Printer className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[9px] font-black uppercase bg-indigo-400/20 text-indigo-200 px-2 py-0.5 rounded-full border border-indigo-400/30">
+                  PDF & PNG
+                </span>
+              </div>
+              <h3 className="text-sm font-black header-font text-white leading-tight">
+                التقرير الشهري الشامل ومحاسبة النفس 📄
+              </h3>
+              <p className="text-[10px] text-indigo-100/85 font-bold mt-1">
+                استخرج حصاد الشهر كاملاً (الصلوات، صفحات القرآن، الأذكار، الصيام، وتفصيل الأسابيع) بصيغة PDF للطباعة أو صورة للمراجعة.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMonthlyReport(true)}
+            className="w-full sm:w-auto px-5 py-3 bg-white hover:bg-indigo-50 text-slate-950 rounded-2xl font-black text-xs header-font shadow-lg transition-all active:scale-95 shrink-0 whitespace-nowrap"
+          >
+            استخراج التقرير الشهري
           </button>
         </div>
       </div>
@@ -627,6 +668,16 @@ const Statistics: React.FC<StatisticsProps> = ({ user, logs, weights, books, las
       <WeeklyCardModal
         isOpen={showWeeklyCard}
         onClose={() => setShowWeeklyCard(false)}
+        logs={logs}
+        weights={weights}
+        user={user}
+        targetScore={targetScore}
+      />
+
+      {/* مودال التقرير الشهري الشامل */}
+      <MonthlyReportModal
+        isOpen={showMonthlyReport}
+        onClose={() => setShowMonthlyReport(false)}
         logs={logs}
         weights={weights}
         user={user}

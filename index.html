@@ -23,9 +23,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="أوراد">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/jpeg" href="/assets/aistudio/1794763564242_610e28c1.jpg">
-    <link rel="apple-touch-icon" href="/assets/aistudio/1794763564242_610e28c1.jpg">
+    <link rel="icon" type="image/png" href="/pwa-192x192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
     <!-- SEO & Metadata -->
     <meta name="description" content="نظام شامل لمتابعة العبادات والأوراد اليومية والارتقاء الروحي بناءً على الجهد والمواظبة.">
@@ -75,6 +74,22 @@
 
         @media all and (display-mode: standalone) {
           body { padding-top: env(safe-area-inset-top); }
+        }
+
+        @media print {
+          body {
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          .print-only-container {
+            display: block !important;
+            position: static !important;
+            width: 100% !important;
+          }
         }
     </style>
 <script type="importmap">

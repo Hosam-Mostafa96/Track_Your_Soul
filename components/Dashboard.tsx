@@ -50,6 +50,7 @@ import { DAILY_TADABBUR_SEEDS } from '../utils/quranData';
 import { WeeklyGoalsDashboardCard } from './WeeklyGoalsDashboardCard';
 import { TodayRemainingGoalsChecklist } from './TodayRemainingGoalsChecklist';
 import { WeeklyGoalsSettingsModal } from './WeeklyGoalsSettingsModal';
+import { SeasonalModeWidget } from './SeasonalModeWidget';
 import { getIslamicDateString } from '../utils/prayerTimes';
 import { loadWeeklyGoalsConfig, calculateWeeklyGoalsProgress } from '../utils/weeklyGoals';
 import { WeeklyGoalsConfig } from '../types';
@@ -712,6 +713,14 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* 1. مواقيت الصلاة القادمة والعد التنازلي */}
       <NextPrayerWidget />
+
+      {/* 1.5 وضع المواسم الإسلامية التلقائي (رمضان، الأيام البيض، الإثنين والخميس، ذو الحجة...) */}
+      <SeasonalModeWidget
+        log={log}
+        weights={weights}
+        onUpdateLog={onUpdateLog}
+        onSwitchTab={onSwitchTab}
+      />
 
       {/* قبس وتدبر اليوم القرآني */}
       {todayTadabburSeed && (

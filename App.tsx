@@ -60,6 +60,8 @@ import { QuranHifzRepetitionTracker } from './components/QuranHifzRepetitionTrac
 import { WorshipMindCorrelation } from './components/WorshipMindCorrelation';
 import { KaffarahSystem } from './components/KaffarahSystem';
 import DailyTasksPlanner from './components/DailyTasksPlanner';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { PWAInstallButton } from './components/PWAInstallButton';
 import { getIslamicDateString, isCurrentIslamicNight } from './utils/prayerTimes';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
@@ -453,7 +455,9 @@ const App: React.FC = () => {
   if (!user) return <Onboarding installPrompt={deferredPrompt} onComplete={(u, restoredLogs, restoredBooks) => { setUser(u); localStorage.setItem('worship_user', JSON.stringify(u)); if (restoredLogs) { const parsedLogs = JSON.parse(restoredLogs); setLogs(parsedLogs); localStorage.setItem('worship_logs', JSON.stringify(parsedLogs)); } if (restoredBooks) { const parsedBooks = JSON.parse(restoredBooks); setBooks(parsedBooks); localStorage.setItem('worship_books', JSON.stringify(parsedBooks)); } }} />;
 
   return (
-    <div className="min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
+    <div className="no-print min-h-screen pb-32 bg-slate-50 text-right" dir="rtl">
+      <OfflineIndicator />
+
       {/* التنبيه التفاعلي المباشر للصلوات والأذكار */}
       {!isMushafFullScreen && (
         <InAppReminderBanner
@@ -479,7 +483,7 @@ const App: React.FC = () => {
                   <span className="text-[10px] sm:text-xs text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">مرحباً، {user.name}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0"><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
+              <div className="flex items-center gap-1 shrink-0"><PWAInstallButton variant="header" /><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
             </div>
             <div className="flex flex-col items-center gap-1.5"><div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div></div>
             <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl">

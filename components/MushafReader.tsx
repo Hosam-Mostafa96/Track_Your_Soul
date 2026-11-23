@@ -37,7 +37,11 @@ import {
   Award,
   Tag,
   Edit2,
-  Trash2
+  Trash2,
+  Download,
+  HardDrive,
+  Zap,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { DailyLog } from '../types';
@@ -50,6 +54,17 @@ import {
   getJuzsForEdition,
   convertPageBetweenEditions
 } from '../utils/quranData';
+import {
+  cacheSinglePage,
+  getCachedPageObjectUrl,
+  downloadPageRange,
+  clearOfflineCache,
+  getOfflineCacheStats,
+  isPageCachedSync,
+  fetchPageAyahsWithCache,
+  fetchAyahTafsirWithCache,
+  OfflineCacheProgress
+} from '../utils/offlineCache';
 
 export type BookmarkColor = 'amber' | 'emerald' | 'rose' | 'blue' | 'purple';
 
@@ -246,6 +261,33 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
 
+  // الاحتساب التلقائي للورد اليومي عند تقليب الصفحات أو القراءة
+  const [autoTrackWard, setAutoTrackWard] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('worship_mushaf_auto_track_ward');
+      return saved === null ? true : saved === 'true';
+    } catch {
+      return true;
+    }
+  });
+  const logRef = useRef<DailyLog>(log);
+  logRef.current = log;
+  const pageEnterTimeRef = useRef<number>(Date.now());
+
+  // مدير التخزين الكامل بدون إنترنت (أوفلاين للمصحف)
+  const [cachedImgObjectUrl, setCachedImgObjectUrl] = useState<string | null>(null);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [offlineStats, setOfflineStats] = useState(() => getOfflineCacheStats());
+  const [isDownloadingOffline, setIsDownloadingOffline] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<OfflineCacheProgress | null>(null);
+  const downloadAbortRef = useRef<AbortController | null>(null);
+
+  const canonicalMadaniPage = useMemo(() => {
+    return mushafEdition === 'shamarly'
+      ? convertPageBetweenEditions(currentPage, 'shamarly', 'madani')
+      : currentPage;
+  }, [currentPage, mushafEdition]);
+
   const showToast = (msg: string) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToastMessage(msg);
@@ -348,21 +390,42 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     return `https://quran.ksu.edu.sa/ayat/safahat/${currentPage}.png`;
   }, [currentPage, mushafEdition]);
 
-  // التحميل المسبق للصفحات المجاورة (Preloading) لتقليب فوري بدون تأخير
+  // التحميل المسبق للصفحات المجاورة وتخزينها محلياً للعمل بدون إنترنت
   useEffect(() => {
-    const preload = (page: number) => {
-      if (page >= 1 && page <= totalPages) {
-        const img = new Image();
-        if (mushafEdition === 'shamarly') {
-          img.src = `https://cdn.jsdelivr.net/gh/quran8vs/m-qpc-shamarly@main/imgs/${page}.png`;
-        } else {
-          const padded = String(page).padStart(3, '0');
-          img.src = `https://files.quran.app/hafs/madani/width_1024/page${padded}.png`;
+    let active = true;
+    let objectUrlToRevoke: string | null = null;
+
+    const loadAndCache = async () => {
+      const localObjUrl = await getCachedPageObjectUrl(currentPage, mushafEdition);
+      if (active) {
+        objectUrlToRevoke = localObjUrl;
+        setCachedImgObjectUrl(localObjUrl);
+      } else if (localObjUrl) {
+        URL.revokeObjectURL(localObjUrl);
+      }
+
+      if (navigator.onLine) {
+        await cacheSinglePage(currentPage, mushafEdition, undefined, true);
+        if (currentPage + 1 <= totalPages) {
+          cacheSinglePage(currentPage + 1, mushafEdition, undefined, false).catch(() => {});
+        }
+        if (currentPage - 1 >= 1) {
+          cacheSinglePage(currentPage - 1, mushafEdition, undefined, false).catch(() => {});
+        }
+        if (active) {
+          setOfflineStats(getOfflineCacheStats());
         }
       }
     };
-    preload(currentPage + 1);
-    preload(currentPage - 1);
+
+    loadAndCache();
+
+    return () => {
+      active = false;
+      if (objectUrlToRevoke) {
+        URL.revokeObjectURL(objectUrlToRevoke);
+      }
+    };
   }, [currentPage, mushafEdition, totalPages]);
 
   // إعادة تعيين حالة الصورة عند تغيير الصفحة أو الطبعة
@@ -371,7 +434,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     setImageError(false);
   }, [currentPage, mushafEdition]);
 
-  // جلب آيات الصفحة في وضع الآيات والتفسير أو وضع الاختبار
+  // جلب آيات الصفحة في وضع الآيات والتفسير أو وضع الاختبار (مع الكاش الأوفلاين)
   useEffect(() => {
     let isMounted = true;
     if (viewMode === 'ayahs' || testModeActive) {
@@ -379,11 +442,10 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
       const apiPage = mushafEdition === 'shamarly'
         ? convertPageBetweenEditions(currentPage, 'shamarly', 'madani')
         : currentPage;
-      fetch(`https://api.alquran.cloud/v1/page/${apiPage}/quran-uthmani`)
-        .then(res => res.json())
-        .then(data => {
-          if (isMounted && data.code === 200 && data.data?.ayahs) {
-            setPageAyahs(data.data.ayahs);
+      fetchPageAyahsWithCache(apiPage)
+        .then(ayahs => {
+          if (isMounted) {
+            if (ayahs) setPageAyahs(ayahs);
             setLoadingAyahs(false);
           }
         })
@@ -396,24 +458,23 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     };
   }, [currentPage, mushafEdition, viewMode, testModeActive]);
 
-  // جلب تفسير الآية عند اختيارها
+  // جلب تفسير الآية عند اختيارها (مع الكاش الأوفلاين)
   const handleSelectAyahForTafsir = useCallback((ayah: AyahData) => {
     setSelectedAyah(ayah);
     setLoadingTafsir(true);
     setAyahTafsir(null);
 
-    fetch(`https://api.alquran.cloud/v1/ayah/${ayah.surah.number}:${ayah.numberInSurah}/ar.muyassar`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === 200 && data.data?.text) {
-          setAyahTafsir(data.data.text);
+    fetchAyahTafsirWithCache(ayah.surah.number, ayah.numberInSurah)
+      .then(text => {
+        if (text) {
+          setAyahTafsir(text);
         } else {
           setAyahTafsir('عذراً، تعذر جلب التفسير حالياً. يرجى التأكد من اتصال الإنترنت.');
         }
         setLoadingTafsir(false);
       })
       .catch(() => {
-        setAyahTafsir('عذراً، حدث خطأ أثناء الاتصال بخدمة التفسير.');
+        setAyahTafsir('عذراً، حدث خطأ أثناء استحضار التفسير.');
         setLoadingTafsir(false);
       });
   }, []);
@@ -468,6 +529,14 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   }, []);
 
   const goToNextPage = () => {
+    // إذا كان الاحتساب التلقائي مفعلاً ومكث القارئ >= 1.5 ثانية في الصفحة، سجّلها عند التقليب للأمام
+    if (autoTrackWard && !(testModeActive && isContentHidden)) {
+      const elapsed = Date.now() - pageEnterTimeRef.current;
+      if (elapsed >= 1500) {
+        markCanonicalPageAsRead(canonicalMadaniPage, false);
+      }
+    }
+
     if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1);
       stopAudio();
@@ -770,50 +839,190 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     showToast(`تقبل الله! تم تقييم صفحة ${currentPage}: ${ratingLabel} (+${pointsAwarded} نقطة بالرصيد)`);
   };
 
+  // تسجيل صفحة واحدة بالورد اليومي (مع مزامنة خطة الورد والختمة)
+  const markCanonicalPageAsRead = useCallback((madaniPage: number, isManual = false) => {
+    const latestLog = logRef.current;
+    const currentRead = latestLog.quran?.readPages || [];
+    if (currentRead.includes(madaniPage)) return;
+
+    const updatedPages = [...currentRead, madaniPage].sort((a, b) => a - b);
+    const existingPlan = latestLog.quran?.wardPlan;
+
+    let updatedPlan = existingPlan;
+    let wardJustCompleted = false;
+
+    if (existingPlan) {
+      const completedPages = updatedPages.filter(
+        (p) => p >= existingPlan.startPage && p <= existingPlan.endPage
+      );
+      const totalWard = Math.max(1, existingPlan.endPage - existingPlan.startPage + 1);
+      const isNowDone = completedPages.length >= totalWard;
+      if (isNowDone && !existingPlan.isCompleted) {
+        wardJustCompleted = true;
+      }
+      updatedPlan = {
+        ...existingPlan,
+        completedPages,
+        isCompleted: isNowDone,
+      };
+    }
+
+    const updatedLog: DailyLog = {
+      ...latestLog,
+      quran: {
+        ...latestLog.quran,
+        readPages: updatedPages,
+        ...(updatedPlan ? { wardPlan: updatedPlan } : {}),
+      },
+    };
+
+    logRef.current = updatedLog;
+    onUpdateLog(
+      updatedLog,
+      `قرأ صفحة ${madaniPage} من المصحف الشريف`,
+      'quran'
+    );
+
+    if (wardJustCompleted) {
+      confetti({
+        particleCount: 90,
+        spread: 75,
+        origin: { y: 0.75 },
+        colors: ['#059669', '#10b981', '#fbbf24'],
+      });
+      showToast('هنيئاً لك! أتممت ورد اليوم القرآني كاملاً تلقائياً 🌿🎉');
+    } else if (isManual) {
+      confetti({
+        particleCount: 25,
+        spread: 45,
+        origin: { y: 0.8 },
+        colors: ['#059669', '#10b981', '#fbbf24'],
+      });
+      showToast(`تقبل الله! أتممت قراءة صفحة ${currentPage} (+15 نقطة بالرصيد) 🌿`);
+    } else {
+      showToast(`تم احتساب صفحة ${currentPage} في ورد اليوم تلقائياً (+15 ن) ✓`);
+    }
+  }, [onUpdateLog, currentPage]);
+
+  // مؤقت القراءة التلقائي: عند المكوث 3.5 ثوانٍ في الصفحة تُحتسب تلقائياً في الورد
+  useEffect(() => {
+    pageEnterTimeRef.current = Date.now();
+    if (!autoTrackWard) return;
+    if (testModeActive && isContentHidden) return;
+
+    const timer = window.setTimeout(() => {
+      markCanonicalPageAsRead(canonicalMadaniPage, false);
+    }, 3500);
+
+    return () => window.clearTimeout(timer);
+  }, [canonicalMadaniPage, autoTrackWard, testModeActive, isContentHidden, markCanonicalPageAsRead]);
+
+  const toggleAutoTrackWard = () => {
+    setAutoTrackWard((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('worship_mushaf_auto_track_ward', String(next));
+      } catch {}
+      showToast(
+        next
+          ? 'تم تفعيل الاحتساب التلقائي للورد عند التلاوة وتقليب الصفحات ✓'
+          : 'تم التحويل إلى التسجيل اليدوي للصفحات'
+      );
+      return next;
+    });
+  };
+
   // التحقق هل الصفحة الحالية مقروءة في ورد اليوم
   const isReadToday = useMemo(() => {
     const pages = log.quran?.readPages || [];
-    return pages.includes(currentPage);
-  }, [log.quran?.readPages, currentPage]);
+    return pages.includes(canonicalMadaniPage);
+  }, [log.quran?.readPages, canonicalMadaniPage]);
 
   const togglePageReadInDailyWard = () => {
     const currentRead = log.quran?.readPages || [];
     let updatedPages: number[];
     let isNowRead = false;
 
-    if (currentRead.includes(currentPage)) {
-      updatedPages = currentRead.filter(p => p !== currentPage);
+    if (currentRead.includes(canonicalMadaniPage)) {
+      updatedPages = currentRead.filter(p => p !== canonicalMadaniPage);
       isNowRead = false;
     } else {
-      updatedPages = [...currentRead, currentPage].sort((a, b) => a - b);
-      isNowRead = true;
+      markCanonicalPageAsRead(canonicalMadaniPage, true);
+      return;
     }
+
+    const existingPlan = log.quran?.wardPlan;
+    const updatedPlan = existingPlan
+      ? {
+          ...existingPlan,
+          completedPages: updatedPages.filter(
+            (p) => p >= existingPlan.startPage && p <= existingPlan.endPage
+          ),
+          isCompleted: false,
+        }
+      : undefined;
 
     const updatedLog: DailyLog = {
       ...log,
       quran: {
         ...log.quran,
-        readPages: updatedPages
-      }
+        readPages: updatedPages,
+        ...(updatedPlan ? { wardPlan: updatedPlan } : {}),
+      },
     };
 
     onUpdateLog(
       updatedLog,
-      isNowRead ? `قرأ صفحة ${currentPage} من المصحف الشريف` : `إلغاء قراءة صفحة ${currentPage}`,
+      `إلغاء قراءة صفحة ${canonicalMadaniPage}`,
       'quran'
     );
 
-    if (isNowRead) {
-      confetti({
-        particleCount: 25,
-        spread: 45,
-        origin: { y: 0.8 },
-        colors: ['#059669', '#10b981', '#fbbf24']
-      });
-      showToast(`تقبل الله! أتممت قراءة صفحة ${currentPage} (+15 نقطة بالرصيد) 🌿`);
-    } else {
+    if (!isNowRead) {
       showToast(`تم إلغاء تحديد صفحة ${currentPage}`);
     }
+  };
+
+  const handleStartOfflineDownload = async (pagesToDownload: number[], label: string) => {
+    if (!navigator.onLine) {
+      showToast('يلزم اتصال بالإنترنت لتحميل الصفحات الجديدة وحفظها');
+      return;
+    }
+    if (isDownloadingOffline) return;
+
+    const controller = new AbortController();
+    downloadAbortRef.current = controller;
+    setIsDownloadingOffline(true);
+    setDownloadProgress({ done: 0, total: pagesToDownload.length, currentPage: pagesToDownload[0] || 1, failedPages: [] });
+
+    const res = await downloadPageRange(
+      pagesToDownload,
+      mushafEdition,
+      (prog) => setDownloadProgress(prog),
+      controller.signal
+    );
+
+    setIsDownloadingOffline(false);
+    downloadAbortRef.current = null;
+    setOfflineStats(getOfflineCacheStats());
+
+    if (controller.signal.aborted) {
+      showToast('تم إيقاف التحميل المؤقت');
+    } else if (res.failedPages.length === 0) {
+      showToast(`تم حفظ ${label} (${res.total} صفحة) للعمل بدون إنترنت ✓`);
+    } else {
+      showToast(`تم حفظ ${res.total - res.failedPages.length} صفحة وتعذر ${res.failedPages.length} صفحة`);
+    }
+  };
+
+  const handleCancelOfflineDownload = () => {
+    downloadAbortRef.current?.abort();
+  };
+
+  const handleClearEditionCache = async () => {
+    await clearOfflineCache(mushafEdition);
+    setOfflineStats(getOfflineCacheStats());
+    setDownloadProgress(null);
+    showToast(`تم مسح الصفحات المحفوظة لـ ${editionLabel}`);
   };
 
   const handleCopyAyah = (ayah: AyahData) => {
@@ -1263,6 +1472,196 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
       )
     : null;
 
+  const offlineModalPortal = showOfflineModal
+    ? createPortal(
+        <div
+          className="fixed inset-0 z-[100002] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200"
+          dir="rtl"
+          onClick={() => !isDownloadingOffline && setShowOfflineModal(false)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl border border-slate-100 space-y-4 max-h-[90dvh] overflow-y-auto animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                  <HardDrive className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm header-font text-slate-900">
+                    التخزين بدون إنترنت ({editionLabel})
+                  </h3>
+                  <span className="text-[10px] text-slate-500 font-bold">
+                    للقراءة في المسجد والسفر دون الحاجة لشبكة
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isDownloadingOffline}
+                onClick={() => setShowOfflineModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl disabled:opacity-40"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2.5 text-xs font-bold text-emerald-900">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>الأذكار والسبحة والتأملات متاحة بالكامل بدون إنترنت تلقائياً.</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                <span className="text-[10px] font-bold text-slate-400 block">مصحف المدينة المحفوظ</span>
+                <span className="text-lg font-black font-mono text-emerald-800">
+                  {offlineStats.madaniCount} / 604
+                </span>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                <span className="text-[10px] font-bold text-slate-400 block">مصحف الشمرلي المحفوظ</span>
+                <span className="text-lg font-black font-mono text-amber-700">
+                  {offlineStats.shamarlyCount} / 521
+                </span>
+              </div>
+            </div>
+
+            {isDownloadingOffline && downloadProgress && (
+              <div className="p-3.5 rounded-2xl bg-emerald-950 text-white space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
+                    <span>جاري حفظ صفحة {downloadProgress.currentPage}...</span>
+                  </span>
+                  <span className="font-mono text-amber-300">
+                    {downloadProgress.done} / {downloadProgress.total}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-white/15 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-amber-400 transition-all duration-200"
+                    style={{
+                      width: `${Math.round((downloadProgress.done / Math.max(1, downloadProgress.total)) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelOfflineDownload}
+                  className="w-full py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-xs font-black header-font"
+                >
+                  إيقاف التحميل
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <span className="text-[11px] font-black text-slate-600 header-font block">
+                تنزيل سريع للنسخة الحالية ({editionLabel}):
+              </span>
+
+              <button
+                type="button"
+                disabled={isDownloadingOffline}
+                onClick={() => {
+                  const startM = log.quran?.wardPlan?.startPage || 1;
+                  const endM = log.quran?.wardPlan?.endPage || Math.min(604, startM + wardTotalPages - 1);
+                  const s = mushafEdition === 'shamarly' ? convertPageBetweenEditions(startM, 'madani', 'shamarly') : startM;
+                  const e = mushafEdition === 'shamarly' ? convertPageBetweenEditions(endM, 'madani', 'shamarly') : endM;
+                  const pages = Array.from({ length: Math.max(1, e - s + 1) }, (_, idx) => s + idx);
+                  handleStartOfflineDownload(pages, 'ورد اليوم');
+                }}
+                className="w-full p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-right flex items-center justify-between transition-all disabled:opacity-50"
+              >
+                <div>
+                  <span className="text-xs font-black text-emerald-950 header-font block">حفظ صفحات ورد اليوم</span>
+                  <span className="text-[10px] text-emerald-700 font-bold">مثالي للقراءة في طريق المسجد</span>
+                </div>
+                <Download className="w-4 h-4 text-emerald-700 shrink-0" />
+              </button>
+
+              <button
+                type="button"
+                disabled={isDownloadingOffline}
+                onClick={() => {
+                  const s = mushafEdition === 'shamarly' ? 242 : 293;
+                  const e = mushafEdition === 'shamarly' ? 251 : 304;
+                  const pages = Array.from({ length: e - s + 1 }, (_, idx) => s + idx);
+                  handleStartOfflineDownload(pages, 'سورة الكهف');
+                }}
+                className="w-full p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-right flex items-center justify-between transition-all disabled:opacity-50"
+              >
+                <div>
+                  <span className="text-xs font-black text-slate-800 header-font block">حفظ سورة الكهف كاملة</span>
+                  <span className="text-[10px] text-slate-500 font-bold">ورد يوم الجمعة المبارك بدون نت</span>
+                </div>
+                <Download className="w-4 h-4 text-slate-600 shrink-0" />
+              </button>
+
+              <button
+                type="button"
+                disabled={isDownloadingOffline}
+                onClick={() => {
+                  const pages = Array.from(
+                    { length: currentJuz.endPage - currentJuz.startPage + 1 },
+                    (_, idx) => currentJuz.startPage + idx
+                  );
+                  handleStartOfflineDownload(pages, currentJuz.name);
+                }}
+                className="w-full p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-right flex items-center justify-between transition-all disabled:opacity-50"
+              >
+                <div>
+                  <span className="text-xs font-black text-slate-800 header-font block">
+                    حفظ {currentJuz.name} كاملاً
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold">
+                    من صفحة {currentJuz.startPage} إلى {currentJuz.endPage}
+                  </span>
+                </div>
+                <Download className="w-4 h-4 text-slate-600 shrink-0" />
+              </button>
+
+              <button
+                type="button"
+                disabled={isDownloadingOffline}
+                onClick={() => {
+                  const pages = Array.from({ length: totalPages }, (_, idx) => idx + 1);
+                  handleStartOfflineDownload(pages, `${editionLabel} كاملاً`);
+                }}
+                className="w-full p-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-right flex items-center justify-between transition-all disabled:opacity-50"
+              >
+                <div>
+                  <span className="text-xs font-black text-amber-950 header-font block">
+                    حفظ {editionLabel} كاملاً ({totalPages} صفحة)
+                  </span>
+                  <span className="text-[10px] text-amber-800 font-bold">
+                    تنزيل جميع الصفحات دفعة واحدة (~{mushafEdition === 'shamarly' ? '75' : '88'} ميجابايت)
+                  </span>
+                </div>
+                <Download className="w-4 h-4 text-amber-700 shrink-0" />
+              </button>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px]">
+              <span className="text-slate-400 font-bold">المساحة المستخدمة تقريباً: {offlineStats.estimatedMB} MB</span>
+              {(mushafEdition === 'madani' ? offlineStats.madaniCount : offlineStats.shamarlyCount) > 0 && (
+                <button
+                  type="button"
+                  disabled={isDownloadingOffline}
+                  onClick={handleClearEditionCache}
+                  className="text-rose-600 hover:underline font-black header-font disabled:opacity-40"
+                >
+                  تفريغ محفوظات {editionLabel}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )
+    : null;
+
   // وضع ملء الشاشة الحصري: يظهر المصحف فقط في كامل شاشة الهاتف مع خلفية وثيم أصيل وإمكانية تسجيل القراءة مباشرة
   if (isFullScreen) {
     return (
@@ -1343,12 +1742,13 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
                 </button>
 
                 {onNavigateToWardPlanner && (
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border hidden md:inline-flex items-center ${
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border hidden md:inline-flex items-center gap-1 ${
                     theme === 'dark' 
                       ? 'bg-slate-800/80 text-slate-300 border-slate-700' 
                       : 'bg-white/80 text-slate-600 border-slate-200'
                   }`}>
-                    الورد: {todayReadCount}/{wardTotalPages}
+                    {autoTrackWard && <Zap className="w-3 h-3 text-emerald-500" />}
+                    <span>الورد: {todayReadCount}/{wardTotalPages}</span>
                   </span>
                 )}
               </div>
@@ -1492,7 +1892,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
                     </div>
                   )}
                   <img
-                    src={imageError ? fallbackPageImageSrc : pageImageSrc}
+                    src={cachedImgObjectUrl || (imageError ? fallbackPageImageSrc : pageImageSrc)}
                     alt={`${editionLabel} - صفحة ${currentPage}`}
                     loading="eager"
                     onLoad={() => setImageLoaded(true)}
@@ -1560,6 +1960,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
         )}
         {bookmarkModalPortal}
         {indexModalPortal}
+        {offlineModalPortal}
       </>
     );
   }
@@ -1628,6 +2029,21 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
             >
               <Brain className="w-4 h-4 text-purple-300" />
               <span>{testModeActive ? 'وضع التسميع نشط' : 'اختبار الحفظ 🧠'}</span>
+            </button>
+
+            {/* زر التخزين والعمل بدون إنترنت */}
+            <button
+              type="button"
+              onClick={() => setShowOfflineModal(true)}
+              className={`px-2.5 py-1.5 rounded-xl border transition-all flex items-center gap-1 text-[11px] font-black header-font active:scale-95 ${
+                isPageCachedSync(currentPage, mushafEdition)
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+              }`}
+              title={isPageCachedSync(currentPage, mushafEdition) ? 'هذه الصفحة محفوظة للعمل بدون إنترنت' : 'حفظ صفحات المصحف للعمل بدون إنترنت'}
+            >
+              <Download className={`w-3.5 h-3.5 ${isPageCachedSync(currentPage, mushafEdition) ? 'text-amber-300' : 'text-emerald-600'}`} />
+              <span>أوفلاين ({mushafEdition === 'shamarly' ? offlineStats.shamarlyCount : offlineStats.madaniCount})</span>
             </button>
 
             {/* زر إدارة وإضافة الفواصل المسمّاة */}
@@ -1921,7 +2337,22 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
             <span className="text-xs font-bold text-slate-400 font-mono">/ {totalPages}</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* زر تفعيل/إيقاف الاحتساب التلقائي للورد */}
+            <button
+              type="button"
+              onClick={toggleAutoTrackWard}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-black header-font border transition-all active:scale-95 ${
+                autoTrackWard
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                  : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+              }`}
+              title="تفعيل أو إيقاف التسجيل التلقائي للصفحات المقروءة ضمن الورد اليومي"
+            >
+              <Zap className={`w-3.5 h-3.5 ${autoTrackWard ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <span>{autoTrackWard ? 'احتساب تلقائي ✓' : 'احتساب يدوي'}</span>
+            </button>
+
             <button
               onClick={togglePageReadInDailyWard}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-black header-font transition-all shadow-sm active:scale-95 ${
@@ -2071,7 +2502,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
               style={{ transform: `scale(${zoomLevel})` }}
             >
               <img
-                src={imageError ? fallbackPageImageSrc : pageImageSrc}
+                src={cachedImgObjectUrl || (imageError ? fallbackPageImageSrc : pageImageSrc)}
                 alt={`${editionLabel} - صفحة ${currentPage}`}
                 loading="eager"
                 onLoad={() => setImageLoaded(true)}
@@ -2384,6 +2815,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
 
       {bookmarkModalPortal}
       {indexModalPortal}
+      {offlineModalPortal}
     </div>
   );
 };
