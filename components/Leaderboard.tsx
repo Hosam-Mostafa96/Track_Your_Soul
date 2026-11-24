@@ -231,6 +231,18 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync, o
              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-12 translate-x-12 blur-xl"></div>
              <h2 className="text-[10px] font-black opacity-70 uppercase tracking-widest mb-2">رتبتك الحالية</h2>
              <div className="text-5xl font-black font-mono text-yellow-400">{userRank || "---"}</div>
+             {(isLoading || isRefreshing) ? (
+               <div className="mt-3 inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white/10 border border-white/15 text-[11px] font-bold text-emerald-50 header-font">
+                 <Loader2 className="w-3.5 h-3.5 animate-spin text-yellow-300 shrink-0" />
+                 <span>انتظر ٣ ثوانٍ حتى يتم احتساب رتبتك الحالية بين المتنافسين في الطريق إلى الله...</span>
+               </div>
+             ) : userRank === null && !networkError ? (
+               <p className="mt-3 text-[11px] font-bold text-emerald-100/80 header-font leading-relaxed">
+                 {navigator.onLine
+                   ? 'انتظر ٣ ثوانٍ أو اضغط على تحديث لاحتساب رتبتك الحالية بين المتنافسين في الطريق إلى الله'
+                   : 'لا يتوفر اتصال بالإنترنت حالياً لاحتساب رتبتك بين المتنافسين'}
+               </p>
+             ) : null}
           </div>
 
           <div className="flex items-center justify-between px-2">
@@ -308,9 +320,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ user, currentScore, isSync, o
 };
 
 const LoaderBox = ({ isLoading, networkError }: { isLoading: boolean, networkError: boolean }) => (
-  <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-slate-200">
+  <div className="text-center py-12 px-4 bg-white rounded-[2rem] border border-dashed border-slate-200">
     {isLoading ? (
-      <Loader2 className="w-8 h-8 animate-spin text-emerald-300 mx-auto" />
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400 mx-auto" />
+        <p className="text-xs text-slate-600 font-bold header-font">
+          انتظر ٣ ثوانٍ حتى يتم احتساب رتبتك الحالية بين المتنافسين في الطريق إلى الله...
+        </p>
+      </div>
     ) : (
       <div className="flex flex-col items-center gap-2">
         <p className="text-xs text-slate-400 font-bold">{networkError ? 'خطأ في الاتصال بالخادم' : 'لا توجد بيانات حالياً'}</p>
