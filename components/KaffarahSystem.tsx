@@ -150,81 +150,84 @@ export const KaffarahSystem: React.FC<KaffarahSystemProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="bg-white rounded-[2rem] p-5 sm:p-6 shadow-sm border border-slate-100 relative text-right" dir="rtl">
-      {/* الترويسة العلوية */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-rose-50 text-rose-600 rounded-2xl">
-            <ShieldAlert className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-slate-800 header-font text-base sm:text-lg leading-tight">
-                عقوبة النفس بالطاعات البديلة (Kaffarah System)
-              </h3>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-200">
-                تأديب النفس
-              </span>
+    <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-2xl border border-slate-100 relative text-right flex flex-col max-h-[88dvh] overflow-hidden" dir="rtl">
+      {/* الترويسة العلوية الثابتة */}
+      <div className="shrink-0 p-4 sm:p-5 border-b border-slate-100 bg-white space-y-3">
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="flex items-start gap-2.5 min-w-0 flex-1">
+            <div className="p-2.5 bg-rose-50 text-rose-600 rounded-2xl shrink-0">
+              <ShieldAlert className="w-5 h-5" />
             </div>
-            <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-              منهج الصحابة في محاسبة النفس ومشارطتها ومعاقبتها بالصدقة والصيام والاستغفار عند التقصير
-            </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="font-bold text-slate-800 header-font text-sm sm:text-base leading-snug">
+                  كفارات النفس بالطاعات البديلة
+                </h3>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-200 shrink-0">
+                  تأديب النفس
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 font-bold mt-0.5 leading-snug">
+                منهج الصحابة في محاسبة النفس ومعاقبتها بالصدقة والصيام والاستغفار عند التقصير
+              </p>
+            </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="py-2 px-3.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl text-xs font-black header-font flex items-center gap-1.5 shadow-xs transition-all"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>إلزام النفس بكفارة</span>
-          </button>
 
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl"
+              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl shrink-0"
+              aria-label="إغلاق"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
-      </div>
 
-      {/* حكمة الأثر الإيماني */}
-      <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 mb-4 text-xs text-slate-600 leading-relaxed">
-        <p className="font-medium text-[11px]">
-          📌 <span className="font-bold text-slate-800">أثر السلف:</span> لما فات عمر بن الخطاب رضي الله عنه صلاة العصر في جماعة، تصدق بأرض قيمتها مائتا ألف درهم عقوبة لنفسه وتأديباً لها حتى لا تعود للفتور.
-        </p>
-      </div>
-
-      {/* التبديل بين الكفارات قيد الوفاء والموفّى بها */}
-      <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl mb-4">
         <button
           type="button"
-          onClick={() => setActiveTab('pending')}
-          className={`flex-1 py-1.5 rounded-xl text-xs font-black transition-all ${
-            activeTab === 'pending' ? 'bg-white text-rose-700 shadow-xs' : 'text-slate-500'
-          }`}
+          onClick={() => setShowAddModal(true)}
+          className="w-full sm:w-auto py-2.5 px-4 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl text-xs font-black header-font flex items-center justify-center gap-1.5 shadow-xs transition-all"
         >
-          كفارات قيد الوفاء ({pendingItems.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('fulfilled')}
-          className={`flex-1 py-1.5 rounded-xl text-xs font-black transition-all ${
-            activeTab === 'fulfilled' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500'
-          }`}
-        >
-          تم الوفاء بها وتأديب النفس ({fulfilledItems.length})
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <span>إلزام النفس بكفارة جديدة</span>
         </button>
       </div>
 
-      {/* قائمة الكفارات */}
-      <div className="space-y-3">
+      {/* المحتوى القابل للتمرير */}
+      <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+        {/* حكمة الأثر الإيماني */}
+        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-xs text-slate-600 leading-relaxed">
+          <p className="font-medium text-[11px]">
+            📌 <span className="font-bold text-slate-800">أثر السلف:</span> لما فات عمر بن الخطاب رضي الله عنه صلاة العصر في جماعة، تصدق بأرض قيمتها مائتا ألف درهم عقوبة لنفسه وتأديباً لها حتى لا تعود للفتور.
+          </p>
+        </div>
+
+        {/* التبديل بين الكفارات قيد الوفاء والموفّى بها */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl">
+          <button
+            type="button"
+            onClick={() => setActiveTab('pending')}
+            className={`flex-1 py-2 px-2 rounded-xl text-[11px] sm:text-xs font-black transition-all ${
+              activeTab === 'pending' ? 'bg-white text-rose-700 shadow-xs' : 'text-slate-500'
+            }`}
+          >
+            قيد الوفاء ({pendingItems.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('fulfilled')}
+            className={`flex-1 py-2 px-2 rounded-xl text-[11px] sm:text-xs font-black transition-all ${
+              activeTab === 'fulfilled' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500'
+            }`}
+          >
+            تم الوفاء بها ({fulfilledItems.length})
+          </button>
+        </div>
+
+        {/* قائمة الكفارات */}
+        <div className="space-y-3">
         {(activeTab === 'pending' ? pendingItems : fulfilledItems).length === 0 ? (
           <div className="py-12 text-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200">
             <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2 opacity-80" />
@@ -293,12 +296,13 @@ export const KaffarahSystem: React.FC<KaffarahSystemProps> = ({ onClose }) => {
             </div>
           ))
         )}
+        </div>
       </div>
 
       {/* نافذة إضافة كفارة جديدة */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] max-w-md w-full p-6 shadow-2xl relative border border-slate-100 text-right">
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] max-w-md w-full max-h-[88dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl relative border border-slate-100 text-right">
             <button
               onClick={() => setShowAddModal(false)}
               className="absolute top-5 left-5 p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full"

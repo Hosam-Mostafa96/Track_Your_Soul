@@ -36,9 +36,19 @@ export const LAST_SEEN_CHANGELOG_KEY = 'last_seen_notification_id';
  */
 export const APP_CHANGELOG: AppChangelogEntry[] = [
   {
+    id: 21,
+    version: 'v4.6',
+    dateLabel: 'التحديث الحالي',
+    category: 'fix',
+    title: 'تحسين أبعاد نوافذ الكفارات والتكرار المتباعد وأثر العبادة',
+    message:
+      'إعادة تنسيق أبعاد البطاقات والنوافذ المنبثقة (كفارات النفس، التكرار المتباعد، وتحليل أثر العبادة على النفس) لتظهر كاملة على شاشات الهواتف مع ترويسة ثابتة وتمرير سلس للمحتوى.',
+    icon: 'shield',
+  },
+  {
     id: 20,
     version: 'v4.5',
-    dateLabel: 'التحديث الحالي',
+    dateLabel: 'حديثاً',
     category: 'feature',
     title: 'سجل التحديثات التلقائي في الإشعارات',
     message:

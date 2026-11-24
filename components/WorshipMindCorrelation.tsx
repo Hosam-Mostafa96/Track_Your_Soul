@@ -129,51 +129,56 @@ export const WorshipMindCorrelation: React.FC<WorshipMindCorrelationProps> = ({
   }, [logs]);
 
   return (
-    <div className="bg-white rounded-[2rem] p-5 sm:p-6 shadow-sm border border-slate-100 relative text-right" dir="rtl">
-      {/* الترويسة العلوية */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl">
-            <Brain className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-slate-800 header-font text-base sm:text-lg leading-tight">
-                تحليل أثر العبادة على النفس والطمأنينة
-              </h3>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
-                Worship & Mind
-              </span>
+    <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-2xl border border-slate-100 relative text-right flex flex-col max-h-[88dvh] overflow-hidden" dir="rtl">
+      {/* الترويسة العلوية الثابتة */}
+      <div className="shrink-0 p-4 sm:p-5 border-b border-slate-100 bg-white">
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="flex items-start gap-2.5 min-w-0 flex-1">
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl shrink-0">
+              <Brain className="w-5 h-5" />
             </div>
-            <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-              دراسة تحليلية تقارن أثر أورادك وطاعاتك على صفاء ذهنك وانشراح صدرك
-            </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="font-bold text-slate-800 header-font text-sm sm:text-base leading-snug">
+                  تحليل أثر العبادة على النفس والطمأنينة
+                </h3>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
+                  Worship & Mind
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 font-bold mt-0.5 leading-snug">
+                دراسة تحليلية تقارن أثر أورادك وطاعاتك على صفاء ذهنك وانشراح صدرك
+              </p>
+            </div>
           </div>
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl shrink-0"
+              aria-label="إغلاق"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* المحتوى القابل للتمرير */}
+      <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+        {/* الآية القرآنية المؤصلة */}
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 p-4 rounded-2xl border border-emerald-100 text-center">
+          <p className="text-sm font-bold quran-font text-emerald-950 leading-relaxed">
+            ﴿الَّذِينَ آمَنُوا وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ اللَّهِ ۗ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ﴾
+          </p>
+          <span className="text-[9px] font-black text-emerald-700/80 header-font mt-1 block">
+            [الرعد: ٢٨] • أثر الوحي في سكينة النفس
+          </span>
         </div>
 
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* الآية القرآنية المؤصلة */}
-      <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 p-4 rounded-2xl border border-emerald-100 mb-4 text-center">
-        <p className="text-sm font-bold quran-font text-emerald-950 leading-relaxed">
-          ﴿الَّذِينَ آمَنُوا وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ اللَّهِ ۗ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ﴾
-        </p>
-        <span className="text-[9px] font-black text-emerald-700/80 header-font mt-1 block">
-          [الرعد: ٢٨] • أثر الوحي في سكينة النفس
-        </span>
-      </div>
-
-      {/* المؤشرات الأربعة للارتباط النفسي والروحي */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+        {/* المؤشرات الأربعة للارتباط النفسي والروحي */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* 1. قيام الليل والسكينة */}
         <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex items-start gap-3">
           <div className="p-2.5 bg-amber-100 text-amber-900 rounded-xl shrink-0">
@@ -247,30 +252,31 @@ export const WorshipMindCorrelation: React.FC<WorshipMindCorrelationProps> = ({
         </div>
       </div>
 
-      {/* الشريط الزمني لمقارنة الرصيد والسكينة عبر آخر 7 أيام */}
-      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-        <h4 className="text-xs font-black text-slate-700 mb-2 header-font">
-          سجل التناغم الروحي والنفسي لآخر الأيام
-        </h4>
-        <div className="grid grid-cols-7 gap-1.5 text-center">
-          {analysis.daysTimeline.map((item, idx) => (
-            <div
-              key={idx}
-              className="bg-white p-2 rounded-xl border border-slate-200/80 flex flex-col items-center justify-between text-xs"
-            >
-              <span className="text-[9px] font-bold text-slate-400">
-                {item.date.split('-').slice(1).join('/')}
-              </span>
-              <div className="my-1.5">
-                <span className="text-sm">
-                  {item.mood >= 4 ? '😊' : item.mood === 3 ? '😐' : '😔'}
+        {/* الشريط الزمني لمقارنة الرصيد والسكينة عبر آخر 7 أيام */}
+        <div className="bg-slate-50 p-3.5 sm:p-4 rounded-2xl border border-slate-100">
+          <h4 className="text-xs font-black text-slate-700 mb-2 header-font">
+            سجل التناغم الروحي والنفسي لآخر الأيام
+          </h4>
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 text-center">
+            {analysis.daysTimeline.map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-white p-2 rounded-xl border border-slate-200/80 flex flex-col items-center justify-between text-xs min-w-0"
+              >
+                <span className="text-[9px] font-bold text-slate-400">
+                  {item.date.split('-').slice(1).join('/')}
+                </span>
+                <div className="my-1.5">
+                  <span className="text-sm">
+                    {item.mood >= 4 ? '😊' : item.mood === 3 ? '😐' : '😔'}
+                  </span>
+                </div>
+                <span className="text-[9px] font-mono font-black text-emerald-700 truncate max-w-full">
+                  {item.score > 0 ? `+${item.score}` : item.score}
                 </span>
               </div>
-              <span className="text-[9px] font-mono font-black text-emerald-700">
-                {item.score > 0 ? `+${item.score}` : item.score}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -248,52 +248,55 @@ export const QuranHifzRepetitionTracker: React.FC<QuranHifzRepetitionTrackerProp
   }, [items, dueTodayItems, activeTab, searchTerm]);
 
   return (
-    <div className="bg-white rounded-[2rem] p-5 sm:p-6 shadow-sm border border-slate-100 relative text-right" dir="rtl">
-      {/* الترويسة العلوية */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl">
-            <BookOpen className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-slate-800 header-font text-base sm:text-lg leading-tight">
-                متابعة الحفظ والمراجعة التكرارية
-              </h3>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                Spaced Repetition
-              </span>
+    <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-2xl border border-slate-100 relative text-right flex flex-col max-h-[88dvh] overflow-hidden" dir="rtl">
+      {/* الترويسة العلوية الثابتة */}
+      <div className="shrink-0 p-4 sm:p-5 border-b border-slate-100 bg-white space-y-3">
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="flex items-start gap-2.5 min-w-0 flex-1">
+            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
+              <BookOpen className="w-5 h-5" />
             </div>
-            <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-              منهجية علمية لتثبيت القرآن الكريم (الجديد • الماضي القريب • الماضي البعيد الراسخ)
-            </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="font-bold text-slate-800 header-font text-sm sm:text-base leading-snug">
+                  متابعة الحفظ والمراجعة التكرارية
+                </h3>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                  Spaced Repetition
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 font-bold mt-0.5 leading-snug">
+                منهجية علمية لتثبيت القرآن الكريم (الجديد • الماضي القريب • الماضي البعيد الراسخ)
+              </p>
+            </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black header-font flex items-center gap-1.5 shadow-xs transition-all"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>حفظ جديد</span>
-          </button>
 
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl"
+              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl shrink-0"
+              aria-label="إغلاق"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowAddModal(true)}
+          className="w-full sm:w-auto py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black header-font flex items-center justify-center gap-1.5 shadow-xs transition-all"
+        >
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <span>إضافة مقطع حفظ جديد</span>
+        </button>
       </div>
 
-      {/* لوحة الإحصائيات السريعة */}
-      <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+      {/* المحتوى القابل للتمرير */}
+      <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+        {/* لوحة الإحصائيات السريعة */}
+        <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-amber-50/80 p-3 rounded-2xl border border-amber-200/80">
           <span className="text-[10px] text-amber-800 font-bold block">مستحق اليوم</span>
           <span className="text-base sm:text-lg font-black font-mono text-amber-900">
@@ -484,12 +487,13 @@ export const QuranHifzRepetitionTracker: React.FC<QuranHifzRepetitionTrackerProp
             );
           })
         )}
+        </div>
       </div>
 
       {/* نافذة إضافة مقطع حفظ جديد */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] max-w-md w-full p-6 shadow-2xl relative border border-slate-100 text-right">
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] max-w-md w-full max-h-[88dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl relative border border-slate-100 text-right">
             <button
               onClick={() => setShowAddModal(false)}
               className="absolute top-5 left-5 p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full"

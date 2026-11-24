@@ -632,8 +632,11 @@ const App: React.FC = () => {
 
       {/* نافذة متابعة الحفظ والمراجعة التكرارية */}
       {showHifzTracker && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
-          <div className="max-w-2xl w-full my-6">
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowHifzTracker(false); }}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 overflow-hidden animate-in fade-in"
+        >
+          <div className="max-w-2xl w-full max-h-[90dvh] flex flex-col">
             <QuranHifzRepetitionTracker
               onClose={() => setShowHifzTracker(false)}
               onNavigateMushaf={() => {
@@ -647,8 +650,11 @@ const App: React.FC = () => {
 
       {/* نافذة تحليل أثر العبادة على النفس */}
       {showWorshipMindCorrelation && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
-          <div className="max-w-xl w-full my-6">
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowWorshipMindCorrelation(false); }}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 overflow-hidden animate-in fade-in"
+        >
+          <div className="max-w-xl w-full max-h-[90dvh] flex flex-col">
             <WorshipMindCorrelation
               logs={logs}
               onClose={() => setShowWorshipMindCorrelation(false)}
@@ -659,8 +665,11 @@ const App: React.FC = () => {
 
       {/* نافذة كفارات تأديب النفس بالطاعات البديلة */}
       {showKaffarahModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
-          <div className="max-w-xl w-full my-6">
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowKaffarahModal(false); }}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 overflow-hidden animate-in fade-in"
+        >
+          <div className="max-w-xl w-full max-h-[90dvh] flex flex-col">
             <KaffarahSystem
               onClose={() => setShowKaffarahModal(false)}
             />
