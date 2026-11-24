@@ -433,7 +433,7 @@ const App: React.FC = () => {
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const b = books.find(x => x.id === id); if(b) handleUpdateBookProgress(b, pages); }} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
-      case 'profile': return <UserProfile user={user} weights={weights} logs={logs} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={setUser} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onOpenReminders={() => setActiveTab('notifications')} />;
+      case 'profile': return <UserProfile user={user} weights={weights} logs={logs} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={(updatedUser) => { setUser(updatedUser); if (updatedUser) { localStorage.setItem('worship_user', JSON.stringify(updatedUser)); } else { localStorage.removeItem('worship_user'); } }} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onOpenReminders={() => setActiveTab('notifications')} />;
       case 'history': return <WorshipHistory logs={logs} weights={weights} />;
       case 'guide': return <WorshipGuide />;
       case 'contact': return <ContactUs />;

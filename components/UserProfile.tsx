@@ -8,7 +8,7 @@ import {
   Activity, Mail, MapPin, Calendar, Sparkles, Skull,
   Repeat, Database, AlertTriangle, FileJson, Check,
   Smartphone, Download, X, Heart, ShieldAlert,
-  MessageCircle, BellRing, Upload, Printer
+  MessageCircle, BellRing, Upload, Printer, Edit2, AlertCircle
 } from 'lucide-react';
 import { AppWeights, User as UserType, DailyLog } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
@@ -55,6 +55,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
   const [importErrorMsg, setImportErrorMsg] = useState<string>('');
   const [exportFeedback, setExportFeedback] = useState<string | null>(null);
   const [showMonthlyReport, setShowMonthlyReport] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editEmail, setEditEmail] = useState(user?.email || '');
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSavedMsg, setProfileSavedMsg] = useState<string | null>(null);
 
   const effectiveLogs = useMemo(() => {
     if (logs && Object.keys(logs).length > 0) return logs;
@@ -131,6 +136,48 @@ const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
+  const handleOpenEditProfile = () => {
+    setEditName(user?.name || '');
+    setEditEmail(user?.email || '');
+    setProfileError(null);
+    setProfileSavedMsg(null);
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = editName.trim();
+    const trimmedEmail = editEmail.trim().toLowerCase();
+
+    if (!trimmedName) {
+      setProfileError('يرجى إدخال الاسم.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      setProfileError('يرجى إدخال بريد إلكتروني صحيح.');
+      return;
+    }
+
+    const updatedUser: UserType = {
+      name: trimmedName,
+      email: trimmedEmail,
+      age: user?.age || '',
+      country: user?.country || '',
+      city: user?.city || '',
+      qualification: user?.qualification || '',
+      method: user?.method || 'email',
+    };
+
+    onUpdateUser(updatedUser);
+    localStorage.setItem('worship_user', JSON.stringify(updatedUser));
+    setProfileError(null);
+    setIsEditingProfile(false);
+    setProfileSavedMsg('تم تحديث بيانات الحساب وحفظ البريد الإلكتروني بنجاح ✓');
+    setTimeout(() => setProfileSavedMsg(null), 4000);
+  };
+
   const handleLogout = () => {
     if (window.confirm('هل تريد الخروج؟ سيتم مسح بيانات الجلسة من هذا المتصفح.')) {
       onUpdateUser(null);
@@ -168,40 +215,157 @@ const UserProfile: React.FC<UserProfileProps> = ({
               <ShieldCheck className="w-4 h-4 text-white" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 header-font text-center">{user?.name}</h2>
-          <div className="flex items-center gap-2 mt-1">
+          <h2 className="text-2xl font-bold text-slate-800 header-font text-center">{user?.name || 'مستخدم'}</h2>
+          <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
              <span className="text-[10px] text-emerald-600 font-black header-font uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                {user?.method === 'google' ? 'موثق عبر جوجل' : 'موثق عبر الإيميل'}
              </span>
+             {!isEditingProfile && (
+               <button
+                 type="button"
+                 onClick={handleOpenEditProfile}
+                 className="text-[11px] text-slate-700 hover:text-emerald-700 font-black header-font bg-slate-100 hover:bg-emerald-50 px-3 py-1 rounded-full border border-slate-200 hover:border-emerald-200 transition-all flex items-center gap-1.5"
+               >
+                 <Edit2 className="w-3 h-3" />
+                 <span>تعديل البيانات</span>
+               </button>
+             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-3 w-full mt-8">
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-              <Mail className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-bold text-slate-600 truncate">{user?.email}</span>
+          {profileSavedMsg && (
+            <div className="w-full mt-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 animate-in fade-in duration-200">
+              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{profileSavedMsg}</span>
             </div>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                <Calendar className="w-4 h-4 text-slate-400" />
-                <span className="text-xs font-bold text-slate-600">{user?.age} سنة</span>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                <MapPin className="w-4 h-4 text-slate-400" />
-                <span className="text-xs font-bold text-slate-600">{user?.country}</span>
-              </div>
-            </div>
+          )}
 
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-              <MapPin className="w-4 h-4 text-emerald-500" />
-              <span className="text-xs font-bold text-slate-600">{user?.city || 'المدينة غير محددة'}</span>
-            </div>
+          {isEditingProfile ? (
+            <form onSubmit={handleSaveProfile} className="w-full mt-6 p-4 bg-slate-50 rounded-2xl border border-emerald-200 space-y-4 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black text-slate-800 header-font">تعديل بيانات المستخدم</h3>
+                <button
+                  type="button"
+                  onClick={() => { setIsEditingProfile(false); setProfileError(null); }}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                  aria-label="إغلاق التعديل"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-              <GraduationCap className="w-4 h-4 text-purple-500" />
-              <span className="text-xs font-bold text-slate-600">{user?.qualification || 'المؤهل غير محدد'}</span>
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-slate-600 header-font">الاسم</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => { setEditName(e.target.value); setProfileError(null); }}
+                    placeholder="أدخل اسمك"
+                    className="w-full pr-9 pl-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-slate-600 header-font">البريد الإلكتروني</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    dir="ltr"
+                    value={editEmail}
+                    onChange={(e) => { setEditEmail(e.target.value); setProfileError(null); }}
+                    placeholder="example@email.com"
+                    className="w-full pr-9 pl-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {profileError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[11px] font-bold text-rose-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                  <span>{profileError}</span>
+                </div>
+              )}
+
+              <div className="flex gap-2.5 pt-1">
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black header-font flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>حفظ التعديلات</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsEditingProfile(false); setProfileError(null); }}
+                  className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold header-font transition-all"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 w-full mt-8">
+              <div className="flex items-center justify-between gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="flex items-center gap-3 min-w-0">
+                  <User className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold text-slate-400 header-font">الاسم</div>
+                    <div className="text-xs font-bold text-slate-700 truncate">{user?.name || 'غير محدد'}</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenEditProfile}
+                  className="shrink-0 text-[10px] font-black text-emerald-700 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1 header-font"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  <span>تعديل</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Mail className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold text-slate-400 header-font">البريد الإلكتروني</div>
+                    <div className="text-xs font-bold text-slate-700 truncate" dir="ltr">{user?.email || 'غير محدد'}</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenEditProfile}
+                  className="shrink-0 text-[10px] font-black text-emerald-700 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1 header-font"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  <span>تعديل الإيميل</span>
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <span className="text-xs font-bold text-slate-600">{user?.age ? `${user.age} سنة` : 'العمر غير محدد'}</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                  <MapPin className="w-4 h-4 text-slate-400" />
+                  <span className="text-xs font-bold text-slate-600">{user?.country || 'الدولة غير محددة'}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                <MapPin className="w-4 h-4 text-emerald-500" />
+                <span className="text-xs font-bold text-slate-600">{user?.city || 'المدينة غير محددة'}</span>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                <GraduationCap className="w-4 h-4 text-purple-500" />
+                <span className="text-xs font-bold text-slate-600">{user?.qualification || 'المؤهل غير محدد'}</span>
+              </div>
             </div>
-          </div>
+          )}
           
           <div className="mt-8 w-full">
             <button 
