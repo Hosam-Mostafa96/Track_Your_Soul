@@ -40,6 +40,7 @@ export const FULL_BACKUP_STORAGE_KEYS = [
   'local_prayer_gps',
   'selected_prayer_city',
   'local_prayer_method',
+  'worship_accent_color',
 ] as const;
 
 export interface FullBackupPayload {

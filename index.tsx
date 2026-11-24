@@ -3,6 +3,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
+import { applyAccentColor, getStoredAccentColor } from './utils/accentTheme';
+
+applyAccentColor(getStoredAccentColor(), false);
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

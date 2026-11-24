@@ -63,6 +63,8 @@ import DailyTasksPlanner from './components/DailyTasksPlanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { getIslamicDateString, isCurrentIslamicNight } from './utils/prayerTimes';
+import { AccentColorId, applyAccentColor, getStoredAccentColor } from './utils/accentTheme';
+import { getUnreadChangelogCount } from './data/changelog';
 
 const INITIAL_LOG = (date: string): DailyLog => ({
   date,
@@ -119,6 +121,15 @@ const App: React.FC = () => {
   const [showHifzTracker, setShowHifzTracker] = useState(false);
   const [showWorshipMindCorrelation, setShowWorshipMindCorrelation] = useState(false);
   const [showKaffarahModal, setShowKaffarahModal] = useState(false);
+  const [accentColor, setAccentColor] = useState<AccentColorId>(() => getStoredAccentColor());
+  const [unreadUpdatesCount, setUnreadUpdatesCount] = useState<number>(() => getUnreadChangelogCount());
+  const [notificationsInitialTab, setNotificationsInitialTab] = useState<'reminders' | 'changelog'>(() =>
+    getUnreadChangelogCount() > 0 ? 'changelog' : 'reminders'
+  );
+
+  useEffect(() => {
+    applyAccentColor(accentColor, true);
+  }, [accentColor]);
 
   // Scheduled Daily Reminders System
   const scheduledReminders = useScheduledReminders();
@@ -433,11 +444,11 @@ const App: React.FC = () => {
       case 'library': return <BookLibrary books={books} onAddBook={handleAddBook} onDeleteBook={handleDeleteBook} onUpdateProgress={(id, pages) => { const b = books.find(x => x.id === id); if(b) handleUpdateBookProgress(b, pages); }} />;
       case 'stats': return <Statistics user={user} logs={logs} weights={weights} books={books} lastSyncTime={lastCloudSync} onManualSync={(f) => syncToCloud(logs, books, f)} />;
       case 'notes': return <Reflections log={currentLog} onUpdate={updateLog} />;
-      case 'profile': return <UserProfile user={user} weights={weights} logs={logs} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={(updatedUser) => { setUser(updatedUser); if (updatedUser) { localStorage.setItem('worship_user', JSON.stringify(updatedUser)); } else { localStorage.removeItem('worship_user'); } }} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onOpenReminders={() => setActiveTab('notifications')} />;
+      case 'profile': return <UserProfile user={user} weights={weights} logs={logs} isGlobalSync={isGlobalSyncEnabled} onToggleSync={setIsGlobalSyncEnabled} onUpdateUser={(updatedUser) => { setUser(updatedUser); if (updatedUser) { localStorage.setItem('worship_user', JSON.stringify(updatedUser)); } else { localStorage.removeItem('worship_user'); } }} onUpdateWeights={setWeights} installPrompt={deferredPrompt} onClearInstallPrompt={() => setDeferredPrompt(null)} onOpenReminders={() => { setNotificationsInitialTab('reminders'); setActiveTab('notifications'); }} accentColor={accentColor} onChangeAccentColor={setAccentColor} />;
       case 'history': return <WorshipHistory logs={logs} weights={weights} />;
       case 'guide': return <WorshipGuide />;
       case 'contact': return <ContactUs />;
-      case 'notifications': return <Notifications onBack={() => setActiveTab('dashboard')} remindersManager={scheduledReminders} />;
+      case 'notifications': return <Notifications onBack={() => setActiveTab('dashboard')} remindersManager={scheduledReminders} initialTab={notificationsInitialTab} unreadUpdatesCount={unreadUpdatesCount} onMarkUpdatesSeen={() => setUnreadUpdatesCount(0)} />;
       default: return null;
     }
   };
@@ -483,7 +494,7 @@ const App: React.FC = () => {
                   <span className="text-[10px] sm:text-xs text-emerald-200 header-font font-bold truncate mt-0.5 opacity-80">مرحباً، {user.name}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0"><PWAInstallButton variant="header" /><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Bell className="w-5 h-5" />{hasNewNotifications && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
+              <div className="flex items-center gap-1 shrink-0"><PWAInstallButton variant="header" /><button onClick={() => setActiveTab('guide')} className={`p-2.5 rounded-full transition-all border ${activeTab === 'guide' ? 'bg-amber-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`}><Lightbulb className="w-5 h-5" /></button><button onClick={() => { setNotificationsInitialTab(unreadUpdatesCount > 0 ? 'changelog' : 'reminders'); setActiveTab('notifications'); setHasNewNotifications(false); }} className={`p-2.5 rounded-full transition-all border relative ${activeTab === 'notifications' ? 'bg-yellow-400 text-emerald-900 border-white' : 'bg-white/10 text-white/70 border-white/20'}`} title={unreadUpdatesCount > 0 ? `${unreadUpdatesCount} تحديثات جديدة` : 'الإشعارات وسجل التحديثات'}><Bell className="w-5 h-5" />{(hasNewNotifications || unreadUpdatesCount > 0) && (<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>)}</button></div>
             </div>
             <div className="flex flex-col items-center gap-1.5"><div className="flex items-center gap-1.5 text-[11px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 shadow-sm backdrop-blur-sm"><Calendar className="w-3.5 h-3.5 text-yellow-400" />{hijriDate}</div></div>
             <div className="mt-2 bg-white/10 backdrop-blur-xl rounded-3xl p-4 w-full flex items-center justify-between border border-white/20 shadow-2xl">

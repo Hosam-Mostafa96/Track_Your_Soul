@@ -8,7 +8,8 @@ import {
   Activity, Mail, MapPin, Calendar, Sparkles, Skull,
   Repeat, Database, AlertTriangle, FileJson, Check,
   Smartphone, Download, X, Heart, ShieldAlert,
-  MessageCircle, BellRing, Upload, Printer, Edit2, AlertCircle
+  MessageCircle, BellRing, Upload, Printer, Edit2, AlertCircle,
+  Palette, CheckCircle2
 } from 'lucide-react';
 import { AppWeights, User as UserType, DailyLog } from '../types';
 import { DEFAULT_WEIGHTS } from '../constants';
@@ -21,6 +22,12 @@ import {
   inspectBackupJson,
   restoreBackupJson,
 } from '../utils/backupAndReport';
+import {
+  ACCENT_THEME_LIST,
+  AccentColorId,
+  applyAccentColor,
+  getStoredAccentColor,
+} from '../utils/accentTheme';
 
 interface UserProfileProps {
   user: UserType | null;
@@ -33,6 +40,8 @@ interface UserProfileProps {
   onClearInstallPrompt?: () => void;
   logs?: Record<string, DailyLog>;
   onOpenReminders?: () => void;
+  accentColor?: AccentColorId;
+  onChangeAccentColor?: (color: AccentColorId) => void;
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ 
@@ -43,7 +52,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
   onUpdateUser, 
   onUpdateWeights, 
   logs = {},
-  onOpenReminders
+  onOpenReminders,
+  accentColor,
+  onChangeAccentColor
 }) => {
   const [localWeights, setLocalWeights] = useState<AppWeights>({ ...weights });
   const [showWeights, setShowWeights] = useState(false);
@@ -60,6 +71,14 @@ const UserProfile: React.FC<UserProfileProps> = ({
   const [editEmail, setEditEmail] = useState(user?.email || '');
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSavedMsg, setProfileSavedMsg] = useState<string | null>(null);
+  const [fallbackAccent, setFallbackAccent] = useState<AccentColorId>(() => getStoredAccentColor());
+  const activeAccent = accentColor ?? fallbackAccent;
+
+  const handleSelectAccentColor = (id: AccentColorId) => {
+    setFallbackAccent(id);
+    applyAccentColor(id, true);
+    onChangeAccentColor?.(id);
+  };
 
   const effectiveLogs = useMemo(() => {
     if (logs && Object.keys(logs).length > 0) return logs;
@@ -375,6 +394,70 @@ const UserProfile: React.FC<UserProfileProps> = ({
               <LogOut className="w-4 h-4" /> تسجيل الخروج ومسح الجلسة
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* تخصيص لون التميز (Accent Color) */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+        <div className="flex items-center gap-3.5">
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
+            <Palette className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 header-font">لون التميز (Accent Color)</h3>
+            <p className="text-[10px] text-slate-400 font-bold header-font">
+              اختر اللون الرئيسي للأزرار والترويسة وعناصر التطبيق
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {ACCENT_THEME_LIST.map((theme) => {
+            const isSelected = activeAccent === theme.id;
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                onClick={() => handleSelectAccentColor(theme.id)}
+                className={`relative p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 text-center active:scale-95 ${
+                  isSelected
+                    ? 'shadow-md scale-[1.02]'
+                    : 'bg-slate-50 border-slate-100 hover:border-slate-200'
+                }`}
+                style={
+                  isSelected
+                    ? {
+                        backgroundColor: theme.previewLight,
+                        borderColor: theme.previewPrimary,
+                      }
+                    : undefined
+                }
+              >
+                {isSelected && (
+                  <span
+                    className="absolute top-2 left-2 rounded-full"
+                    style={{ color: theme.previewPrimary }}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                  </span>
+                )}
+
+                <div
+                  className="w-10 h-10 rounded-full shadow-inner border-2 border-white flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${theme.previewPrimary}, ${theme.previewSecondary})`,
+                  }}
+                >
+                  <span className="w-3 h-3 rounded-full bg-white/80" />
+                </div>
+
+                <div>
+                  <div className="text-xs font-black text-slate-800 header-font">{theme.name}</div>
+                  <div className="text-[10px] font-bold text-slate-400 header-font">{theme.subtitle}</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
