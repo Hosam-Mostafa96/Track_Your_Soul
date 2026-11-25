@@ -118,9 +118,30 @@ async function startServer() {
   // Vite development vs production asset-serving middleware
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: false },
+      server: { middlewareMode: true, hmr: false, ws: false },
       appType: 'spa',
     });
+
+    // When HMR is disabled in preview iframes, Vite 6's @vite/client still invokes
+    // transport.connect() and throws "WebSocket closed without opened." Strip only the
+    // socket connect call while preserving updateStyle/createHotContext/injectQuery.
+    app.get('/@vite/client', async (req, res, next) => {
+      try {
+        const transformed = await vite.transformRequest('/@vite/client');
+        if (transformed && typeof transformed.code === 'string') {
+          const cleanCode = transformed.code.replace(
+            /transport\.connect\(createHMRHandler\(handleMessage\)\);?/g,
+            '/* hmr disabled */'
+          );
+          res.status(200).type('application/javascript').send(cleanCode);
+          return;
+        }
+      } catch {
+        // fallback to default middleware
+      }
+      next();
+    });
+
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');

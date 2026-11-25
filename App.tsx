@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { 
   LayoutDashboard, 
   PenLine, 
@@ -216,6 +216,10 @@ const App: React.FC = () => {
     setIsAppReady(true);
   }, []);
 
+  const booksRef = useRef(books);
+  booksRef.current = books;
+  const syncToCloudRef = useRef<any>(null);
+
   const syncToCloud = async (currentLogs: any, currentBooks: any, force = false, activityLabel?: string, activityType?: string) => {
     if (!user?.email || !navigator.onLine || !isGlobalSyncEnabled) return;
     try {
@@ -247,17 +251,25 @@ const App: React.FC = () => {
       }
     } catch (e) { console.error("Sync failed", e); }
   };
+  syncToCloudRef.current = syncToCloud;
 
-  const updateLog = (updated: DailyLog, activityLabel?: string, activityType?: string) => {
-    const newLogs = { ...logs, [updated.date]: updated };
-    setLogs(newLogs);
-    localStorage.setItem('worship_logs', JSON.stringify(newLogs));
-    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+  const updateLog = useCallback((updated: DailyLog, activityLabel?: string, activityType?: string) => {
     // حجب أي نشاط متعلق بالذنوب أو محاسبة النفس عن النشر في السحابة
     const safeActivityLabel = isSinOrAccountabilityActivity(activityLabel, activityType) ? undefined : activityLabel;
     const safeActivityType = isSinOrAccountabilityActivity(activityLabel, activityType) ? undefined : activityType;
-    syncTimeoutRef.current = window.setTimeout(() => syncToCloud(newLogs, books, false, safeActivityLabel, safeActivityType), 2000);
-  };
+
+    setLogs((prevLogs) => {
+      const newLogs = { ...prevLogs, [updated.date]: updated };
+      try {
+        localStorage.setItem('worship_logs', JSON.stringify(newLogs));
+      } catch (e) {}
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = window.setTimeout(() => {
+        syncToCloudRef.current?.(newLogs, booksRef.current, false, safeActivityLabel, safeActivityType);
+      }, 2000);
+      return newLogs;
+    });
+  }, []);
 
   const handleAddBook = (title: string, totalPages: number) => {
     const newBook: Book = {

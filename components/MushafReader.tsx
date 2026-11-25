@@ -274,6 +274,10 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   });
   const logRef = useRef<DailyLog>(log);
   logRef.current = log;
+  const onUpdateLogRef = useRef(onUpdateLog);
+  onUpdateLogRef.current = onUpdateLog;
+  const currentPageRef = useRef<number>(currentPage);
+  currentPageRef.current = currentPage;
   const pageEnterTimeRef = useRef<number>(Date.now());
 
   // مدير التخزين الكامل بدون إنترنت (أوفلاين للمصحف)
@@ -522,11 +526,11 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   }, []);
 
   const goToNextPage = () => {
-    // إذا كان الاحتساب التلقائي مفعلاً ومكث القارئ >= 1.5 ثانية في الصفحة، سجّلها عند التقليب للأمام
+    // إذا كان الاحتساب التلقائي مفعلاً، سجّل الصفحة المقروءة فوراً عند التقليب للأمام (مع حد أدنى 250ms لمنع اللمس العرضي المزدوج)
     if (autoTrackWard && !(testModeActive && isContentHidden)) {
       const elapsed = Date.now() - pageEnterTimeRef.current;
-      if (elapsed >= 1500) {
-        markCanonicalPageAsRead(canonicalMadaniPage, false);
+      if (elapsed >= 250) {
+        markCanonicalPageAsRead(canonicalMadaniPage, false, currentPage);
       }
     }
 
@@ -544,6 +548,11 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
       stopAudio();
     }
   };
+
+  const goToNextPageRef = useRef(goToNextPage);
+  goToNextPageRef.current = goToNextPage;
+  const goToPrevPageRef = useRef(goToPrevPage);
+  goToPrevPageRef.current = goToPrevPage;
 
   const goToPage = (page: number, targetEdition?: MushafEdition) => {
     const activeEd = targetEdition || mushafEdition;
@@ -673,16 +682,16 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (showIndexModal || showBookmarkModal) return;
       if (e.key === 'ArrowRight') {
-        goToNextPage();
+        goToNextPageRef.current();
       } else if (e.key === 'ArrowLeft') {
-        goToPrevPage();
+        goToPrevPageRef.current();
       } else if (e.key === 'Escape' && isFullScreen) {
         toggleFullScreen();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage, totalPages, showIndexModal, showBookmarkModal, isFullScreen]);
+  }, [showIndexModal, showBookmarkModal, isFullScreen]);
 
   // إدارة الفواصل المتعددة والمخصصة
   const handleOpenAddBookmark = () => {
@@ -833,11 +842,12 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
   };
 
   // تسجيل صفحة واحدة بالورد اليومي (مع مزامنة خطة الورد والختمة)
-  const markCanonicalPageAsRead = useCallback((madaniPage: number, isManual = false) => {
+  const markCanonicalPageAsRead = useCallback((madaniPage: number, isManual = false, displayPage?: number) => {
     const latestLog = logRef.current;
     const currentRead = latestLog.quran?.readPages || [];
     if (currentRead.includes(madaniPage)) return;
 
+    const pageShown = displayPage ?? currentPageRef.current;
     const updatedPages = [...currentRead, madaniPage].sort((a, b) => a - b);
     const existingPlan = latestLog.quran?.wardPlan;
 
@@ -870,7 +880,7 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
     };
 
     logRef.current = updatedLog;
-    onUpdateLog(
+    onUpdateLogRef.current(
       updatedLog,
       `قرأ صفحة ${madaniPage} من المصحف الشريف`,
       'quran'
@@ -891,24 +901,28 @@ export const MushafReader: React.FC<MushafReaderProps> = ({
         origin: { y: 0.8 },
         colors: ['#059669', '#10b981', '#fbbf24'],
       });
-      showToast(`تقبل الله! أتممت قراءة صفحة ${currentPage} (+15 نقطة بالرصيد) 🌿`);
+      showToast(`تقبل الله! أتممت قراءة صفحة ${pageShown} (+15 نقطة بالرصيد) 🌿`);
     } else {
-      showToast(`تم احتساب صفحة ${currentPage} في ورد اليوم تلقائياً (+15 ن) ✓`);
+      showToast(`تم احتساب صفحة ${pageShown} في ورد اليوم تلقائياً (+15 ن) ✓`);
     }
-  }, [onUpdateLog, currentPage]);
+  }, []);
 
-  // مؤقت القراءة التلقائي: عند المكوث 3.5 ثوانٍ في الصفحة تُحتسب تلقائياً في الورد
+  // تسجيل وقت دخول الصفحة عند تغيير الصفحة فقط
   useEffect(() => {
     pageEnterTimeRef.current = Date.now();
+  }, [currentPage, canonicalMadaniPage]);
+
+  // مؤقت القراءة التلقائي: عند المكوث 2.5 ثوانٍ في الصفحة تُحتسب تلقائياً في الورد والرصيد
+  useEffect(() => {
     if (!autoTrackWard) return;
     if (testModeActive && isContentHidden) return;
 
     const timer = window.setTimeout(() => {
-      markCanonicalPageAsRead(canonicalMadaniPage, false);
-    }, 3500);
+      markCanonicalPageAsRead(canonicalMadaniPage, false, currentPageRef.current);
+    }, 2500);
 
     return () => window.clearTimeout(timer);
-  }, [canonicalMadaniPage, autoTrackWard, testModeActive, isContentHidden, markCanonicalPageAsRead]);
+  }, [currentPage, canonicalMadaniPage, autoTrackWard, testModeActive, isContentHidden, markCanonicalPageAsRead]);
 
   const toggleAutoTrackWard = () => {
     setAutoTrackWard((prev) => {

@@ -36,9 +36,19 @@ export const LAST_SEEN_CHANGELOG_KEY = 'last_seen_notification_id';
  */
 export const APP_CHANGELOG: AppChangelogEntry[] = [
   {
+    id: 22,
+    version: 'v4.7',
+    dateLabel: 'التحديث الحالي',
+    category: 'fix',
+    title: 'إصلاح الاحتساب التلقائي عند تقليب صفحات المصحف المحفوظة',
+    message:
+      'ضبط تتبع تقليب الصفحات في المصحف الشريف (أونلاين وأوفلاين) ليتم احتساب كل صفحة تلقائياً في الورد اليومي والرصيد الروحي (+15 نقطة) فور التقليب للأمام أو المكوث في القراءة دون إعادة ضبط المؤقت.',
+    icon: 'book',
+  },
+  {
     id: 21,
     version: 'v4.6',
-    dateLabel: 'التحديث الحالي',
+    dateLabel: 'حديثاً',
     category: 'fix',
     title: 'تحسين أبعاد نوافذ الكفارات والتكرار المتباعد وأثر العبادة',
     message:
