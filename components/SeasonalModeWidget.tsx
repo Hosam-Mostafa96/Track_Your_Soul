@@ -13,7 +13,7 @@ import {
   BellRing,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { DailyLog, AppWeights } from '../types';
+import { DailyLog, AppWeights, User } from '../types';
 import {
   HijriOffset,
   detectActiveSeasons,
@@ -23,10 +23,17 @@ import {
   loadSeasonalCompletedTasks,
   toggleSeasonalTask,
 } from '../utils/islamicSeasons';
+import {
+  getActiveFlashChallenge,
+  isMajorIslamicSeasonActive,
+} from '../utils/flashChallenges';
+import { FlashChallengeCard } from './FlashChallengeCard';
+import { FirebaseErrorBoundary } from './FirebaseErrorBoundary';
 
 interface SeasonalModeWidgetProps {
   log: DailyLog;
   weights: AppWeights;
+  user?: User | null;
   onUpdateLog: (log: DailyLog, activityLabel?: string, activityType?: string) => void;
   onSwitchTab: (tab: any) => void;
 }
@@ -34,12 +41,15 @@ interface SeasonalModeWidgetProps {
 export const SeasonalModeWidget: React.FC<SeasonalModeWidgetProps> = ({
   log,
   weights,
+  user,
   onUpdateLog,
   onSwitchTab,
 }) => {
   const [hijriOffset, setHijriOffset] = useState<HijriOffset>(getSavedHijriOffset);
   const [showUpcoming, setShowUpcoming] = useState(false);
   const [showAdjuster, setShowAdjuster] = useState(false);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  const [flashRefreshTick, setFlashRefreshTick] = useState<number>(0);
   const [completedTaskIds, setCompletedTaskIds] = useState<string[]>(() =>
     loadSeasonalCompletedTasks(log.date)
   );
@@ -65,6 +75,25 @@ export const SeasonalModeWidget: React.FC<SeasonalModeWidgetProps> = ({
   const upcomingSeasons = useMemo(
     () => getUpcomingSeasons(refDate, hijriOffset),
     [refDate, hijriOffset]
+  );
+
+  const isMajorSeason = useMemo(
+    () => isMajorIslamicSeasonActive(refDate, hijriOffset),
+    [refDate, hijriOffset]
+  );
+
+  React.useEffect(() => {
+    if (isMajorSeason) return;
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isMajorSeason]);
+
+  const activeFlashChallenge = useMemo(
+    () => getActiveFlashChallenge(log.date, refDate, hijriOffset, nowMs),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [log.date, refDate, hijriOffset, nowMs, flashRefreshTick]
   );
 
   const primarySeason = seasons[0] || null;
@@ -127,8 +156,8 @@ export const SeasonalModeWidget: React.FC<SeasonalModeWidgetProps> = ({
         </div>
       )}
 
-      {/* البطاقة الرئيسية لوضع المواسم الهجرية */}
-      {primarySeason ? (
+      {/* البطاقة الرئيسية لوضع المواسم الكبرى أو بطاقة التحدي الخاطف (٢٤ ساعة) في غير المواسم */}
+      {isMajorSeason && primarySeason ? (
         <div
           className={`bg-gradient-to-br ${primarySeason.themeGradient} rounded-[2rem] p-5 sm:p-6 text-white shadow-xl border ${primarySeason.borderColor} relative overflow-hidden`}
         >
@@ -354,8 +383,131 @@ export const SeasonalModeWidget: React.FC<SeasonalModeWidgetProps> = ({
             )}
           </div>
         </div>
+      ) : activeFlashChallenge ? (
+        <div className="space-y-3">
+          <FirebaseErrorBoundary>
+            <FlashChallengeCard
+              challenge={activeFlashChallenge}
+              log={log}
+              appUser={user}
+              nowMs={nowMs}
+              onUpdateLog={onUpdateLog}
+              onSwitchTab={onSwitchTab}
+              onExpired={() => setFlashRefreshTick((t) => t + 1)}
+            />
+          </FirebaseErrorBoundary>
+
+          {/* شريط مختصر لسنن اليوم الأسبوعية (مثل الكهف يوم الجمعة أو صيام الإثنين والخميس) والتقويم القادم */}
+          <div className="bg-white rounded-[1.5rem] px-4 py-3 shadow-xs border border-slate-100 space-y-2.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 min-w-0">
+                <Calendar className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span className="font-black text-slate-800 header-font truncate">
+                  {hijri.formattedAr}
+                </span>
+                {primarySeason && (
+                  <>
+                    <span aria-hidden="true" className="text-slate-300">·</span>
+                    <span className="text-emerald-700 truncate">{primarySeason.title}</span>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {anyFastingRecommended && !anyFastingForbidden && (
+                  <button
+                    type="button"
+                    onClick={handleToggleFastingToday}
+                    className={`min-h-[36px] px-3 py-1 rounded-xl text-[11px] font-black header-font transition-colors whitespace-nowrap ${
+                      log.nawafil?.fasting
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-amber-100 hover:bg-amber-200 text-amber-900'
+                    }`}
+                  >
+                    {log.nawafil?.fasting ? 'تم تسجيل الصيام ✓' : 'تسجيل صيام اليوم'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowUpcoming((v) => !v)}
+                  className="min-h-[36px] px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-black header-font flex items-center gap-1 transition-colors whitespace-nowrap"
+                >
+                  <span>السنن والمواسم</span>
+                  {showUpcoming ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            {showUpcoming && (
+              <div className="pt-2.5 border-t border-slate-100 space-y-3">
+                {primarySeason && primarySeason.tasks.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {seasons.flatMap((season) =>
+                      season.tasks.map((task) => {
+                        const key = `${season.id}_${task.id}`;
+                        const done = completedTaskIds.includes(key);
+                        return (
+                          <div
+                            key={key}
+                            className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
+                              done
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                                : 'bg-slate-50 border-slate-200/70 text-slate-800'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTask(season.id, task.id)}
+                              className="flex items-center gap-2 text-right flex-1 min-w-0"
+                            >
+                              {done ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              ) : (
+                                <Circle className="w-4 h-4 text-slate-400 shrink-0" />
+                              )}
+                              <span className={`text-xs font-black header-font truncate ${done ? 'line-through opacity-75' : ''}`}>
+                                {task.label}
+                              </span>
+                            </button>
+                            {task.targetTab && (
+                              <button
+                                type="button"
+                                onClick={() => onSwitchTab(task.targetTab)}
+                                className="p-1.5 rounded-lg bg-white border border-slate-200 text-emerald-700 hover:bg-emerald-50 shrink-0"
+                                title="الانتقال لتنفيذ الورد"
+                              >
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {upcomingSeasons.map((item) => (
+                    <div
+                      key={item.id}
+                      className="bg-slate-50 rounded-xl p-2.5 border border-slate-100 text-center space-y-0.5"
+                    >
+                      <span className="text-base block">{item.badge}</span>
+                      <span className="text-[10px] font-black text-slate-800 block header-font truncate">
+                        {item.title}
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-700 font-black block tabular-nums">
+                        {item.daysLeft === 0 ? 'اليوم' : `بعد ${item.daysLeft} يوم`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
-        /* بطاقة مختصرة في الأيام العادية تعرض التاريخ الهجري والموسم القادم */
+        /* بطاقة مختصرة في الأيام العادية بعد انتهاء التحدي أو في الأيام السابقة */
         <div className="bg-white rounded-[2rem] p-4 sm:p-5 shadow-sm border border-slate-100 space-y-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2.5">

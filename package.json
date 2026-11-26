@@ -11,10 +11,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@google/genai": "^1.35.0",
     "canvas-confetti": "^1.9.3",
     "date-fns": "^4.1.0",
+    "eslint": "^10.15.0",
     "express": "^5.2.1",
+    "firebase": "^13.4.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.562.0",
     "react": "^19.0.0",

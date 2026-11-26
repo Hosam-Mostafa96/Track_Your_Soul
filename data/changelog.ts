@@ -36,9 +36,19 @@ export const LAST_SEEN_CHANGELOG_KEY = 'last_seen_notification_id';
  */
 export const APP_CHANGELOG: AppChangelogEntry[] = [
   {
+    id: 23,
+    version: 'v4.8',
+    dateLabel: 'التحديث الحالي',
+    category: 'feature',
+    title: 'تحدي الـ ٢٤ ساعة التنافسي المباشر (في غير المواسم)',
+    message:
+      'إضافة بطاقة تحدي يومية تظهر في غير المواسم لمدة ٢٤ ساعة فقط وتختفي تلقائياً (أبرزها تحدي الصلاة على النبي ﷺ في ليلة ويوم الجمعة)، مزودة بشريط تقدم تنافسي يظهر أعلى رقم سجّله مستخدم آخر لحظياً عبر Firebase Firestore مع مسبحة سريعة مدمجة.',
+    icon: 'trophy',
+  },
+  {
     id: 22,
     version: 'v4.7',
-    dateLabel: 'التحديث الحالي',
+    dateLabel: 'حديثاً',
     category: 'fix',
     title: 'إصلاح الاحتساب التلقائي عند تقليب صفحات المصحف المحفوظة',
     message:

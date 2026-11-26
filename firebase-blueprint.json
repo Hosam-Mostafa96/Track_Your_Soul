@@ -1,0 +1,139 @@
+{
+  "entities": {
+    "FlashChallenge": {
+      "title": "FlashChallenge",
+      "description": "Shared 24-hour flash dhikr challenge tracking the global highest count and participant count.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Deterministic challenge identifier (e.g. 2026-11-27_salawat).",
+          "minLength": 3,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Arabic display title for the 24-hour challenge.",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "dhikrKey": {
+          "type": "string",
+          "description": "Dhikr counter key linked to the daily log.",
+          "enum": ["salawat", "istighfar", "hawqalah", "tahlil", "baqiyat"]
+        },
+        "targetGoal": {
+          "type": "integer",
+          "description": "Default milestone target for the challenge."
+        },
+        "topCount": {
+          "type": "integer",
+          "description": "Highest count reached by any participant in this 24-hour challenge."
+        },
+        "topUserId": {
+          "type": "string",
+          "description": "UID of the user who currently holds topCount.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "topUserName": {
+          "type": "string",
+          "description": "Public display name (no PII/email) of the current challenge leader.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "participantsCount": {
+          "type": "integer",
+          "description": "Total number of users who joined this 24-hour challenge."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the challenge record was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the last record update."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "dhikrKey",
+        "targetGoal",
+        "topCount",
+        "topUserId",
+        "topUserName",
+        "participantsCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FlashChallengeEntry": {
+      "title": "FlashChallengeEntry",
+      "description": "Individual user's progress entry inside a 24-hour flash challenge.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the participant.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "challengeId": {
+          "type": "string",
+          "description": "Parent flash challenge identifier.",
+          "minLength": 3,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Participant public display name (sanitized, non-PII).",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "count": {
+          "type": "integer",
+          "description": "Participant's current dhikr count in this challenge."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the user joined the challenge."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the user's latest progress update."
+        }
+      },
+      "required": [
+        "userId",
+        "challengeId",
+        "displayName",
+        "count",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/flashChallenges/{challengeId}": {
+      "schema": {
+        "$ref": "#/entities/FlashChallenge"
+      },
+      "description": "Shared 24-hour flash challenge documents storing topCount, topUserName, and participantsCount."
+    },
+    "/flashChallenges/{challengeId}/entries/{userId}": {
+      "schema": {
+        "$ref": "#/entities/FlashChallengeEntry"
+      },
+      "description": "Per-user challenge entry subcollection storing the authenticated participant's count."
+    }
+  }
+}

@@ -1,0 +1,246 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Shared Hardened Primitives
+    // -------------------------------------------------------------------------
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedSignedIn() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string
+        && id.size() >= 1
+        && id.size() <= 128
+        && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidChallengeId(id) {
+      return id is string
+        && id.size() >= 3
+        && id.size() <= 64
+        && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // -------------------------------------------------------------------------
+    // Entity Validation Blueprints (Synchronized with firebase-blueprint.json)
+    // -------------------------------------------------------------------------
+    function isValidFlashChallenge(data, challengeId) {
+      return data.keys().hasAll([
+          'id',
+          'title',
+          'dhikrKey',
+          'targetGoal',
+          'topCount',
+          'topUserId',
+          'topUserName',
+          'participantsCount',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'title',
+          'dhikrKey',
+          'targetGoal',
+          'topCount',
+          'topUserId',
+          'topUserName',
+          'participantsCount',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.id is string
+        && data.id == challengeId
+        && isValidChallengeId(data.id)
+        && data.title is string
+        && data.title.size() >= 2
+        && data.title.size() <= 120
+        && data.dhikrKey is string
+        && data.dhikrKey in ['salawat', 'istighfar', 'hawqalah', 'tahlil', 'baqiyat']
+        && data.targetGoal is int
+        && data.targetGoal >= 1
+        && data.targetGoal <= 1000000
+        && data.topCount is int
+        && data.topCount >= 0
+        && data.topCount <= 1000000
+        && data.topUserId is string
+        && isValidId(data.topUserId)
+        && data.topUserName is string
+        && data.topUserName.size() >= 1
+        && data.topUserName.size() <= 60
+        && data.participantsCount is int
+        && data.participantsCount >= 1
+        && data.participantsCount <= 1000000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFlashChallengeEntry(data, challengeId, userId) {
+      return data.keys().hasAll([
+          'userId',
+          'challengeId',
+          'displayName',
+          'count',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId',
+          'challengeId',
+          'displayName',
+          'count',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.userId is string
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.userId == userId
+        && data.challengeId is string
+        && isValidChallengeId(data.challengeId)
+        && data.challengeId == challengeId
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 60
+        && data.count is int
+        && data.count >= 0
+        && data.count <= 1000000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // -------------------------------------------------------------------------
+    // Action Helpers for FlashChallenge
+    // -------------------------------------------------------------------------
+    function isChallengeImmutablePreserved() {
+      return incoming().id == existing().id
+        && incoming().title == existing().title
+        && incoming().dhikrKey == existing().dhikrKey
+        && incoming().targetGoal == existing().targetGoal
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+    }
+
+    function isJoinOnlyAction(challengeId) {
+      return incoming().diff(existing()).affectedKeys().hasOnly(['participantsCount', 'updatedAt'])
+        && incoming().participantsCount == existing().participantsCount + 1
+        && !exists(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid))
+        && existsAfter(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid));
+    }
+
+    function isJoinAndBreakRecordAction(challengeId) {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+          'participantsCount',
+          'topCount',
+          'topUserId',
+          'topUserName',
+          'updatedAt'
+        ])
+        && incoming().participantsCount == existing().participantsCount + 1
+        && incoming().topCount > existing().topCount
+        && incoming().topUserId == request.auth.uid
+        && !exists(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid))
+        && existsAfter(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid)).data.count == incoming().topCount;
+    }
+
+    function isBreakRecordAction(challengeId) {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+          'topCount',
+          'topUserId',
+          'topUserName',
+          'updatedAt'
+        ])
+        && incoming().topCount > existing().topCount
+        && incoming().topUserId == request.auth.uid
+        && exists(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid))
+        && existsAfter(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid)).data.count == incoming().topCount;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collections
+    // -------------------------------------------------------------------------
+    match /flashChallenges/{challengeId} {
+      // Deterministic document reads only (zero PII stored on challenge summary)
+      allow get: if isVerifiedSignedIn() && isValidChallengeId(challengeId);
+      allow list: if false;
+
+      // First participant creates the challenge and their own entry atomically
+      allow create: if isVerifiedSignedIn()
+        && isValidChallengeId(challengeId)
+        && isValidFlashChallenge(incoming(), challengeId)
+        && incoming().topUserId == request.auth.uid
+        && incoming().participantsCount == 1
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/flashChallenges/$(challengeId)/entries/$(request.auth.uid)).data.count == incoming().topCount;
+
+      // Subsequent participants join or break topCount via strict atomic actions
+      allow update: if isVerifiedSignedIn()
+        && isValidChallengeId(challengeId)
+        && isValidFlashChallenge(incoming(), challengeId)
+        && isChallengeImmutablePreserved()
+        && (
+          isJoinOnlyAction(challengeId)
+          || isJoinAndBreakRecordAction(challengeId)
+          || isBreakRecordAction(challengeId)
+        );
+
+      allow delete: if false;
+
+      match /entries/{userId} {
+        allow get: if isVerifiedSignedIn()
+          && isValidChallengeId(challengeId)
+          && isValidId(userId)
+          && request.auth.uid == userId;
+        allow list: if false;
+
+        allow create: if isVerifiedSignedIn()
+          && isValidChallengeId(challengeId)
+          && isValidId(userId)
+          && request.auth.uid == userId
+          && isValidFlashChallengeEntry(incoming(), challengeId, userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/flashChallenges/$(challengeId));
+
+        allow update: if isVerifiedSignedIn()
+          && isValidChallengeId(challengeId)
+          && isValidId(userId)
+          && request.auth.uid == userId
+          && isValidFlashChallengeEntry(incoming(), challengeId, userId)
+          && exists(/databases/$(database)/documents/flashChallenges/$(challengeId))
+          && incoming().userId == existing().userId
+          && incoming().challengeId == existing().challengeId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().count >= existing().count
+          && incoming().diff(existing()).affectedKeys().hasOnly(['count', 'displayName', 'updatedAt']);
+
+        allow delete: if false;
+      }
+    }
+  }
+}

@@ -68,7 +68,7 @@ interface DashboardProps {
   onSwitchTab: (tab: any) => void;
   installPrompt: any;
   onClearInstallPrompt: () => void;
-  onUpdateLog: (log: DailyLog) => void;
+  onUpdateLog: (log: DailyLog, activityLabel?: string, activityType?: string) => void;
   user?: User | null;
   onOpenWeeklyEvaluation?: (tab?: 'general' | 'custom_goals') => void;
   onOpenHifzTracker?: () => void;
@@ -718,6 +718,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       <SeasonalModeWidget
         log={log}
         weights={weights}
+        user={user}
         onUpdateLog={onUpdateLog}
         onSwitchTab={onSwitchTab}
       />
